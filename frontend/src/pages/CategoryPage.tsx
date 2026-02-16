@@ -1,0 +1,164 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Clock } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { NewsCard } from '@/components/news/NewsCard';
+import { TrendingSidebar } from '@/components/news/TrendingSidebar';
+import { AdsSection } from '@/components/layout/AdsSection';
+import { GoogleAdSlot } from '@/components/layout/GoogleAdSlot';
+import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  getCategoryBySlug,
+  getArticlesByCategory,
+  getSections,
+  getMediaUrl,
+  type ArticleListItem,
+  type CategoryItem,
+  type SectionItem,
+} from '@/lib/api';
+
+const CategoryPage = () => {
+  const { slug } = useParams<{ slug: string }>();
+  const { language } = useLanguage();
+  const [category, setCategory] = useState<CategoryItem | null>(null);
+  const [articles, setArticles] = useState<ArticleListItem[]>([]);
+  const [sections, setSections] = useState<SectionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [cat, articlesRes, sectionsRes] = await Promise.all([
+          getCategoryBySlug(slug),
+          getArticlesByCategory(slug),
+          getSections(),
+        ]);
+        if (cancelled) return;
+        setCategory(cat);
+        setSections(Array.isArray(sectionsRes) ? sectionsRes : []);
+        setArticles(articlesRes.results ?? []);
+        if (!cat) setError('Category not found');
+      } catch (err) {
+        console.error('Category page failed:', err);
+        if (!cancelled) setError('Failed to load category');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [slug]);
+
+  const getArticleTitle = (a: ArticleListItem) =>
+    language === 'en' ? a.title_en : (a.title_gu || a.title_hi || a.title_en);
+  const getSectionName = (sectionId: number) => {
+    const s = sections.find((x) => x.id === sectionId);
+    return language === 'en' ? (s?.name_en ?? 'News') : (s?.name_gu || s?.name_hi || s?.name_en) ?? 'સમાચાર';
+  };
+  const categoryName = category
+    ? (language === 'en' ? category.name_en : (category.name_gu || category.name_hi || category.name_en))
+    : slug;
+
+  const lead = articles[0];
+  const rest = articles.slice(1);
+
+  return (
+    <PageLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="headline-primary text-foreground">
+            {categoryName}
+          </h1>
+          {category?.description_en && (
+            <p className="text-muted-foreground mt-1 max-w-2xl">
+              {language === 'en' ? category.description_en : (category.description_gu || category.description_hi || category.description_en)}
+            </p>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            {language === 'en' ? 'Loading...' : 'લોડ થઈ રહ્યું છે...'}
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 text-muted-foreground">
+            {language === 'en' ? 'Category not found.' : 'શ્રેણી મળી નથી.'}
+            <Link to="/" className="block mt-2 text-primary hover:underline">← Home</Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {lead && (
+                <Link to={`/article/${lead.slug}`}>
+                  <article className="news-card overflow-hidden rounded-xl border border-border">
+                    <div className="aspect-[16/9] overflow-hidden">
+                      <img
+                        src={getMediaUrl(lead.featured_image) || 'https://via.placeholder.com/800x450'}
+                        alt={getArticleTitle(lead)}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="p-6">
+                      <span className="category-tag">{getSectionName(lead.section)}</span>
+                      <h2 className="headline-secondary mt-3">{getArticleTitle(lead)}</h2>
+                      {(lead.summary_en || lead.summary_gu) && (
+                        <p className="text-muted-foreground mt-3 line-clamp-2">
+                          {language === 'en' ? lead.summary_en : (lead.summary_gu || lead.summary_hi || lead.summary_en)}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        {lead.published_at
+                          ? formatDistanceToNow(new Date(lead.published_at), { addSuffix: true })
+                          : formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {rest.map((article) => (
+                  <NewsCard
+                    key={article.id}
+                    image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
+                    category={getSectionName(article.section)}
+                    headline={getArticleTitle(article)}
+                    time={
+                      article.published_at
+                        ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
+                        : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })
+                    }
+                    href={`/article/${article.slug}`}
+                  />
+                ))}
+              </div>
+
+              {articles.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  {language === 'en' ? 'No news in this category yet.' : 'આ શ્રેણીમાં હજુ સમાચાર નથી.'}
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-1 space-y-6">
+              <TrendingSidebar />
+              <GoogleAdSlot placement="SIDEBAR_RIGHT" />
+              <AdsSection placement="FOOTER" />
+            </div>
+          </div>
+        )}
+      </div>
+    </PageLayout>
+  );
+};
+
+export default CategoryPage;

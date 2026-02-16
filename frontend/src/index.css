@@ -1,0 +1,262 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core brand colors */
+    --background: 40 30% 98%;
+    --foreground: 0 0% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 12%;
+
+    /* Brand Red - Authority & Headlines */
+    --primary: 0 72% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Cream/Beige - Editorial feel */
+    --secondary: 40 30% 94%;
+    --secondary-foreground: 0 0% 12%;
+
+    --muted: 40 20% 92%;
+    --muted-foreground: 0 0% 40%;
+
+    /* Gold/Yellow - Alerts, LIVE, Trending */
+    --accent: 45 100% 50%;
+    --accent-foreground: 0 0% 12%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 40 20% 88%;
+    --input: 40 20% 88%;
+    --ring: 0 72% 45%;
+
+    --radius: 0.375rem;
+
+    /* Custom tokens */
+    --breaking: 45 100% 50%;
+    --breaking-foreground: 0 0% 12%;
+    --live: 0 72% 50%;
+    --live-glow: 0 72% 45%;
+    --headline: 0 0% 8%;
+    --subheadline: 0 0% 25%;
+    --category-tag: 0 72% 45%;
+    --ticker-bg: 45 100% 50%;
+    --nav-bg: 0 72% 42%;
+    --nav-hover: 0 72% 35%;
+
+    /* Shadows */
+    --shadow-card: 0 2px 8px -2px hsl(0 0% 0% / 0.08);
+    --shadow-elevated: 0 8px 24px -8px hsl(0 0% 0% / 0.12);
+    --shadow-nav: 0 4px 12px -2px hsl(0 0% 0% / 0.15);
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 12%;
+    --sidebar-primary: 0 72% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 30% 94%;
+    --sidebar-accent-foreground: 0 0% 12%;
+    --sidebar-border: 40 20% 88%;
+    --sidebar-ring: 0 72% 45%;
+  }
+
+  .dark {
+    --background: 0 0% 8%;
+    --foreground: 40 30% 95%;
+
+    --card: 0 0% 12%;
+    --card-foreground: 40 30% 95%;
+
+    --popover: 0 0% 12%;
+    --popover-foreground: 40 30% 95%;
+
+    --primary: 0 72% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 40 30% 95%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 40 20% 65%;
+
+    --accent: 45 100% 55%;
+    --accent-foreground: 0 0% 12%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 72% 55%;
+
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 40 30% 95%;
+    --sidebar-primary: 0 72% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 40 30% 95%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 0 72% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', 'Noto Sans Gujarati', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', 'Noto Sans Gujarati', Georgia, serif;
+    @apply text-headline font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .headline-display {
+    font-family: 'Playfair Display', 'Noto Sans Gujarati', Georgia, serif;
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold leading-tight;
+  }
+
+  .headline-primary {
+    font-family: 'Playfair Display', 'Noto Sans Gujarati', Georgia, serif;
+    @apply text-2xl md:text-3xl font-bold leading-snug;
+  }
+
+  .headline-secondary {
+    font-family: 'Playfair Display', 'Noto Sans Gujarati', Georgia, serif;
+    @apply text-xl md:text-2xl font-semibold leading-snug;
+  }
+
+  .headline-card {
+    font-family: 'Playfair Display', 'Noto Sans Gujarati', Georgia, serif;
+    @apply text-lg font-semibold leading-snug;
+  }
+
+  .category-tag {
+    @apply inline-flex items-center px-2 py-0.5 text-xs font-semibold uppercase tracking-wider bg-primary text-primary-foreground rounded;
+  }
+
+  .live-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-accent text-accent-foreground rounded animate-pulse;
+  }
+
+  .breaking-strip {
+    @apply bg-accent text-accent-foreground font-semibold;
+  }
+
+  .nav-link {
+    @apply px-4 py-3 text-sm font-medium text-primary-foreground/90 hover:text-primary-foreground hover:bg-nav-hover transition-colors;
+  }
+
+  .nav-link-active {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  .news-card {
+    @apply bg-card rounded-lg overflow-hidden shadow-card hover:shadow-elevated transition-shadow duration-300;
+  }
+
+  .trending-tag {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-secondary text-secondary-foreground rounded-full hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer;
+  }
+
+  .section-title {
+    @apply relative inline-block text-xl font-bold text-foreground pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-12 after:h-1 after:bg-primary after:rounded-full;
+  }
+
+  .video-overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent;
+  }
+
+  .ticker-scroll {
+    animation: ticker 30s linear infinite;
+  }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .live-dot {
+    @apply w-2 h-2 bg-live rounded-full animate-pulse;
+    box-shadow: 0 0 8px hsl(var(--live));
+  }
+}
+
+@layer utilities {
+  .text-headline {
+    color: hsl(var(--headline));
+  }
+
+  .text-subheadline {
+    color: hsl(var(--subheadline));
+  }
+
+  .bg-nav {
+    background-color: hsl(var(--nav-bg));
+  }
+
+  .bg-nav-hover {
+    background-color: hsl(var(--nav-hover));
+  }
+
+  .bg-ticker {
+    background-color: hsl(var(--ticker-bg));
+  }
+
+  .bg-breaking {
+    background-color: hsl(var(--breaking));
+  }
+
+  .text-breaking {
+    color: hsl(var(--breaking-foreground));
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shadow-nav {
+    box-shadow: var(--shadow-nav);
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
