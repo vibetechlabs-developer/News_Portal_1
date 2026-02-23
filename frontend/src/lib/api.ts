@@ -229,6 +229,26 @@ export async function updateSiteSettings(payload: Partial<SiteSettingsData>): Pr
   });
 }
 
+// ---------- Market Indices (Live Nifty, Sensex, etc.) ----------
+
+export interface MarketIndexItem {
+  name: string;
+  symbol: string;
+  value: string | null;
+  change: string | null;
+  changePercent: number | null;
+  isUp: boolean | null;
+  error?: boolean;
+}
+
+export interface MarketIndicesResponse {
+  indices: MarketIndexItem[];
+}
+
+export async function getMarketIndices(): Promise<MarketIndicesResponse> {
+  return request<MarketIndicesResponse>(apiUrl("/market/indices/"), { method: "GET" });
+}
+
 // ---------- Analytics (Editor/Super Admin) ----------
 
 export interface NewsViewEvent {
@@ -406,6 +426,7 @@ export interface ReelContentResponse {
 
 export async function getArticles(params?: {
   page?: number;
+  page_size?: number;
   section?: number;
   category?: number;
   district?: number;
@@ -422,6 +443,7 @@ export async function getArticles(params?: {
 }): Promise<ArticlesResponse> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
+  if (params?.page_size) search.set("page_size", String(params.page_size));
   if (params?.section) search.set("section", String(params.section));
   if (params?.category) search.set("category", String(params.category));
   if (params?.district) search.set("district", String(params.district));
@@ -503,6 +525,114 @@ export async function getReels(params?: {
   const qs = search.toString();
   const url = apiUrl("/reels/" + (qs ? `?${qs}` : ""));
   return fetchJson(url);
+}
+
+// ---------- Video/Reel Admin (create with file OR link) ----------
+
+export type VideoContentPayload = {
+  title_en: string;
+  title_hi?: string;
+  title_gu?: string;
+  description_en?: string;
+  description_hi?: string;
+  description_gu?: string;
+  section: number;
+  category?: number | null;
+  tags?: number[];
+  primary_language?: string;
+  status?: string;
+  file?: File | null;
+  youtube_url?: string;
+  thumbnail?: File | null;
+};
+
+export type ReelContentPayload = VideoContentPayload;
+
+function slugFromTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200) || "clip";
+}
+
+function clipPayloadToFormData(
+  payload: VideoContentPayload,
+  _prefix: "video" | "reel"
+): FormData {
+  const fd = new FormData();
+  fd.append("title_en", payload.title_en);
+  fd.append("slug", slugFromTitle(payload.title_en));
+  if (payload.title_hi) fd.append("title_hi", payload.title_hi);
+  if (payload.title_gu) fd.append("title_gu", payload.title_gu);
+  if (payload.description_en) fd.append("description_en", payload.description_en ?? "");
+  if (payload.description_hi) fd.append("description_hi", payload.description_hi ?? "");
+  if (payload.description_gu) fd.append("description_gu", payload.description_gu ?? "");
+  fd.append("section", String(payload.section));
+  if (payload.category != null) fd.append("category", String(payload.category));
+  if (payload.tags?.length) payload.tags.forEach((t) => fd.append("tags", String(t)));
+  fd.append("primary_language", payload.primary_language ?? "EN");
+  fd.append("status", payload.status ?? "DRAFT");
+  if (payload.youtube_url?.trim()) fd.append("youtube_url", payload.youtube_url.trim());
+  if (payload.file) fd.append("file", payload.file);
+  if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);
+  return fd;
+}
+
+export async function createVideoContentAdmin(payload: VideoContentPayload): Promise<VideoContentItem> {
+  const fd = clipPayloadToFormData(payload, "video");
+  return request<VideoContentItem>(apiUrl("/videos/"), { method: "POST", auth: true, json: fd });
+}
+
+export async function updateVideoContentAdmin(id: number, payload: Partial<VideoContentPayload>): Promise<VideoContentItem> {
+  const fd = new FormData();
+  if (payload.title_en != null) fd.append("title_en", payload.title_en);
+  if (payload.title_hi != null) fd.append("title_hi", payload.title_hi);
+  if (payload.title_gu != null) fd.append("title_gu", payload.title_gu);
+  if (payload.description_en != null) fd.append("description_en", payload.description_en);
+  if (payload.description_hi != null) fd.append("description_hi", payload.description_hi);
+  if (payload.description_gu != null) fd.append("description_gu", payload.description_gu);
+  if (payload.section != null) fd.append("section", String(payload.section));
+  if (payload.category != null) fd.append("category", String(payload.category));
+  if (payload.tags != null) payload.tags.forEach((t) => fd.append("tags", String(t)));
+  if (payload.primary_language != null) fd.append("primary_language", payload.primary_language);
+  if (payload.status != null) fd.append("status", payload.status);
+  if (payload.youtube_url != null) fd.append("youtube_url", payload.youtube_url);
+  if (payload.file) fd.append("file", payload.file);
+  if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);
+  return request<VideoContentItem>(apiUrl(`/videos/${id}/`), { method: "PATCH", auth: true, json: fd });
+}
+
+export async function deleteVideoContentAdmin(id: number): Promise<void> {
+  await request(apiUrl(`/videos/${id}/`), { method: "DELETE", auth: true });
+}
+
+export async function createReelContentAdmin(payload: ReelContentPayload): Promise<ReelContentItem> {
+  const fd = clipPayloadToFormData(payload, "reel");
+  return request<ReelContentItem>(apiUrl("/reels/"), { method: "POST", auth: true, json: fd });
+}
+
+export async function updateReelContentAdmin(id: number, payload: Partial<ReelContentPayload>): Promise<ReelContentItem> {
+  const fd = new FormData();
+  if (payload.title_en != null) fd.append("title_en", payload.title_en);
+  if (payload.title_hi != null) fd.append("title_hi", payload.title_hi);
+  if (payload.title_gu != null) fd.append("title_gu", payload.title_gu);
+  if (payload.description_en != null) fd.append("description_en", payload.description_en ?? "");
+  if (payload.description_hi != null) fd.append("description_hi", payload.description_hi ?? "");
+  if (payload.description_gu != null) fd.append("description_gu", payload.description_gu ?? "");
+  if (payload.section != null) fd.append("section", String(payload.section));
+  if (payload.category != null) fd.append("category", String(payload.category));
+  if (payload.tags != null) payload.tags.forEach((t) => fd.append("tags", String(t)));
+  if (payload.primary_language != null) fd.append("primary_language", payload.primary_language);
+  if (payload.status != null) fd.append("status", payload.status);
+  if (payload.youtube_url != null) fd.append("youtube_url", payload.youtube_url);
+  if (payload.file) fd.append("file", payload.file);
+  if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);
+  return request<ReelContentItem>(apiUrl(`/reels/${id}/`), { method: "PATCH", auth: true, json: fd });
+}
+
+export async function deleteReelContentAdmin(id: number): Promise<void> {
+  await request(apiUrl(`/reels/${id}/`), { method: "DELETE", auth: true });
 }
 
 // ---------- Content Studio (Editor/Super Admin) ----------
@@ -1120,12 +1250,15 @@ export interface EpaperEdition {
 /**
  * Public list of e-paper editions (used by frontend to show downloadable PDFs).
  * Returns editions ordered by most recent publication_date first.
+ * Pass publication_date (YYYY-MM-DD) to filter by specific date.
  */
 export async function listEpaperPublic(params?: {
   limit?: number;
+  publication_date?: string;
 }): Promise<EpaperEdition[]> {
   const qs = new URLSearchParams();
   if (params?.limit) qs.set("page_size", String(params.limit));
+  if (params?.publication_date) qs.set("publication_date", params.publication_date);
   qs.set("ordering", "-publication_date");
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   const data = await request<{ results?: EpaperEdition[] } | EpaperEdition[]>(

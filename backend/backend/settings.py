@@ -31,9 +31,17 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=True, cast=bool)
 
 _allowed_hosts = config("ALLOWED_HOSTS", default="")
-# ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(",") if h.strip()]
-
-ALLOWED_HOSTS = ["newsportal.com", "www.newsportal.com", "194.164.151.91"]
+if _allowed_hosts:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(",") if h.strip()]
+else:
+    # Default hosts for development and production
+    ALLOWED_HOSTS = [
+        "localhost",
+        "127.0.0.1",
+        "newsportal.com",
+        "www.newsportal.com",
+        "194.164.151.91"
+    ]
 
 # Application definition
 # Application definition
@@ -72,7 +80,7 @@ MIDDLEWARE = [
     
 ]
 
-ROOT_URLCONF = 'newsportal.urls'
+ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
     {
@@ -178,6 +186,14 @@ if _csrf_trusted:
     # Example (env): CSRF_TRUSTED_ORIGINS=https://kanamexpress.com,https://admin.kanamexpress.com
     CSRF_TRUSTED_ORIGINS = [
         o.strip() for o in _csrf_trusted.split(",") if o.strip()
+    ]
+else:
+    # Default CSRF trusted origins for development
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ]
 
 MEDIA_URL = '/media/'

@@ -104,21 +104,24 @@ export function getVideoUrl(
 }
 
 /**
- * Gets video URL for reels - ONLY uploaded files, NO YouTube URLs
- * Reels should only show uploaded video files
+ * Gets video URL for reels - supports BOTH uploaded files AND YouTube URLs
  */
 export function getReelUrl(
   youtubeUrl: string | null | undefined,
   fileUrl: string | null | undefined,
   getMediaUrlFn?: (path: string | null | undefined) => string | null
 ): string | null {
-  // For reels, ONLY return file URLs, ignore YouTube URLs
+  // Support YouTube URL first
+  if (youtubeUrl) {
+    const normalized = normalizeYouTubeUrl(youtubeUrl);
+    if (normalized) return normalized;
+  }
+
+  // Support uploaded file
   if (fileUrl) {
-    // If it's already a full URL, use it directly
     if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
       return fileUrl;
     }
-    // Otherwise, convert it using getMediaUrl if provided
     if (getMediaUrlFn) {
       const convertedUrl = getMediaUrlFn(fileUrl);
       if (convertedUrl) return convertedUrl;
@@ -129,21 +132,24 @@ export function getReelUrl(
 }
 
 /**
- * Gets video URL for videos - ONLY uploaded files, NO YouTube URLs
- * Videos section should only show uploaded video files
+ * Gets video URL for videos - supports BOTH uploaded files AND YouTube URLs
  */
 export function getUploadedVideoUrl(
   youtubeUrl: string | null | undefined,
   fileUrl: string | null | undefined,
   getMediaUrlFn?: (path: string | null | undefined) => string | null
 ): string | null {
-  // For videos section, ONLY return file URLs, ignore YouTube URLs
+  // Support YouTube URL first
+  if (youtubeUrl) {
+    const normalized = normalizeYouTubeUrl(youtubeUrl);
+    if (normalized) return normalized;
+  }
+
+  // Support uploaded file
   if (fileUrl) {
-    // If it's already a full URL, use it directly
     if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
       return fileUrl;
     }
-    // Otherwise, convert it using getMediaUrl if provided
     if (getMediaUrlFn) {
       const convertedUrl = getMediaUrlFn(fileUrl);
       if (convertedUrl) return convertedUrl;

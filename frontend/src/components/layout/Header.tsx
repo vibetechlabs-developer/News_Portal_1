@@ -1,11 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Play, Search, X, User, LogOut } from 'lucide-react';
+import { Play, Search, X, User, LogOut, Newspaper, Radio, FileText } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { EpaperDownloadButton } from './EpaperDownloadButton';
 import { getTrendingTags, type TagItem } from '@/lib/api';
 import logo from '@/assets/logo.png';
 
@@ -60,7 +59,7 @@ export function Header() {
   };
 
   return (
-    <header className="bg-card border-b border-border py-3 md:py-4">
+    <header className="bg-card border-b border-border py-4 md:py-5 lg:py-6">
       <div className="container mx-auto px-2 sm:px-4">
         <div className="flex items-center justify-between gap-2">
           {/* Left: Search */}
@@ -130,34 +129,50 @@ export function Header() {
             </Dialog>
           </div>
 
-          {/* Center: Logos */}
+          {/* Center: Logo */}
           <Link
             to="/"
-            className="flex-1 flex justify-center items-center gap-3 h-20 w-30"
+            className="flex-1 flex justify-center items-center py-2 sm:py-3"
           >
             <img
               src={logo}
               alt="Kanam Express"
-              className="h-full scale-125 sm:scale-140 md:scale-150 w-auto object-contain"
-            />
-            {/* Secondary logo placed beside the main logo.
-                Put your exported image file (from KANAM (1).cdr) into the `public` folder
-                as `kanam-partner-logo.png` so this shows correctly. */}
-            <img
-              src="/kanam-partner-logo.png"
-              alt="Partner Logo"
-              className="h-12 sm:h-14 md:h-16 w-auto object-contain"
+              className="h-20 sm:h-24 md:h-28 lg:h-32 xl:h-36 w-auto object-contain drop-shadow-lg hover:opacity-90 transition-opacity"
             />
           </Link>
 
 
           {/* Right: ePaper + Live TV + Login/Signup */}
-          <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2 md:gap-3">
-            <EpaperDownloadButton />
-            <Link to="/videos" className="live-badge group text-xs sm:text-sm">
-              <span className="live-dot" />Live
-              <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
-              <span className="hidden xs:inline">{t('live_tv')}</span>
+          <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+            {/* E-Paper Button */}
+            <Link
+              to="/epaper"
+              className="flex flex-col items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group"
+              title={t('epaper')}
+            >
+              <div className="relative">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
+              </div>
+              <span className="text-[10px] sm:text-xs font-medium text-foreground group-hover:text-primary-foreground">
+                {t('epaper')}
+              </span>
+            </Link>
+
+            {/* Live TV Button */}
+            <Link
+              to="/videos"
+              className="flex flex-col items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group relative overflow-visible"
+              title={t('live_tv')}
+            >
+              <div className="relative">
+                <Radio className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-lg shadow-green-500/50"></span>
+              </div>
+              <div className="flex items-center gap-1 relative">
+                <span className="text-[9px] sm:text-[10px] font-extrabold text-green-600 dark:text-green-400 uppercase tracking-wider bg-green-500/10 dark:bg-green-500/20 px-1.5 py-0.5 rounded">
+                  LIVE
+                </span>
+              </div>
             </Link>
             {isAuthenticated && user ? (
               <>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { PageLayout } from '@/components/layout/PageLayout';
@@ -11,26 +11,40 @@ import {
   getCategories,
   getSections,
   getMediaUrl,
+  getMarketIndices,
   type ArticleListItem,
   type CategoryItem,
   type SectionItem,
+  type MarketIndexItem,
 } from '@/lib/api';
-
-const marketData = [
-  { name: 'SENSEX', value: '72,456.89', change: '+1.24%', isUp: true },
-  { name: 'NIFTY 50', value: '21,890.45', change: '+0.98%', isUp: true },
-  { name: 'BANK NIFTY', value: '45,678.12', change: '-0.34%', isUp: false },
-  { name: 'USD/INR', value: '83.12', change: '+0.12%', isUp: true },
-  { name: 'GOLD', value: '₹62,450', change: '+0.56%', isUp: true },
-];
 
 const Business = () => {
   const { language } = useLanguage();
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [sections, setSections] = useState<SectionItem[]>([]);
+  const [marketData, setMarketData] = useState<MarketIndexItem[]>([]);
+  const [marketLoading, setMarketLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setMarketLoading(true);
+        const res = await getMarketIndices();
+        if (!cancelled) setMarketData(res.indices ?? []);
+      } catch {
+        if (!cancelled) setMarketData([]);
+      } finally {
+        if (!cancelled) setMarketLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +74,18 @@ const Business = () => {
     };
   }, [selectedCategory]);
 
+  const refreshMarketData = async () => {
+    setMarketLoading(true);
+    try {
+      const res = await getMarketIndices();
+      setMarketData(res.indices ?? []);
+    } catch {
+      setMarketData([]);
+    } finally {
+      setMarketLoading(false);
+    }
+  };
+
   const getArticleTitle = (article: ArticleListItem) => {
     if (language === 'en') return article.title_en;
     return article.title_gu || article.title_hi || article.title_en;
@@ -83,19 +109,59 @@ const Business = () => {
         </div>
 
         <div className="bg-card rounded-xl p-4 mb-6 shadow-card overflow-x-auto">
-          <div className="flex gap-6 min-w-max">
-            {marketData.map((item, index) => (
-              <div key={index} className="flex items-center gap-3 px-4 py-2 border-r border-border last:border-0">
-                <span className="font-medium text-foreground">{item.name}</span>
-                <span className="font-bold text-lg">{item.value}</span>
-                <span
-                  className={`flex items-center gap-1 text-sm font-medium ${item.isUp ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {item.isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                  {item.change}
-                </span>
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              {language === 'en' ? 'Live Indices' : 'લાઇવ ઇન્ડેક્સ'}
+            </h2>
+            <button
+              type="button"
+              onClick={refreshMarketData}
+              disabled={marketLoading}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 rounded-full transition-colors disabled:opacity-60"
+              aria-label={language === 'en' ? 'Refresh market data' : 'માર્કેટ ડેટા રિફ્રેશ કરો'}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${marketLoading ? 'animate-spin' : ''}`} />
+              {language === 'en' ? 'Refresh' : 'રિફ્રેશ'}
+            </button>
+          </div>
+          <div className="flex gap-6 min-w-max flex-wrap">
+            {marketLoading && marketData.length === 0 ? (
+              <div className="flex items-center gap-2 py-2 text-muted-foreground text-sm">
+                {language === 'en' ? 'Loading live indices...' : 'લાઇવ ઇન્ડેક્સ લોડ થઈ રહ્યું છે...'}
               </div>
-            ))}
+            ) : (
+              marketData.map((item, index) => (
+                <div
+                  key={item.symbol || index}
+                  className="flex items-center gap-3 px-4 py-2 border-r border-border last:border-r-0 last:sm:border-r-0"
+                >
+                  <span className="font-medium text-foreground">{item.name}</span>
+                  {item.error ? (
+                    <span className="text-sm text-muted-foreground">
+                      {language === 'en' ? '—' : '—'}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="font-bold text-lg">{item.value ?? '—'}</span>
+                      {item.change != null && item.isUp != null && (
+                        <span
+                          className={`flex items-center gap-1 text-sm font-medium ${
+                            item.isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          {item.isUp ? (
+                            <TrendingUp className="w-4 h-4" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4" />
+                          )}
+                          {item.change}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
 

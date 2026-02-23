@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search as SearchIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -23,110 +23,108 @@ const Search = () => {
   const [searchParams] = useSearchParams();
   const urlQuery = searchParams.get('q') || '';
 
-  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const [searchInput, setSearchInput] = useState(urlQuery);
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [trendingTags, setTrendingTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sync state with URL parameter when it changes
+  // Keep input in sync with URL when URL changes (e.g. back/forward, tag click)
   useEffect(() => {
-    if (urlQuery !== searchQuery) {
-      setSearchQuery(urlQuery);
-    }
-  }, [urlQuery, searchQuery]);
+    setSearchInput(urlQuery);
+  }, [urlQuery]);
 
-  // Perform search when query changes
+  // Perform search when URL query changes
   useEffect(() => {
     let cancelled = false;
-    const query = searchQuery.trim();
-    
+    const query = urlQuery.trim();
+
+    if (!query) {
+      setArticles([]);
+      setTotalCount(0);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     (async () => {
-      if (!query) {
-        setArticles([]);
-        setTotalCount(0);
-        setLoading(false);
-        return;
-      }
-      
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
         const [articlesRes, categoriesRes, tagsRes] = await Promise.all([
-          getArticles({ search: query, status: 'PUBLISHED' }),
+          getArticles({
+            search: query,
+            status: 'PUBLISHED',
+            page_size: 50,
+          }),
           getCategories(),
           getTrendingTags(10),
         ]);
-        
+
         if (cancelled) return;
-        
-        // Debug logging
-        console.log('Search response:', articlesRes);
-        console.log('Response type:', typeof articlesRes);
-        console.log('Is array?', Array.isArray(articlesRes));
-        console.log('Has results?', 'results' in articlesRes);
-        console.log('Has count?', 'count' in articlesRes);
-        
-        // getArticles normalizes to ArticlesResponse, but handle both formats just in case
+
         let articlesList: ArticleListItem[] = [];
         let count = 0;
-        
+
         if (Array.isArray(articlesRes)) {
-          // Shouldn't happen after normalization, but handle it
           articlesList = articlesRes;
           count = articlesRes.length;
-          console.warn('Received array instead of ArticlesResponse');
         } else if (articlesRes && typeof articlesRes === 'object' && 'results' in articlesRes) {
-          // Normal ArticlesResponse format
-          articlesList = (articlesRes as { results?: ArticleListItem[] }).results || [];
-          count = (articlesRes as { count?: number }).count || 0;
-        } else {
-          console.error('Unexpected response format:', articlesRes);
+          const res = articlesRes as { results?: ArticleListItem[]; count?: number };
+          articlesList = res.results ?? [];
+          count = res.count ?? articlesList.length;
         }
-        
-        console.log('Extracted articles:', articlesList.length, 'items');
-        console.log('Extracted count:', count);
-        console.log('Articles list:', articlesList);
-        console.log('First article:', articlesList[0]);
-        
-        // Set state - ensure we're setting actual arrays
-        if (Array.isArray(articlesList)) {
-          setArticles(articlesList);
-          setTotalCount(count);
-          console.log('State updated - articles:', articlesList.length, 'count:', count);
-        } else {
-          console.error('articlesList is not an array:', articlesList);
-          setArticles([]);
-          setTotalCount(0);
-        }
+
+        setArticles(articlesList);
+        setTotalCount(count);
         setCategories(Array.isArray(categoriesRes) ? categoriesRes : []);
         setTrendingTags(Array.isArray(tagsRes) ? tagsRes : []);
-      } catch (error) {
-        console.error('Search failed:', error);
+      } catch (err) {
         if (!cancelled) {
           setArticles([]);
           setTotalCount(0);
+          setError(
+            language === 'en'
+              ? 'Search failed. Please try again.'
+              : 'શોધ નિષ્ફળ ગઈ. કૃપા કરીને ફરી પ્રયાસ કરો.'
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    
+
     return () => {
       cancelled = true;
     };
-  }, [searchQuery]);
+  }, [urlQuery, language]);
 
-  const getArticleTitle = (article: ArticleListItem) => {
-    if (language === 'en') return article.title_en;
-    return article.title_gu || article.title_hi || article.title_en;
-  };
+  const getArticleTitle = useCallback(
+    (article: ArticleListItem) => {
+      if (language === 'en') return article.title_en;
+      return article.title_gu || article.title_hi || article.title_en;
+    },
+    [language]
+  );
 
-  const getCategoryName = (categoryId: number | null) => {
-    if (!categoryId) return language === 'en' ? 'News' : 'સમાચાર';
-    const category = categories.find((c) => c.id === categoryId);
-    if (!category) return language === 'en' ? 'News' : 'સમાચાર';
-    return language === 'en' ? category.name_en : (category.name_gu || category.name_hi || category.name_en);
+  const getCategoryName = useCallback(
+    (categoryId: number | null) => {
+      if (!categoryId) return language === 'en' ? 'News' : 'સમાચાર';
+      const category = categories.find((c) => c.id === categoryId);
+      if (!category) return language === 'en' ? 'News' : 'સમાચાર';
+      return language === 'en' ? category.name_en : (category.name_gu || category.name_hi || category.name_en);
+    },
+    [categories, language]
+  );
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchInput.trim();
+    if (q) {
+      navigate(`/search?q=${encodeURIComponent(q)}`);
+    }
   };
 
   const handleTagClick = (tagName: string) => {
@@ -150,28 +148,26 @@ const Search = () => {
               : 'બધા સમાચાર લેખોમાં શોધો'}
           </p>
 
-          {/* Search input - sync with URL */}
-          <form
-            className="mt-4 max-w-2xl"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const q = searchQuery.trim();
-              if (q) {
-                navigate(`/search?q=${encodeURIComponent(q)}`);
-              }
-            }}
-          >
+          {/* Search input */}
+          <form className="mt-4 max-w-2xl" onSubmit={handleSearchSubmit}>
             <div className="relative">
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
                 name="q"
                 type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={language === 'en' ? 'Search news...' : 'સમાચાર શોધો...'}
                 className="w-full pl-12 pr-4 py-3 text-base border-2 border-primary/20 focus:border-primary rounded-full bg-card"
                 autoFocus
+                aria-label={language === 'en' ? 'Search news' : 'સમાચાર શોધો'}
               />
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-full hover:bg-primary/90"
+              >
+                {language === 'en' ? 'Search' : 'શોધો'}
+              </button>
             </div>
           </form>
 
@@ -185,6 +181,7 @@ const Search = () => {
                 {trendingTags.map((tag) => (
                   <button
                     key={tag.id}
+                    type="button"
                     onClick={() => handleTagClick(tag.name)}
                     className="trending-tag"
                   >
@@ -198,75 +195,55 @@ const Search = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            {loading ? (
+            {error ? (
+              <div className="text-center py-12 text-destructive">
+                {error}
+              </div>
+            ) : loading ? (
               <div className="text-center py-12 text-muted-foreground">
                 {language === 'en' ? 'Searching...' : 'શોધી રહ્યું છે...'}
               </div>
-            ) : !searchQuery.trim() ? (
+            ) : !urlQuery.trim() ? (
               <div className="text-center py-12 text-muted-foreground">
                 {language === 'en'
                   ? 'Enter a search term above to find news'
                   : 'સમાચાર શોધવા માટે ઉપર શોધ શબ્દ દાખલ કરો'}
               </div>
-            ) : (
+            ) : articles.length > 0 ? (
               <>
-                {(() => {
-                  console.log('Rendering results - articles.length:', articles.length, 'totalCount:', totalCount);
-                  console.log('Articles array:', articles);
-                  
-                  if (articles.length > 0) {
+                <p className="text-sm text-muted-foreground mb-4">
+                  {language === 'en'
+                    ? `${totalCount} result${totalCount !== 1 ? 's' : ''} found`
+                    : `${totalCount} પરિણામ${totalCount !== 1 ? 'ો' : ''} મળ્યા`}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {articles.map((article) => {
+                    const title = getArticleTitle(article);
+                    const category = getCategoryName(article.category);
+                    const image = getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400';
+                    const time = article.published_at
+                      ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
+                      : formatDistanceToNow(new Date(article.created_at), { addSuffix: true });
+
+                    if (!title) return null;
+
                     return (
-                      <>
-                        {totalCount > 0 && (
-                          <p className="text-sm text-muted-foreground mb-4">
-                            {language === 'en'
-                              ? `${totalCount} result${totalCount !== 1 ? 's' : ''} found`
-                              : `${totalCount} પરિણામ${totalCount !== 1 ? 'ો' : ''} મળ્યા`}
-                          </p>
-                        )}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          {articles.map((article) => {
-                            const title = getArticleTitle(article);
-                            const category = getCategoryName(article.category);
-                            const image = getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400';
-                            const time = article.published_at
-                              ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
-                              : formatDistanceToNow(new Date(article.created_at), { addSuffix: true });
-                            
-                            console.log('Rendering article:', article.id, 'title:', title);
-                            
-                            // Only render if we have at least a title
-                            if (!title) {
-                              console.warn('Article missing title:', article);
-                              return null;
-                            }
-                            
-                            return (
-                              <Link key={article.id} to={`/article/${article.slug}`}>
-                                <NewsCard
-                                  image={image}
-                                  category={category}
-                                  headline={title}
-                                  time={time}
-                                />
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      </>
+                      <Link key={article.id} to={`/article/${article.slug}`}>
+                        <NewsCard
+                          image={image}
+                          category={category}
+                          headline={title}
+                          time={time}
+                        />
+                      </Link>
                     );
-                  }
-                  
-                  return (
-                    <div className="text-center py-12 text-muted-foreground">
-                      {language === 'en' ? 'No results found' : 'કોઈ પરિણામ મળ્યું નથી'}
-                      <div className="mt-2 text-xs">
-                        Debug: articles.length={articles.length}, totalCount={totalCount}
-                      </div>
-                    </div>
-                  );
-                })()}
+                  })}
+                </div>
               </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                {language === 'en' ? 'No results found' : 'કોઈ પરિણામ મળ્યું નથી'}
+              </div>
             )}
           </div>
 

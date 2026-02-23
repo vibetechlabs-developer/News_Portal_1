@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 from django.views.decorators.cache import cache_page
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -614,6 +614,7 @@ class VideoContentViewSet(viewsets.ModelViewSet):
     """
     CRUD API for standalone video content (non-reel).
     Public sees only published items; editors/admins can manage all.
+    Supports both file upload and youtube_url (link).
     """
 
     serializer_class = VideoContentSerializer
@@ -624,6 +625,35 @@ class VideoContentViewSet(viewsets.ModelViewSet):
         if self.action in ("list", "retrieve"):
             return [AllowAny()]
         return [IsEditorOrSuperAdmin()]
+
+    def perform_create(self, serializer):
+        data = serializer.validated_data
+        # Validate: must have either file or youtube_url
+        if not data.get("file") and not data.get("youtube_url"):
+            raise serializers.ValidationError(
+                {"detail": "Either 'file' or 'youtube_url' must be provided."}
+            )
+        slug = data.get("slug") or slugify(data.get("title_en", "")) or "video"
+        slug = _unique_slug(VideoContent, slug[:320])
+        serializer.save(slug=slug)
+
+    def perform_update(self, serializer):
+        data = serializer.validated_data
+        instance = serializer.instance
+        # Check what will be saved: use new value if provided, otherwise keep existing
+        new_file = data.get("file") if "file" in data else (instance.file if instance else None)
+        new_url = data.get("youtube_url") if "youtube_url" in data else (instance.youtube_url if instance else None)
+        # If both would be empty after update, that's invalid
+        if not new_file and not new_url:
+            raise serializers.ValidationError(
+                {"detail": "Either 'file' or 'youtube_url' must be provided."}
+            )
+        slug = data.get("slug") or (instance and instance.slug)
+        if slug and instance:
+            slug = _unique_slug(VideoContent, slug[:320], exclude_pk=instance.pk)
+            serializer.save(slug=slug)
+        else:
+            serializer.save()
 
     def get_queryset(self):
         qs = (
@@ -641,6 +671,7 @@ class ReelContentViewSet(viewsets.ModelViewSet):
     """
     CRUD API for standalone reel content.
     Public sees only published items; editors/admins can manage all.
+    Supports both file upload and youtube_url (link).
     """
 
     serializer_class = ReelContentSerializer
@@ -651,6 +682,35 @@ class ReelContentViewSet(viewsets.ModelViewSet):
         if self.action in ("list", "retrieve"):
             return [AllowAny()]
         return [IsEditorOrSuperAdmin()]
+
+    def perform_create(self, serializer):
+        data = serializer.validated_data
+        # Validate: must have either file or youtube_url
+        if not data.get("file") and not data.get("youtube_url"):
+            raise serializers.ValidationError(
+                {"detail": "Either 'file' or 'youtube_url' must be provided."}
+            )
+        slug = data.get("slug") or slugify(data.get("title_en", "")) or "reel"
+        slug = _unique_slug(ReelContent, slug[:320])
+        serializer.save(slug=slug)
+
+    def perform_update(self, serializer):
+        data = serializer.validated_data
+        instance = serializer.instance
+        # Check what will be saved: use new value if provided, otherwise keep existing
+        new_file = data.get("file") if "file" in data else (instance.file if instance else None)
+        new_url = data.get("youtube_url") if "youtube_url" in data else (instance.youtube_url if instance else None)
+        # If both would be empty after update, that's invalid
+        if not new_file and not new_url:
+            raise serializers.ValidationError(
+                {"detail": "Either 'file' or 'youtube_url' must be provided."}
+            )
+        slug = data.get("slug") or (instance and instance.slug)
+        if slug and instance:
+            slug = _unique_slug(ReelContent, slug[:320], exclude_pk=instance.pk)
+            serializer.save(slug=slug)
+        else:
+            serializer.save()
 
     def get_queryset(self):
         qs = (
@@ -857,3 +917,108 @@ class CricketMatchesProxyView(APIView):
             return Response(data, status=resp.status_code)
 
         return Response({"raw": resp.text}, status=resp.status_code)
+
+
+# Yahoo Finance symbols for Indian market indices (free, no API key)
+MARKET_INDICES = [
+    {"symbol": "^NSEI", "name": "NIFTY 50", "exchange": "NSE"},
+    {"symbol": "^BSESN", "name": "SENSEX", "exchange": "BSE"},
+    {"symbol": "^NSEBANK", "name": "BANK NIFTY", "exchange": "NSE"},
+    {"symbol": "INR=X", "name": "USD/INR", "exchange": "FX"},
+    {"symbol": "GOLDBEES.NS", "name": "GOLD", "exchange": "NSE"},  # Indian Gold ETF in ₹
+]
+
+
+@method_decorator(cache_page(60), name="get")
+class MarketIndicesProxyView(APIView):
+    """
+    Read-only proxy that fetches live Nifty, Sensex, and other Indian market indices
+    from Yahoo Finance (free, no API key). Returns normalized data for the Business page.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        results = []
+        for idx in MARKET_INDICES:
+            symbol = idx["symbol"]
+            name = idx["name"]
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
+            try:
+                resp = requests.get(
+                    url,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; NewsPortal/1.0)"},
+                    timeout=8,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            except (requests.RequestException, ValueError) as e:
+                logger.warning("Market index fetch failed for %s: %s", symbol, e)
+                results.append({
+                    "name": name,
+                    "symbol": symbol,
+                    "value": None,
+                    "change": None,
+                    "changePercent": None,
+                    "isUp": None,
+                    "error": True,
+                })
+                continue
+
+            try:
+                chart = data.get("chart", {})
+                result_list = chart.get("result") or []
+                if not result_list:
+                    raise ValueError("No result in chart")
+                meta = result_list[0].get("meta", {})
+                regular_price = meta.get("regularMarketPrice")
+                prev_close = meta.get("previousClose") or meta.get("chartPreviousClose")
+                if regular_price is None:
+                    # Fallback: last close from indicators
+                    indicators = result_list[0].get("indicators", {})
+                    quotes = indicators.get("quote", [{}])[0]
+                    closes = quotes.get("close") or []
+                    regular_price = next((c for c in reversed(closes) if c is not None), None)
+                    if prev_close is None and closes:
+                        prev_close = closes[0] if len(closes) > 1 else closes[0]
+
+                if regular_price is None:
+                    raise ValueError("Could not extract price")
+
+                value = float(regular_price)
+                prev = float(prev_close) if prev_close is not None else value
+                change_val = value - prev
+                change_pct = (change_val / prev * 100) if prev != 0 else 0
+                is_up = change_val >= 0
+
+                # Format value based on index type
+                if name == "USD/INR":
+                    value_str = f"{value:.2f}"
+                elif name == "GOLD":
+                    value_str = f"₹{value:,.2f}"
+                else:
+                    value_str = f"{value:,.2f}"
+
+                change_str = f"{'+' if change_val >= 0 else ''}{change_pct:.2f}%"
+
+                results.append({
+                    "name": name,
+                    "symbol": symbol,
+                    "value": value_str,
+                    "change": change_str,
+                    "changePercent": round(change_pct, 2),
+                    "isUp": is_up,
+                })
+            except (KeyError, TypeError, ValueError) as e:
+                logger.warning("Market index parse failed for %s: %s", symbol, e)
+                results.append({
+                    "name": name,
+                    "symbol": symbol,
+                    "value": None,
+                    "change": None,
+                    "changePercent": None,
+                    "isUp": None,
+                    "error": True,
+                })
+
+        return Response({"indices": results})

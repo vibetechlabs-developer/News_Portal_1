@@ -283,8 +283,13 @@ const EditorDashboard = () => {
       toast({ title: "YouTube URL required", variant: "destructive" });
       return;
     }
-    if (mediaType !== "YOUTUBE" && !mediaFile) {
+    if (mediaType === "IMAGE" && !mediaFile) {
       toast({ title: "File required", variant: "destructive" });
+      return;
+    }
+    // VIDEO and REEL: require either file OR YouTube URL
+    if ((mediaType === "VIDEO" || mediaType === "REEL") && !mediaFile && !mediaUrl.trim()) {
+      toast({ title: "Upload a file or enter a YouTube URL", variant: "destructive" });
       return;
     }
     setMediaSaving(true);
@@ -293,8 +298,8 @@ const EditorDashboard = () => {
         article: editArticle.id,
         media_type: mediaType,
         caption: mediaCaption || undefined,
-        youtube_url: mediaType === "YOUTUBE" ? mediaUrl.trim() : undefined,
-        file: mediaType === "VIDEO" || mediaType === "REEL" ? mediaFile : null,
+        youtube_url: (mediaType === "YOUTUBE" || mediaType === "VIDEO" || mediaType === "REEL") && mediaUrl.trim() ? mediaUrl.trim() : undefined,
+        file: (mediaType === "VIDEO" || mediaType === "REEL") && mediaFile ? mediaFile : null,
         image: mediaType === "IMAGE" ? mediaFile : null,
       });
       const refetched = await getArticleBySlug(editArticle.slug);
@@ -794,10 +799,22 @@ const EditorDashboard = () => {
                         <Label>YouTube URL</Label>
                         <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
                       </div>
+                    ) : mediaType === "VIDEO" || mediaType === "REEL" ? (
+                      <div className="space-y-4">
+                        <p className="text-xs text-muted-foreground">Upload a file OR paste a YouTube link</p>
+                        <div className="space-y-2">
+                          <Label>File (optional)</Label>
+                          <Input type="file" accept="video/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>YouTube URL (optional)</Label>
+                          <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                        </div>
+                      </div>
                     ) : (
                       <div className="space-y-2">
                         <Label>File</Label>
-                        <Input type="file" accept={mediaType === "IMAGE" ? "image/*" : "video/*"} onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
+                        <Input type="file" accept="image/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
                       </div>
                     )}
 
