@@ -3,7 +3,7 @@
 This repository contains the full **News Portal** stack:
 
 - **Backend:** Django 5, Django REST Framework, PostgreSQL
-- **Frontend:** React (Vite) app in `kanam_express/`
+- **Frontend:** React (Vite) app in `frontend/`
 - **Auth:** JWT via `djangorestframework-simplejwt`
 - **Features:** multi-language articles, sections/categories/tags, comments & likes, ads (slots + inventory + requests), contact form, basic analytics
 
@@ -38,7 +38,7 @@ Backend runs at `http://localhost:8000`, API at `http://localhost:8000/api/v1/`,
 From project root:
 
 ```bash
-cd kanam_express
+cd frontend
 npm install
 npm run dev
 ```
