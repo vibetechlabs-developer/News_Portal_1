@@ -185,10 +185,8 @@ else:
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow any Vercel deployment under *.vercel.app (useful for preview URLs)
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.vercel\.app$",
-]
+# During integration, allow all origins to simplify CORS; tighten later if needed.
+CORS_ALLOW_ALL_ORIGINS = True
 
 _csrf_trusted = config("CSRF_TRUSTED_ORIGINS", default="")
 if _csrf_trusted:
@@ -234,20 +232,10 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
-    # Throttling: disabled when DEBUG (development); enabled when DEBUG=False (deploy).
-    'DEFAULT_THROTTLE_CLASSES': () if DEBUG else (
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-        'rest_framework.throttling.ScopedRateThrottle',
-    ),
-    'DEFAULT_THROTTLE_RATES': {
-        # Much higher limits in production to avoid 429s for normal traffic.
-        'anon': '100000/hour' if DEBUG else '5000/hour',
-        'user': '100000/hour' if DEBUG else '20000/hour',
-        'auth': '100000/hour' if DEBUG else '500/hour',
-        'contact': '100000/minute' if DEBUG else '60/minute',
-        'ads_requests': '100000/hour' if DEBUG else '500/hour',
-    },
+    # Throttling: completely disabled to avoid 429 errors from rate limits.
+    # If you want throttling later, re‑enable with appropriate limits.
+    'DEFAULT_THROTTLE_CLASSES': (),
+    'DEFAULT_THROTTLE_RATES': {},
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
