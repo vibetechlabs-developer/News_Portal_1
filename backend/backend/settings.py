@@ -171,22 +171,26 @@ if _cors_allowed_origins:
         o.strip() for o in _cors_allowed_origins.split(",") if o.strip()
     ]
 else:
-    # Local development defaults plus deployed frontend
+    # Local development defaults
+    # CORS_ALLOWED_ORIGINS = [
+    #     "http://localhost:3000",  # React default port
+    #     "http://127.0.0.1:3000",
+    #     "http://localhost:8080",  # Vite frontend (kanam_express)
+    #     "http://127.0.0.1:8080",
+    #      "https://newsportal-git-main-viibetchs-projects.vercel.app"
+    # "https://vibetechlabs.vercel.app",   # your frontend URL
+
+    # ]
     CORS_ALLOWED_ORIGINS = [
-        "http://localhost:3000",  # React default port
-        "http://127.0.0.1:3000",
-        "http://localhost:8080",  # Vite or other frontend dev server
-        "http://127.0.0.1:8080",
-        # Deployed frontend URLs on Vercel
-        "https://vibetechlabs.vercel.app",
-        # Preview / branch deployments (current main deployment)
-        "https://newsportal-git-main-viibetchs-projects.vercel.app",
-    ]
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "https://vibetechlabs.vercel.app",
+    "https://newsportal-git-main-viibetchs-projects.vercel.app",  # current Vercel URL
+]
 
 CORS_ALLOW_CREDENTIALS = True
-
-# During integration, allow all origins to simplify CORS; tighten later if needed.
-CORS_ALLOW_ALL_ORIGINS = True
 
 _csrf_trusted = config("CSRF_TRUSTED_ORIGINS", default="")
 if _csrf_trusted:
@@ -232,10 +236,19 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
-    # Throttling: completely disabled to avoid 429 errors from rate limits.
-    # If you want throttling later, re‑enable with appropriate limits.
-    'DEFAULT_THROTTLE_CLASSES': (),
-    'DEFAULT_THROTTLE_RATES': {},
+    # Throttling: disabled when DEBUG (development); enabled when DEBUG=False (deploy).
+    'DEFAULT_THROTTLE_CLASSES': () if DEBUG else (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100000/hour' if DEBUG else '100/hour',
+        'user': '100000/hour' if DEBUG else '1000/hour',
+        'auth': '100000/hour' if DEBUG else '10/hour',
+        'contact': '100000/minute' if DEBUG else '5/minute',
+        'ads_requests': '100000/hour' if DEBUG else '10/hour',
+    },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
@@ -322,6 +335,8 @@ if _use_file_logging:
 
 
 # Security hardening for production (HTTPS, secure cookies, HSTS).
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 if not DEBUG:
     # Cookies should only be sent over HTTPS in production
     SESSION_COOKIE_SECURE = True
