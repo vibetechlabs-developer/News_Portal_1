@@ -241,11 +241,12 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle',
     ),
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100000/hour' if DEBUG else '100/hour',
-        'user': '100000/hour' if DEBUG else '1000/hour',
-        'auth': '100000/hour' if DEBUG else '10/hour',
-        'contact': '100000/minute' if DEBUG else '5/minute',
-        'ads_requests': '100000/hour' if DEBUG else '10/hour',
+        # Much higher limits in production to avoid 429s for normal traffic.
+        'anon': '100000/hour' if DEBUG else '5000/hour',
+        'user': '100000/hour' if DEBUG else '20000/hour',
+        'auth': '100000/hour' if DEBUG else '500/hour',
+        'contact': '100000/minute' if DEBUG else '60/minute',
+        'ads_requests': '100000/hour' if DEBUG else '500/hour',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
