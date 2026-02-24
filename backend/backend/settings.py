@@ -171,15 +171,24 @@ if _cors_allowed_origins:
         o.strip() for o in _cors_allowed_origins.split(",") if o.strip()
     ]
 else:
-    # Local development defaults
+    # Local development defaults plus deployed frontend
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:3000",  # React default port
         "http://127.0.0.1:3000",
-        "http://localhost:8080",  # Vite frontend (kanam_express)
+        "http://localhost:8080",  # Vite or other frontend dev server
         "http://127.0.0.1:8080",
+        # Deployed frontend URLs on Vercel
+        "https://vibetechlabs.vercel.app",
+        # Preview / branch deployments (current main deployment)
+        "https://newsportal-git-main-viibetchs-projects.vercel.app",
     ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow any Vercel deployment under *.vercel.app (useful for preview URLs)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+]
 
 _csrf_trusted = config("CSRF_TRUSTED_ORIGINS", default="")
 if _csrf_trusted:
