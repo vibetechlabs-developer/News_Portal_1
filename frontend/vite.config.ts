@@ -14,12 +14,13 @@ export default defineConfig(({ mode }) => ({
     // Proxy frontend /api and /media calls to the Django backend in development
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        // Point dev API calls to the Django backend port used locally
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
         secure: false,
       },
       "/media": {
-        target: "http://localhost:8000",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
         secure: false,
       },

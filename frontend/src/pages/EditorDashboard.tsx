@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   getSections,
+  getCategories,
+  getDistricts,
+  getTags,
   getArticles,
   getArticleBySlug,
   createArticle,
@@ -22,6 +25,9 @@ import {
   deleteMedia,
   getMediaUrl,
   type SectionItem,
+  type CategoryItem,
+  type DistrictItem,
+  type TagItem,
   type ArticleListItem,
   type MediaType,
   type EpaperEdition,
@@ -37,13 +43,31 @@ const EditorDashboard = () => {
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [loadingSections, setLoadingSections] = useState(true);
 
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [districts, setDistricts] = useState<DistrictItem[]>([]);
+  const [tags, setTags] = useState<TagItem[]>([]);
+
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [content, setContent] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
+  const [categoryId, setCategoryId] = useState<number | "">("");
+  const [districtId, setDistrictId] = useState<number | "">("");
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [contentType, setContentType] = useState<"ARTICLE" | "REEL" | "VIDEO" | "YOUTUBE">("ARTICLE");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
+  const [primaryLanguage, setPrimaryLanguage] = useState<"EN" | "HI" | "GU">("EN");
+  const [isBreaking, setIsBreaking] = useState(false);
+  const [isTop, setIsTop] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Create-form media/featured image
+  const [createFeaturedImageFile, setCreateFeaturedImageFile] = useState<File | null>(null);
+  const [createMediaType, setCreateMediaType] = useState<MediaType>("IMAGE");
+  const [createMediaCaption, setCreateMediaCaption] = useState("");
+  const [createMediaUrl, setCreateMediaUrl] = useState("");
+  const [createMediaFile, setCreateMediaFile] = useState<File | null>(null);
 
   const [recentArticles, setRecentArticles] = useState<ArticleListItem[]>([]);
   const [manageStatus, setManageStatus] = useState<"ALL" | "DRAFT" | "PUBLISHED">("ALL");
@@ -87,15 +111,21 @@ const EditorDashboard = () => {
     (async () => {
       try {
         setLoadingSections(true);
-        const data = await getSections();
+        const [sectionsData, categoriesData, tagsData] = await Promise.all([
+          getSections(),
+          getCategories(),
+          getTags(),
+        ]);
         if (!cancelled) {
-          setSections(Array.isArray(data) ? data : []);
+          setSections(Array.isArray(sectionsData) ? sectionsData : []);
+          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+          setTags(Array.isArray(tagsData) ? tagsData : []);
         }
       } catch (err) {
-        console.error("Failed to load sections for editor dashboard:", err);
+        console.error("Failed to load taxonomy for editor dashboard:", err);
         if (!cancelled) {
           toast({
-            title: "Could not load sections",
+            title: "Could not load sections/categories/tags",
             description:
               "Ensure the backend is running and you have permission to view sections.",
             variant: "destructive",
@@ -109,6 +139,29 @@ const EditorDashboard = () => {
       cancelled = true;
     };
   }, [toast]);
+
+  // Load districts when section changes (like Django admin "District" filtered by section)
+  useEffect(() => {
+    let cancelled = false;
+    if (!sectionId) {
+      setDistricts([]);
+      setDistrictId("");
+      return;
+    }
+    (async () => {
+      try {
+        const data = await getDistricts({ section: Number(sectionId), is_active: true });
+        if (!cancelled) {
+          setDistricts(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to load districts:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sectionId]);
 
   const sectionOptions = useMemo(() => sections.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)), [sections]);
 
@@ -161,17 +214,84 @@ const EditorDashboard = () => {
         content_en: content,
         section: Number(sectionId),
         status,
-        primary_language: "EN",
+        primary_language: primaryLanguage,
         content_type: contentType,
+        category: categoryId ? Number(categoryId) : undefined,
+        district: districtId ? Number(districtId) : undefined,
+        tags: selectedTagIds,
+        is_breaking: isBreaking,
+        is_top: isTop,
+        is_featured: isFeatured,
       };
 
       const created = await createArticle(payload);
       setRecentArticles((prev) => [created, ...prev].slice(0, 5));
+
+      // Optional: upload featured image (like Django admin "featured image" field)
+      if (createFeaturedImageFile) {
+        try {
+          await updateArticleFeaturedImage(created.slug, createFeaturedImageFile);
+        } catch (err) {
+          toast({
+            title: "Article saved, but image upload failed",
+            description: err instanceof Error ? err.message : "Please try again from the Edit dialog.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      // Optional: attach a first media item (image / video / YouTube), similar to Django inline media
+      const trimmedUrl = createMediaUrl.trim();
+      const wantsImage = createMediaType === "IMAGE" && !!createMediaFile;
+      const wantsVideoOrReel =
+        (createMediaType === "VIDEO" || createMediaType === "REEL") &&
+        (!!createMediaFile || !!trimmedUrl);
+      const wantsYoutube = createMediaType === "YOUTUBE" && !!trimmedUrl;
+
+      if (wantsImage || wantsVideoOrReel || wantsYoutube) {
+        try {
+          await createMedia({
+            article: created.id,
+            media_type: createMediaType,
+            caption: createMediaCaption || undefined,
+            youtube_url:
+              (createMediaType === "YOUTUBE" ||
+                createMediaType === "VIDEO" ||
+                createMediaType === "REEL") && trimmedUrl
+                ? trimmedUrl
+                : undefined,
+            file:
+              (createMediaType === "VIDEO" || createMediaType === "REEL") && createMediaFile
+                ? createMediaFile
+                : null,
+            image: createMediaType === "IMAGE" ? createMediaFile : null,
+          });
+        } catch (err) {
+          toast({
+            title: "Article saved, but media upload failed",
+            description: err instanceof Error ? err.message : "You can re-attach media from the Edit dialog.",
+            variant: "destructive",
+          });
+        }
+      }
+
       setTitle("");
       setSummary("");
       setContent("");
       setSectionId("");
       setStatus("DRAFT");
+      setCategoryId("");
+      setDistrictId("");
+      setSelectedTagIds([]);
+      setPrimaryLanguage("EN");
+      setIsBreaking(false);
+      setIsTop(false);
+      setIsFeatured(false);
+      setCreateFeaturedImageFile(null);
+      setCreateMediaType("IMAGE");
+      setCreateMediaCaption("");
+      setCreateMediaUrl("");
+      setCreateMediaFile(null);
 
       toast({
         title: "Article saved",
@@ -435,6 +555,19 @@ const EditorDashboard = () => {
                   <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} rows={8} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="featured-image">Featured image (optional)</Label>
+                  <Input
+                    id="featured-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCreateFeaturedImageFile(e.target.files?.[0] ?? null)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    This image will be used as the main thumbnail for the article, similar to the Django admin featured image.
+                  </p>
+                </div>
+
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="section">Section *</Label>
@@ -483,6 +616,173 @@ const EditorDashboard = () => {
                       <option value="YOUTUBE">YouTube</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <select
+                      id="category"
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">No category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name_en}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="district">District</Label>
+                    <select
+                      id="district"
+                      value={districtId}
+                      onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">No district</option>
+                      {districts.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name_en}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="primaryLanguage">Primary language</Label>
+                    <select
+                      id="primaryLanguage"
+                      value={primaryLanguage}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPrimaryLanguage(v === "HI" || v === "GU" ? v : "EN");
+                      }}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="EN">English</option>
+                      <option value="HI">Hindi</option>
+                      <option value="GU">Gujarati</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-[2fr,1fr]">
+                  <div className="space-y-2">
+                    <Label htmlFor="tags">Tags</Label>
+                    <select
+                      id="tags"
+                      multiple
+                      value={selectedTagIds.map((id) => String(id))}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value));
+                        setSelectedTagIds(selected);
+                      }}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm h-24"
+                    >
+                      {tags.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-muted-foreground">Hold Ctrl (Windows) or Cmd (Mac) to select multiple tags.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Flags</Label>
+                    <div className="flex flex-col gap-2 text-xs">
+                      <label className="flex items-center justify-between gap-2">
+                        <span>Is breaking</span>
+                        <Switch checked={isBreaking} onCheckedChange={setIsBreaking} />
+                      </label>
+                      <label className="flex items-center justify-between gap-2">
+                        <span>Is top</span>
+                        <Switch checked={isTop} onCheckedChange={setIsTop} />
+                      </label>
+                      <label className="flex items-center justify-between gap-2">
+                        <span>Is featured</span>
+                        <Switch checked={isFeatured} onCheckedChange={setIsFeatured} />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 space-y-3 border-t border-border pt-4">
+                  <p className="text-xs font-semibold">Optional media (photos / video / YouTube)</p>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="create-media-type">Type</Label>
+                      <select
+                        id="create-media-type"
+                        value={createMediaType}
+                        onChange={(e) => setCreateMediaType(e.target.value as MediaType)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="IMAGE">Image</option>
+                        <option value="VIDEO">Video</option>
+                        <option value="REEL">Reel</option>
+                        <option value="YOUTUBE">YouTube</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="create-media-caption">Caption</Label>
+                      <Input
+                        id="create-media-caption"
+                        value={createMediaCaption}
+                        onChange={(e) => setCreateMediaCaption(e.target.value)}
+                        placeholder="Optional description for the photo/video"
+                      />
+                    </div>
+                  </div>
+
+                  {createMediaType === "YOUTUBE" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="create-media-url">YouTube URL</Label>
+                      <Input
+                        id="create-media-url"
+                        value={createMediaUrl}
+                        onChange={(e) => setCreateMediaUrl(e.target.value)}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                      />
+                    </div>
+                  ) : createMediaType === "VIDEO" || createMediaType === "REEL" ? (
+                    <div className="space-y-4">
+                      <p className="text-xs text-muted-foreground">Upload a file OR paste a YouTube link (both are optional).</p>
+                      <div className="space-y-2">
+                        <Label htmlFor="create-media-file">File (optional)</Label>
+                        <Input
+                          id="create-media-file"
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => setCreateMediaFile(e.target.files?.[0] ?? null)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="create-media-url-video">YouTube URL (optional)</Label>
+                        <Input
+                          id="create-media-url-video"
+                          value={createMediaUrl}
+                          onChange={(e) => setCreateMediaUrl(e.target.value)}
+                          placeholder="https://www.youtube.com/watch?v=..."
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="create-media-image-file">Image file (optional)</Label>
+                      <Input
+                        id="create-media-image-file"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setCreateMediaFile(e.target.files?.[0] ?? null)}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <Button type="submit" disabled={submitting}>

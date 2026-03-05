@@ -651,6 +651,7 @@ export type ArticleUpsertPayload = Partial<
     | "content_gu"
     | "section"
     | "category"
+    | "district"
     | "tags"
     | "status"
     | "content_type"
