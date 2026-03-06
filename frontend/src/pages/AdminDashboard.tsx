@@ -958,7 +958,10 @@ const AdminDashboard = () => {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+              <DropdownMenuContent
+                align="end"
+                className="w-[min(20rem,calc(100vw-1rem))] max-h-[70vh] overflow-y-auto"
+              >
                 <div className="flex items-center justify-between p-2">
                   <span className="font-semibold">Notifications</span>
                   {unreadCount > 0 && (
@@ -1099,7 +1102,7 @@ const AdminDashboard = () => {
             )}
             <div className="grid gap-4 lg:grid-cols-3">
               <Card className="lg:col-span-1">
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <CardTitle>Ad slots (AdSense)</CardTitle>
                     <CardDescription>Configure Google AdSense ad slots.</CardDescription>
@@ -1115,7 +1118,7 @@ const AdminDashboard = () => {
                         <TableRow>
                           <TableHead>Name</TableHead>
                           <TableHead>Placement</TableHead>
-                          <TableHead className="w-[120px]">Actions</TableHead>
+                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1123,7 +1126,7 @@ const AdminDashboard = () => {
                           <TableRow key={s.id}>
                             <TableCell className="font-medium">{s.name}</TableCell>
                             <TableCell className="text-xs">{s.placement}</TableCell>
-                            <TableCell>
+                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <Button variant="ghost" size="sm" onClick={() => openEditSlot(s)}>Edit</Button>
                               <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setSlotDeleteId(s.id)}>Delete</Button>
                             </TableCell>
@@ -1136,7 +1139,7 @@ const AdminDashboard = () => {
               </Card>
 
               <Card className="lg:col-span-2">
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <CardTitle>Advertisements</CardTitle>
                     <CardDescription>Manage image/video/HTML ads.</CardDescription>
@@ -1154,7 +1157,7 @@ const AdminDashboard = () => {
                           <TableHead>Placement</TableHead>
                           <TableHead>Type</TableHead>
                             <TableHead>Status</TableHead>
-                          <TableHead className="w-[120px]">Actions</TableHead>
+                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1164,7 +1167,7 @@ const AdminDashboard = () => {
                             <TableCell className="text-xs">{a.placement}</TableCell>
                             <TableCell className="text-xs">{a.ad_type}</TableCell>
                             <TableCell className="text-xs">{a.status}</TableCell>
-                            <TableCell>
+                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <Button variant="ghost" size="sm" onClick={() => openEditAd(a)}>Edit</Button>
                               <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setAdDeleteId(a.id)}>Delete</Button>
                             </TableCell>
@@ -1221,7 +1224,7 @@ const AdminDashboard = () => {
               <p className="text-sm text-muted-foreground">Only Super Admin can manage users.</p>
             ) : (
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <CardTitle>Users</CardTitle>
                     <CardDescription>Create editors/reporters and manage access.</CardDescription>
@@ -1239,7 +1242,7 @@ const AdminDashboard = () => {
                           <TableHead>Email</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead>Active</TableHead>
-                          <TableHead className="w-[120px]">Actions</TableHead>
+                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1249,7 +1252,7 @@ const AdminDashboard = () => {
                             <TableCell className="text-xs">{u.email}</TableCell>
                             <TableCell className="text-xs">{u.role}</TableCell>
                             <TableCell className="text-xs">{u.is_active ? "Yes" : "No"}</TableCell>
-                            <TableCell>
+                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <Button variant="ghost" size="sm" onClick={() => openEditUser(u)}>Edit</Button>
                               <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setUserDeleteId(u.id)}>Delete</Button>
                             </TableCell>
@@ -1815,7 +1818,7 @@ const AdminDashboard = () => {
               </Card>
             )}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Categories</CardTitle>
                   <CardDescription>Manage categories for grouping news (e.g. Politics, Sports).</CardDescription>
@@ -1833,7 +1836,7 @@ const AdminDashboard = () => {
                         <TableHead>Slug</TableHead>
                         <TableHead>Active</TableHead>
                         <TableHead>Approved</TableHead>
-                        <TableHead className="w-[120px]">Actions</TableHead>
+                        <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1864,7 +1867,7 @@ const AdminDashboard = () => {
                                 </span>
                               )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <Button variant="ghost" size="sm" onClick={() => openEditCategory(c)}>
                                 Edit
                               </Button>
@@ -1933,7 +1936,7 @@ const AdminDashboard = () => {
               </Card>
             )}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Sections</CardTitle>
                   <CardDescription>Navbar sections (National, Gujarat, Sports, etc.).</CardDescription>
@@ -1952,7 +1955,7 @@ const AdminDashboard = () => {
                         <TableHead>Order</TableHead>
                         <TableHead>Active</TableHead>
                         <TableHead>Approved</TableHead>
-                        <TableHead className="w-[120px]">Actions</TableHead>
+                        <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1984,7 +1987,7 @@ const AdminDashboard = () => {
                                 </span>
                               )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <Button variant="ghost" size="sm" onClick={() => openEditSection(s)}>
                                 Edit
                               </Button>
@@ -2053,7 +2056,7 @@ const AdminDashboard = () => {
               </Card>
             )}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Tags</CardTitle>
                   <CardDescription>Tags for articles (e.g. elections, cricket).</CardDescription>
@@ -2070,7 +2073,7 @@ const AdminDashboard = () => {
                         <TableHead>Name</TableHead>
                         <TableHead>Slug</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-[120px]">Actions</TableHead>
+                        <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2100,7 +2103,7 @@ const AdminDashboard = () => {
                                 </span>
                               )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <Button variant="ghost" size="sm" onClick={() => openEditTag(t)}>
                                 Edit
                               </Button>
