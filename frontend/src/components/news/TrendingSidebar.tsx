@@ -30,8 +30,23 @@ export function TrendingSidebar() {
     (async () => {
       try {
         setTrendingLoading(true);
-        
-        // 1) Primary source: backend "most read" endpoint (true trending by views)
+
+        // 1) Primary source: editor-curated trending flag on articles
+        try {
+          const curated = await getArticles({ page: 1, page_size: 5, status: "PUBLISHED", is_trending: true });
+          if (cancelled) return;
+          const curatedResults = Array.isArray(curated.results) ? curated.results : [];
+
+          if (curatedResults.length > 0) {
+            setTrendingArticles(curatedResults.slice(0, 5));
+            if (!cancelled) setTrendingLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.warn("getArticles with is_trending failed, falling back to most-read/top/latest:", err);
+        }
+
+        // 2) Secondary source: backend "most read" endpoint (true trending by views)
         try {
           const mostRead = await getMostRead({ limit: 5, days: 7 });
           if (cancelled) return;
@@ -45,7 +60,7 @@ export function TrendingSidebar() {
           console.warn("getMostRead failed, falling back to top/latest articles:", err);
         }
 
-        // 2) Secondary fallback: editor-curated "top" news
+        // 3) Tertiary fallback: editor-curated "top" news
         try {
           const topNews = await getTopNews();
           if (cancelled) return;
@@ -59,7 +74,7 @@ export function TrendingSidebar() {
           console.warn("getTopNews failed, falling back to latest articles:", err);
         }
 
-        // 3) Final fallback: latest published articles as "trending"
+        // 4) Final fallback: latest published articles as "trending"
         const latest = await getArticles({ page: 1, status: "PUBLISHED" });
         if (cancelled) return;
         const results = Array.isArray(latest.results) ? latest.results : [];

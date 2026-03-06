@@ -371,7 +371,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
         "primary_language",
         "is_breaking",
         "is_top",
-        "is_featured",
+        "is_trending",
     ]
     search_fields = [
         "title_en",

@@ -77,7 +77,7 @@ const EditorDashboard = () => {
   const [primaryLanguage, setPrimaryLanguage] = useState<"EN" | "HI" | "GU">("EN");
   const [isBreaking, setIsBreaking] = useState(false);
   const [isTop, setIsTop] = useState(false);
-  const [isFeatured, setIsFeatured] = useState(false);
+  const [isTrending, setIsTrending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Create-form media/featured image
@@ -106,7 +106,7 @@ const EditorDashboard = () => {
   const [editStatus, setEditStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">("DRAFT");
   const [editBreaking, setEditBreaking] = useState(false);
   const [editTop, setEditTop] = useState(false);
-  const [editFeatured, setEditFeatured] = useState(false);
+  const [editTrending, setEditTrending] = useState(false);
   const [editFeaturedImageFile, setEditFeaturedImageFile] = useState<File | null>(null);
 
   // Media add
@@ -239,7 +239,7 @@ const EditorDashboard = () => {
         tags: selectedTagIds,
         is_breaking: isBreaking,
         is_top: isTop,
-        is_featured: isFeatured,
+        is_trending: isTrending,
       };
 
       const created = await createArticle(payload);
@@ -304,7 +304,7 @@ const EditorDashboard = () => {
       setPrimaryLanguage("EN");
       setIsBreaking(false);
       setIsTop(false);
-      setIsFeatured(false);
+      setIsTrending(false);
       setCreateFeaturedImageFile(null);
       setCreateMediaType("IMAGE");
       setCreateMediaCaption("");
@@ -367,7 +367,7 @@ const EditorDashboard = () => {
       setEditStatus(s === "PUBLISHED" || s === "ARCHIVED" || s === "DRAFT" ? s : "DRAFT");
       setEditBreaking(!!a.is_breaking);
       setEditTop(!!a.is_top);
-      setEditFeatured(!!a.is_featured);
+      setEditTrending(!!a.is_trending);
     } catch (e) {
       toast({ title: "Failed to load article", variant: "destructive", description: String(e) });
       setEditOpen(false);
@@ -392,7 +392,7 @@ const EditorDashboard = () => {
         status: editStatus,
         is_breaking: editBreaking,
         is_top: editTop,
-        is_featured: editFeatured,
+        is_trending: editTrending,
       });
       if (editFeaturedImageFile) {
         await updateArticleFeaturedImage(editSlug, editFeaturedImageFile);
@@ -728,8 +728,8 @@ const EditorDashboard = () => {
                         <Switch checked={isTop} onCheckedChange={setIsTop} />
                       </label>
                       <label className="flex items-center justify-between gap-2">
-                        <span>Is featured</span>
-                        <Switch checked={isFeatured} onCheckedChange={setIsFeatured} />
+                        <span>Is trending</span>
+                        <Switch checked={isTrending} onCheckedChange={setIsTrending} />
                       </label>
                     </div>
                   </div>
@@ -1083,8 +1083,8 @@ const EditorDashboard = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Switch checked={editFeatured} onCheckedChange={setEditFeatured} />
-                    <span className="text-sm">Featured</span>
+                    <Switch checked={editTrending} onCheckedChange={setEditTrending} />
+                    <span className="text-sm">Trending</span>
                   </div>
 
                   <div className="space-y-2">

@@ -44,11 +44,11 @@ class NewsArticleAdmin(admin.ModelAdmin):
         "content_type",
         "is_breaking",
         "is_top",
-        "is_featured",
+        "is_trending",
         "published_at",
         "created_at",
     )
-    list_filter = ("status", "content_type", "section", "category", "district", "is_breaking", "is_top", "is_featured")
+    list_filter = ("status", "content_type", "section", "category", "district", "is_breaking", "is_top", "is_trending")
     search_fields = ("title_en", "title_hi", "title_gu", "slug")
     prepopulated_fields = {"slug": ("title_en",)}
     autocomplete_fields = ("author", "section", "category", "district", "tags")

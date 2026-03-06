@@ -205,7 +205,8 @@ class NewsArticle(models.Model):
 
     is_breaking = models.BooleanField(default=False)
     is_top = models.BooleanField(default=False)
-    is_featured = models.BooleanField(default=False)
+    # Editor-curated flag for articles that should appear in "Trending" sections
+    is_trending = models.BooleanField(default=False)
 
     view_count = models.PositiveIntegerField(default=0)
     likes_count = models.PositiveIntegerField(default=0)

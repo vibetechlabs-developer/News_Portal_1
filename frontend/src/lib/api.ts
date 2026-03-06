@@ -341,7 +341,7 @@ export interface ArticleListItem {
   primary_language: string;
   is_breaking: boolean;
   is_top: boolean;
-  is_featured: boolean;
+  is_trending: boolean;
   view_count?: number;
   likes_count?: number;
   published_at: string | null;
@@ -439,7 +439,7 @@ export async function getArticles(params?: {
   /** Optional flags corresponding to NewsArticle boolean fields */
   is_breaking?: boolean;
   is_top?: boolean;
-  is_featured?: boolean;
+  is_trending?: boolean;
 }): Promise<ArticlesResponse> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
@@ -457,8 +457,8 @@ export async function getArticles(params?: {
   if (typeof params?.is_top === "boolean") {
     search.set("is_top", String(params.is_top));
   }
-  if (typeof params?.is_featured === "boolean") {
-    search.set("is_featured", String(params.is_featured));
+  if (typeof params?.is_trending === "boolean") {
+    search.set("is_trending", String(params.is_trending));
   }
   const qs = search.toString();
   const url = apiUrl("/news/articles/" + (qs ? `?${qs}` : ""));
@@ -658,7 +658,7 @@ export type ArticleUpsertPayload = Partial<
     | "primary_language"
     | "is_breaking"
     | "is_top"
-    | "is_featured"
+    | "is_trending"
   >
 > & {
   slug?: string;
