@@ -9,7 +9,6 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from backend.common.permissions import IsSuperAdmin
@@ -24,13 +23,9 @@ from .serializers import (
 User = get_user_model()
 
 
-class AuthRateThrottle(ScopedRateThrottle):
-    scope_attr = "throttle_scope"
-
-
 class ThrottledTokenObtainPairView(TokenObtainPairView):
-    throttle_classes = [AuthRateThrottle]
-    throttle_scope = "auth"
+    # Throttling removed (project-level throttling is disabled).
+    throttle_classes = []
 
 
 class RegisterView(generics.CreateAPIView):
@@ -40,8 +35,7 @@ class RegisterView(generics.CreateAPIView):
 
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
-    throttle_classes = [AuthRateThrottle]
-    throttle_scope = "auth"
+    throttle_classes = []
 
 
 class MeView(generics.RetrieveUpdateAPIView):
@@ -65,8 +59,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
 
     permission_classes = [AllowAny]
     serializer_class = PasswordResetRequestSerializer
-    throttle_classes = [AuthRateThrottle]
-    throttle_scope = "auth"
+    throttle_classes = []
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -100,8 +93,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
 
     permission_classes = [AllowAny]
     serializer_class = PasswordResetConfirmSerializer
-    throttle_classes = [AuthRateThrottle]
-    throttle_scope = "auth"
+    throttle_classes = []
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
