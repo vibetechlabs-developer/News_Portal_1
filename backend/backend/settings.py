@@ -40,6 +40,9 @@ else:
         "127.0.0.1",
         "newsportal.com",
         "www.newsportal.com",
+        "kanamexpress.com",
+        "www.kanamexpress.com",
+        "api.kanamexpress.com",
         "194.164.151.91"
     ]
 
