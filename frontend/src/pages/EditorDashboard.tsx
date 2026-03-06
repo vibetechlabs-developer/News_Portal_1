@@ -1021,160 +1021,162 @@ const EditorDashboard = () => {
         </Tabs>
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="sm:max-w-4xl">
+          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Edit article</DialogTitle>
             </DialogHeader>
-            {editLoading || !editArticle ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
-            ) : (
-              <div className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Title (EN)</Label>
-                    <Input value={editTitleEn} onChange={(e) => setEditTitleEn(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Section</Label>
-                    <select value={editSectionId} onChange={(e) => setEditSectionId(e.target.value ? Number(e.target.value) : "")} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                      <option value="">Select section…</option>
-                      {sectionOptions.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name_en}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Summary (EN)</Label>
-                  <textarea value={editSummaryEn} onChange={(e) => setEditSummaryEn(e.target.value)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Content (EN)</Label>
-                  <textarea value={editContentEn} onChange={(e) => setEditContentEn(e.target.value)} rows={10} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <select
-                      value={editStatus}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setEditStatus(v === "PUBLISHED" || v === "ARCHIVED" ? v : "DRAFT");
-                      }}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="DRAFT">Draft</option>
-                      <option value="PUBLISHED">Published</option>
-                      <option value="ARCHIVED">Archived</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 pt-7">
-                    <Switch checked={editBreaking} onCheckedChange={setEditBreaking} />
-                    <span className="text-sm">Breaking</span>
-                  </div>
-                  <div className="flex items-center gap-2 pt-7">
-                    <Switch checked={editTop} onCheckedChange={setEditTop} />
-                    <span className="text-sm">Top</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Switch checked={editFeatured} onCheckedChange={setEditFeatured} />
-                  <span className="text-sm">Featured</span>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Featured image</Label>
-                  {editArticle.featured_image ? (
-                    <img src={getMediaUrl(editArticle.featured_image)} alt="" className="h-28 rounded border border-border object-cover" />
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No featured image.</p>
-                  )}
-                  <Input type="file" accept="image/*" onChange={(e) => setEditFeaturedImageFile(e.target.files?.[0] ?? null)} />
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Media</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label>Type</Label>
-                        <select value={mediaType} onChange={(e) => setMediaType(e.target.value as MediaType)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                          <option value="IMAGE">Image</option>
-                          <option value="VIDEO">Video</option>
-                          <option value="REEL">Reel</option>
-                          <option value="YOUTUBE">YouTube</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>Caption</Label>
-                        <Input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />
-                      </div>
+            <div className="flex-1 overflow-y-auto pr-1">
+              {editLoading || !editArticle ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Title (EN)</Label>
+                      <Input value={editTitleEn} onChange={(e) => setEditTitleEn(e.target.value)} />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Section</Label>
+                      <select value={editSectionId} onChange={(e) => setEditSectionId(e.target.value ? Number(e.target.value) : "")} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <option value="">Select section…</option>
+                        {sectionOptions.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name_en}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-                    {mediaType === "YOUTUBE" ? (
-                      <div className="space-y-2">
-                        <Label>YouTube URL</Label>
-                        <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                      </div>
-                    ) : mediaType === "VIDEO" || mediaType === "REEL" ? (
-                      <div className="space-y-4">
-                        <p className="text-xs text-muted-foreground">Upload a file OR paste a YouTube link</p>
+                  <div className="space-y-2">
+                    <Label>Summary (EN)</Label>
+                    <textarea value={editSummaryEn} onChange={(e) => setEditSummaryEn(e.target.value)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Content (EN)</Label>
+                    <textarea value={editContentEn} onChange={(e) => setEditContentEn(e.target.value)} rows={10} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <select
+                        value={editStatus}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setEditStatus(v === "PUBLISHED" || v === "ARCHIVED" ? v : "DRAFT");
+                        }}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="DRAFT">Draft</option>
+                        <option value="PUBLISHED">Published</option>
+                        <option value="ARCHIVED">Archived</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 pt-7">
+                      <Switch checked={editBreaking} onCheckedChange={setEditBreaking} />
+                      <span className="text-sm">Breaking</span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-7">
+                      <Switch checked={editTop} onCheckedChange={setEditTop} />
+                      <span className="text-sm">Top</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Switch checked={editFeatured} onCheckedChange={setEditFeatured} />
+                    <span className="text-sm">Featured</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Featured image</Label>
+                    {editArticle.featured_image ? (
+                      <img src={getMediaUrl(editArticle.featured_image)} alt="" className="h-28 rounded border border-border object-cover" />
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No featured image.</p>
+                    )}
+                    <Input type="file" accept="image/*" onChange={(e) => setEditFeaturedImageFile(e.target.files?.[0] ?? null)} />
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Media</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid gap-3 md:grid-cols-3">
                         <div className="space-y-2">
-                          <Label>File (optional)</Label>
-                          <Input type="file" accept="video/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
+                          <Label>Type</Label>
+                          <select value={mediaType} onChange={(e) => setMediaType(e.target.value as MediaType)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                            <option value="IMAGE">Image</option>
+                            <option value="VIDEO">Video</option>
+                            <option value="REEL">Reel</option>
+                            <option value="YOUTUBE">YouTube</option>
+                          </select>
                         </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Caption</Label>
+                          <Input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />
+                        </div>
+                      </div>
+
+                      {mediaType === "YOUTUBE" ? (
                         <div className="space-y-2">
-                          <Label>YouTube URL (optional)</Label>
+                          <Label>YouTube URL</Label>
                           <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Label>File</Label>
-                        <Input type="file" accept="image/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
-                      </div>
-                    )}
-
-                    <Button type="button" onClick={addMedia} disabled={mediaSaving}>
-                      {mediaSaving ? "Uploading…" : "Add media"}
-                    </Button>
-
-                    <div className="space-y-2">
-                      {(editArticle.media ?? []).length === 0 ? (
-                        <p className="text-xs text-muted-foreground">No media items.</p>
+                      ) : mediaType === "VIDEO" || mediaType === "REEL" ? (
+                        <div className="space-y-4">
+                          <p className="text-xs text-muted-foreground">Upload a file OR paste a YouTube link</p>
+                          <div className="space-y-2">
+                            <Label>File (optional)</Label>
+                            <Input type="file" accept="video/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>YouTube URL (optional)</Label>
+                            <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                          </div>
+                        </div>
                       ) : (
-                        <ul className="space-y-2 text-sm">
-                          {(editArticle.media ?? []).map((m) => (
-                            <li key={m.id} className="flex items-center justify-between gap-3 rounded border border-border p-2">
-                              <div className="min-w-0">
-                                <p className="text-xs font-mono">{m.media_type}</p>
-                                <p className="text-xs text-muted-foreground truncate">{m.caption || m.youtube_url || m.file || m.image || ""}</p>
-                              </div>
-                              <Button type="button" variant="ghost" className="text-destructive" onClick={() => removeMedia(m.id)}>
-                                Delete
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
+                        <div className="space-y-2">
+                          <Label>File</Label>
+                          <Input type="file" accept="image/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
+                        </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
 
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Close</Button>
-                  <Button type="button" onClick={saveEdit} disabled={editSaving}>
-                    {editSaving ? "Saving…" : "Save changes"}
-                  </Button>
-                </DialogFooter>
-              </div>
-            )}
+                      <Button type="button" onClick={addMedia} disabled={mediaSaving}>
+                        {mediaSaving ? "Uploading…" : "Add media"}
+                      </Button>
+
+                      <div className="space-y-2">
+                        {(editArticle.media ?? []).length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No media items.</p>
+                        ) : (
+                          <ul className="space-y-2 text-sm">
+                            {(editArticle.media ?? []).map((m) => (
+                              <li key={m.id} className="flex items-center justify-between gap-3 rounded border border-border p-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-mono">{m.media_type}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{m.caption || m.youtube_url || m.file || m.image || ""}</p>
+                                </div>
+                                <Button type="button" variant="ghost" className="text-destructive" onClick={() => removeMedia(m.id)}>
+                                  Delete
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Close</Button>
+              <Button type="button" onClick={saveEdit} disabled={editSaving}>
+                {editSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

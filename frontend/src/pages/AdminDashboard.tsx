@@ -939,14 +939,14 @@ const AdminDashboard = () => {
   return (
     <PageLayout showTicker={false}>
       <div className="container mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Admin Dashboard</h1>
             <p className="text-sm text-muted-foreground">
               Signed in as {user?.username} ({user?.role})
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="relative">
@@ -1032,17 +1032,19 @@ const AdminDashboard = () => {
             }
           }}
         >
-          <TabsList className="grid w-full max-w-6xl grid-cols-9">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="sections">Sections</TabsTrigger>
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-            <TabsTrigger value="ads">Ads</TabsTrigger>
-            <TabsTrigger value="careers">Careers</TabsTrigger>
-            <TabsTrigger value="site">Site</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="users" disabled={!isSuperAdmin}>Users</TabsTrigger>
-          </TabsList>
+          <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
+            <TabsList className="w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="sections">Sections</TabsTrigger>
+              <TabsTrigger value="tags">Tags</TabsTrigger>
+              <TabsTrigger value="ads">Ads</TabsTrigger>
+              <TabsTrigger value="careers">Careers</TabsTrigger>
+              <TabsTrigger value="site">Site</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="users" disabled={!isSuperAdmin}>Users</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1201,7 +1203,7 @@ const AdminDashboard = () => {
                           <TableCell className="text-xs">{r.placement}</TableCell>
                           <TableCell className="text-xs">{r.ad_type}</TableCell>
                           <TableCell className="text-xs">{r.status}</TableCell>
-                          <TableCell className="flex gap-2">
+                          <TableCell className="flex flex-wrap gap-2">
                             <Button variant="outline" size="sm" onClick={() => updateRequestStatus(r.id, "APPROVED")}>Approve</Button>
                             <Button variant="outline" size="sm" className="text-destructive" onClick={() => updateRequestStatus(r.id, "REJECTED")}>Reject</Button>
                           </TableCell>
@@ -1794,7 +1796,7 @@ const AdminDashboard = () => {
                               Pending
                             </span>
                           </TableCell>
-                          <TableCell className="flex gap-2">
+                          <TableCell className="flex flex-wrap gap-2">
                             <Button variant="outline" size="sm" onClick={() => handleApproveCategory(c.slug)}>
                               Approve
                             </Button>
@@ -1912,7 +1914,7 @@ const AdminDashboard = () => {
                               Pending
                             </span>
                           </TableCell>
-                          <TableCell className="flex gap-2">
+                          <TableCell className="flex flex-wrap gap-2">
                             <Button variant="outline" size="sm" onClick={() => handleApproveSection(s.slug)}>
                               Approve
                             </Button>
@@ -2032,7 +2034,7 @@ const AdminDashboard = () => {
                               Pending
                             </span>
                           </TableCell>
-                          <TableCell className="flex gap-2">
+                          <TableCell className="flex flex-wrap gap-2">
                             <Button variant="outline" size="sm" onClick={() => handleApproveTag(t.slug)}>
                               Approve
                             </Button>
