@@ -2126,7 +2126,7 @@ const AdminDashboard = () => {
 
         {/* User dialog */}
         <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-lg">
+          <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{userEditing ? "Edit user" : "Add user"}</DialogTitle>
             </DialogHeader>
@@ -2201,7 +2201,7 @@ const AdminDashboard = () => {
 
         {/* Slot dialog */}
         <Dialog open={slotDialogOpen} onOpenChange={setSlotDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{slotEditing ? "Edit ad slot" : "Add Google AdSense slot"}</DialogTitle>
             </DialogHeader>
@@ -2337,7 +2337,7 @@ const AdminDashboard = () => {
 
         {/* Advertisement dialog */}
         <Dialog open={adDialogOpen} onOpenChange={setAdDialogOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-2xl">
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{adEditing ? "Edit advertisement" : "Add advertisement"}</DialogTitle>
             </DialogHeader>
@@ -2425,7 +2425,7 @@ const AdminDashboard = () => {
 
         {/* Section dialog */}
         <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-lg">
+          <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{sectionEditing ? "Edit section" : "Add section"}</DialogTitle>
             </DialogHeader>
@@ -2496,7 +2496,7 @@ const AdminDashboard = () => {
 
         {/* Category dialog */}
         <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-lg">
+          <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{categoryEditing ? "Edit category" : "Add category"}</DialogTitle>
             </DialogHeader>
@@ -2558,7 +2558,7 @@ const AdminDashboard = () => {
 
         {/* Tag dialog */}
         <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-lg">
+          <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{tagEditing ? "Edit tag" : "Add tag"}</DialogTitle>
             </DialogHeader>

@@ -1021,11 +1021,11 @@ const EditorDashboard = () => {
         </Tabs>
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogContent className="w-[95vw] sm:max-w-4xl h-[90dvh] max-h-[90dvh] flex flex-col overflow-hidden p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>Edit article</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               {editLoading || !editArticle ? (
                 <p className="text-sm text-muted-foreground">Loading…</p>
               ) : (
