@@ -938,7 +938,7 @@ const AdminDashboard = () => {
 
   return (
     <PageLayout showTicker={false}>
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Admin Dashboard</h1>
@@ -1118,15 +1118,15 @@ const AdminDashboard = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Name</TableHead>
-                            <TableHead className="hidden sm:table-cell">Placement</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableHead>Placement</TableHead>
+                            <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {adSlots.map((s) => (
                             <TableRow key={s.id}>
-                              <TableCell className="font-medium text-sm">{s.name}</TableCell>
-                              <TableCell className="hidden sm:table-cell text-xs">{s.placement}</TableCell>
+                              <TableCell className="font-medium">{s.name}</TableCell>
+                              <TableCell className="text-xs">{s.placement}</TableCell>
                               <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                                 <Button variant="ghost" size="sm" onClick={() => openEditSlot(s)}>Edit</Button>
                                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setSlotDeleteId(s.id)}>Delete</Button>
@@ -1152,31 +1152,33 @@ const AdminDashboard = () => {
                   {ads.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No advertisements yet.</p>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Title</TableHead>
-                          <TableHead>Placement</TableHead>
-                          <TableHead>Type</TableHead>
-                            <TableHead>Status</TableHead>
-                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {ads.map((a) => (
-                          <TableRow key={a.id}>
-                            <TableCell className="font-medium">{a.title}</TableCell>
-                            <TableCell className="text-xs">{a.placement}</TableCell>
-                            <TableCell className="text-xs">{a.ad_type}</TableCell>
-                            <TableCell className="text-xs">{a.status}</TableCell>
-                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => openEditAd(a)}>Edit</Button>
-                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setAdDeleteId(a.id)}>Delete</Button>
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Placement</TableHead>
+                            <TableHead>Type</TableHead>
+                              <TableHead>Status</TableHead>
+                            <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {ads.map((a) => (
+                            <TableRow key={a.id}>
+                              <TableCell className="font-medium">{a.title}</TableCell>
+                              <TableCell className="text-xs">{a.placement}</TableCell>
+                              <TableCell className="text-xs">{a.ad_type}</TableCell>
+                              <TableCell className="text-xs">{a.status}</TableCell>
+                              <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => openEditAd(a)}>Edit</Button>
+                                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setAdDeleteId(a.id)}>Delete</Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1191,31 +1193,33 @@ const AdminDashboard = () => {
                 {adRequests.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No ad requests.</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Placement</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[220px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {adRequests.map((r) => (
-                        <TableRow key={r.id}>
-                          <TableCell className="font-medium">{r.advertiser_name}</TableCell>
-                          <TableCell className="text-xs">{r.placement}</TableCell>
-                          <TableCell className="text-xs">{r.ad_type}</TableCell>
-                          <TableCell className="text-xs">{r.status}</TableCell>
-                          <TableCell className="flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" onClick={() => updateRequestStatus(r.id, "APPROVED")}>Approve</Button>
-                            <Button variant="outline" size="sm" className="text-destructive" onClick={() => updateRequestStatus(r.id, "REJECTED")}>Reject</Button>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Placement</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="w-[220px]">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {adRequests.map((r) => (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-medium">{r.advertiser_name}</TableCell>
+                            <TableCell className="text-xs">{r.placement}</TableCell>
+                            <TableCell className="text-xs">{r.ad_type}</TableCell>
+                            <TableCell className="text-xs">{r.status}</TableCell>
+                            <TableCell className="flex flex-wrap gap-2">
+                              <Button variant="outline" size="sm" onClick={() => updateRequestStatus(r.id, "APPROVED")}>Approve</Button>
+                              <Button variant="outline" size="sm" className="text-destructive" onClick={() => updateRequestStatus(r.id, "REJECTED")}>Reject</Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1237,31 +1241,33 @@ const AdminDashboard = () => {
                   {users.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No users loaded yet.</p>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Username</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Active</TableHead>
-                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((u) => (
-                          <TableRow key={u.id}>
-                            <TableCell className="font-medium">{u.username}</TableCell>
-                            <TableCell className="text-xs">{u.email}</TableCell>
-                            <TableCell className="text-xs">{u.role}</TableCell>
-                            <TableCell className="text-xs">{u.is_active ? "Yes" : "No"}</TableCell>
-                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => openEditUser(u)}>Edit</Button>
-                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setUserDeleteId(u.id)}>Delete</Button>
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Username</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Active</TableHead>
+                            <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {users.map((u) => (
+                            <TableRow key={u.id}>
+                              <TableCell className="font-medium">{u.username}</TableCell>
+                              <TableCell className="text-xs">{u.email}</TableCell>
+                              <TableCell className="text-xs">{u.role}</TableCell>
+                              <TableCell className="text-xs">{u.is_active ? "Yes" : "No"}</TableCell>
+                              <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => openEditUser(u)}>Edit</Button>
+                                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setUserDeleteId(u.id)}>Delete</Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1360,7 +1366,7 @@ const AdminDashboard = () => {
                         <Label htmlFor="editor_name">Editor Name *</Label>
                         <Input id="editor_name" value={siteSettings.editor_name ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, editor_name: e.target.value }) : s)} />
                       </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      <div className="grid gap-3 md:grid-cols-3">
                         <div className="space-y-2">
                           <Label htmlFor="editor_title_en">Editor Title (EN) *</Label>
                           <Input id="editor_title_en" value={siteSettings.editor_title_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, editor_title_en: e.target.value }) : s)} />
@@ -1443,7 +1449,7 @@ const AdminDashboard = () => {
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      <div className="grid gap-3 md:grid-cols-3">
                         <div className="space-y-2">
                           <Label htmlFor="publication_description_en">Publication Description (EN)</Label>
                           <textarea
@@ -1483,7 +1489,7 @@ const AdminDashboard = () => {
                       {/* Value 1 */}
                       <div className="space-y-3 p-4 border rounded-lg">
                         <h4 className="font-medium">Value 1</h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-3">
                           <div className="space-y-2">
                             <Label htmlFor="value1_title_en">Title (EN)</Label>
                             <Input id="value1_title_en" value={siteSettings.value1_title_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value1_title_en: e.target.value }) : s)} />
@@ -1515,7 +1521,7 @@ const AdminDashboard = () => {
                       {/* Value 2 */}
                       <div className="space-y-3 p-4 border rounded-lg">
                         <h4 className="font-medium">Value 2</h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-3">
                           <div className="space-y-2">
                             <Label htmlFor="value2_title_en">Title (EN)</Label>
                             <Input id="value2_title_en" value={siteSettings.value2_title_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value2_title_en: e.target.value }) : s)} />
@@ -1547,7 +1553,7 @@ const AdminDashboard = () => {
                       {/* Value 3 */}
                       <div className="space-y-3 p-4 border rounded-lg">
                         <h4 className="font-medium">Value 3</h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-3">
                           <div className="space-y-2">
                             <Label htmlFor="value3_title_en">Title (EN)</Label>
                             <Input id="value3_title_en" value={siteSettings.value3_title_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value3_title_en: e.target.value }) : s)} />
@@ -1561,7 +1567,7 @@ const AdminDashboard = () => {
                             <Input id="value3_title_hi" value={siteSettings.value3_title_hi ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value3_title_hi: e.target.value }) : s)} />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-3">
                           <div className="space-y-2">
                             <Label htmlFor="value3_desc_en">Description (EN)</Label>
                             <Input id="value3_desc_en" value={siteSettings.value3_desc_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value3_desc_en: e.target.value }) : s)} />
@@ -1579,7 +1585,7 @@ const AdminDashboard = () => {
                       {/* Value 4 */}
                       <div className="space-y-3 p-4 border rounded-lg">
                         <h4 className="font-medium">Value 4</h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-3">
                           <div className="space-y-2">
                             <Label htmlFor="value4_title_en">Title (EN)</Label>
                             <Input id="value4_title_en" value={siteSettings.value4_title_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value4_title_en: e.target.value }) : s)} />
@@ -1593,7 +1599,7 @@ const AdminDashboard = () => {
                             <Input id="value4_title_hi" value={siteSettings.value4_title_hi ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value4_title_hi: e.target.value }) : s)} />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-3">
                           <div className="space-y-2">
                             <Label htmlFor="value4_desc_en">Description (EN)</Label>
                             <Input id="value4_desc_en" value={siteSettings.value4_desc_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, value4_desc_en: e.target.value }) : s)} />
@@ -1617,7 +1623,7 @@ const AdminDashboard = () => {
                         <Label htmlFor="website_url">Website URL</Label>
                         <Input id="website_url" value={siteSettings.website_url ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, website_url: e.target.value }) : s)} />
                       </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="grid gap-3 md:grid-cols-2">
                         <div className="space-y-2">
                           <Label htmlFor="contact_email">Contact Email</Label>
                           <Input id="contact_email" type="email" value={siteSettings.contact_email ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, contact_email: e.target.value }) : s)} />
@@ -1669,7 +1675,7 @@ const AdminDashboard = () => {
                     {/* Contact Page Additional Fields */}
                     <div className="space-y-4 border-b pb-4">
                       <h3 className="text-lg font-semibold">Contact Page</h3>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      <div className="grid gap-3 md:grid-cols-3">
                         <div className="space-y-2">
                           <Label htmlFor="organization_name_en">Organization Name (EN)</Label>
                           <Input id="organization_name_en" value={siteSettings.organization_name_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, organization_name_en: e.target.value }) : s)} />
@@ -1683,7 +1689,7 @@ const AdminDashboard = () => {
                           <Input id="organization_name_hi" value={siteSettings.organization_name_hi ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, organization_name_hi: e.target.value }) : s)} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      <div className="grid gap-3 md:grid-cols-3">
                         <div className="space-y-2">
                           <Label htmlFor="working_hours_en">Working Hours (EN)</Label>
                           <textarea
@@ -1751,24 +1757,26 @@ const AdminDashboard = () => {
                 {newsViews.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No analytics data yet.</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Viewed at</TableHead>
-                        <TableHead>Article ID</TableHead>
-                        <TableHead>User ID</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {newsViews.slice(0, 50).map((v) => (
-                        <TableRow key={v.id}>
-                          <TableCell className="text-xs">{new Date(v.viewed_at).toLocaleString()}</TableCell>
-                          <TableCell className="text-xs font-mono">{v.article}</TableCell>
-                          <TableCell className="text-xs font-mono">{v.user ?? "-"}</TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Viewed at</TableHead>
+                          <TableHead>Article ID</TableHead>
+                          <TableHead>User ID</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {newsViews.slice(0, 50).map((v) => (
+                          <TableRow key={v.id}>
+                            <TableCell className="text-xs">{new Date(v.viewed_at).toLocaleString()}</TableCell>
+                            <TableCell className="text-xs font-mono">{v.article}</TableCell>
+                            <TableCell className="text-xs font-mono">{v.user ?? "-"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1782,40 +1790,42 @@ const AdminDashboard = () => {
                   <CardDescription>Categories waiting for admin approval</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name (EN)</TableHead>
-                        <TableHead>Slug</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[200px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendingCategories.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell className="font-medium">{c.name_en}</TableCell>
-                          <TableCell className="font-mono text-xs">{c.slug}</TableCell>
-                          <TableCell>
-                            <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
-                              Pending
-                            </span>
-                          </TableCell>
-                          <TableCell className="flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleApproveCategory(c.slug)}>
-                              Approve
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleRejectCategory(c.slug)} className="text-destructive">
-                              Reject
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => openEditCategory(c)}>
-                              Edit
-                            </Button>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name (EN)</TableHead>
+                          <TableHead>Slug</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="w-[200px]">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingCategories.map((c) => (
+                          <TableRow key={c.id}>
+                            <TableCell className="font-medium">{c.name_en}</TableCell>
+                            <TableCell className="font-mono text-xs">{c.slug}</TableCell>
+                            <TableCell>
+                              <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
+                                Pending
+                              </span>
+                            </TableCell>
+                            <TableCell className="flex flex-wrap gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleApproveCategory(c.slug)}>
+                                Approve
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleRejectCategory(c.slug)} className="text-destructive">
+                                Reject
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => openEditCategory(c)}>
+                                Edit
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1836,10 +1846,10 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name (EN)</TableHead>
-                          <TableHead className="hidden sm:table-cell">Slug</TableHead>
-                          <TableHead className="hidden md:table-cell">Active</TableHead>
+                          <TableHead>Slug</TableHead>
+                          <TableHead>Active</TableHead>
                           <TableHead>Approved</TableHead>
-                          <TableHead>Actions</TableHead>
+                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1852,9 +1862,9 @@ const AdminDashboard = () => {
                         ) : (
                           categories.map((c) => (
                             <TableRow key={c.id} className={!c.is_approved ? "bg-muted/50" : ""}>
-                              <TableCell className="font-medium text-sm">{c.name_en}</TableCell>
-                              <TableCell className="hidden sm:table-cell font-mono text-xs">{c.slug}</TableCell>
-                              <TableCell className="hidden md:table-cell text-sm">{c.is_active ? "Yes" : "No"}</TableCell>
+                              <TableCell>{c.name_en}</TableCell>
+                              <TableCell className="font-mono text-xs">{c.slug}</TableCell>
+                              <TableCell>{c.is_active ? "Yes" : "No"}</TableCell>
                               <TableCell>
                                 {c.is_approved ? (
                                   <span className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100">
@@ -1907,22 +1917,22 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name (EN)</TableHead>
-                          <TableHead className="hidden sm:table-cell">Slug</TableHead>
+                          <TableHead>Slug</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
+                          <TableHead className="w-[200px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {pendingSections.map((s) => (
                           <TableRow key={s.id}>
-                            <TableCell className="font-medium text-sm">{s.name_en}</TableCell>
-                            <TableCell className="hidden sm:table-cell font-mono text-xs">{s.slug}</TableCell>
+                            <TableCell className="font-medium">{s.name_en}</TableCell>
+                            <TableCell className="font-mono text-xs">{s.slug}</TableCell>
                             <TableCell>
                               <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
                                 Pending
                               </span>
                             </TableCell>
-                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                            <TableCell className="flex flex-wrap gap-2">
                               <Button variant="outline" size="sm" onClick={() => handleApproveSection(s.slug)}>
                                 Approve
                               </Button>
@@ -1958,11 +1968,11 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name (EN)</TableHead>
-                          <TableHead className="hidden sm:table-cell">Slug</TableHead>
-                          <TableHead className="hidden md:table-cell">Order</TableHead>
-                          <TableHead className="hidden lg:table-cell">Active</TableHead>
+                          <TableHead>Slug</TableHead>
+                          <TableHead>Order</TableHead>
+                          <TableHead>Active</TableHead>
                           <TableHead>Approved</TableHead>
-                          <TableHead>Actions</TableHead>
+                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1975,10 +1985,10 @@ const AdminDashboard = () => {
                         ) : (
                           sections.map((s) => (
                             <TableRow key={s.id} className={!s.is_approved ? "bg-muted/50" : ""}>
-                              <TableCell className="font-medium text-sm">{s.name_en}</TableCell>
-                              <TableCell className="hidden sm:table-cell font-mono text-xs">{s.slug}</TableCell>
-                              <TableCell className="hidden md:table-cell text-sm">{s.order}</TableCell>
-                              <TableCell className="hidden lg:table-cell text-sm">{s.is_active ? "Yes" : "No"}</TableCell>
+                              <TableCell>{s.name_en}</TableCell>
+                              <TableCell className="font-mono text-xs">{s.slug}</TableCell>
+                              <TableCell>{s.order}</TableCell>
+                              <TableCell>{s.is_active ? "Yes" : "No"}</TableCell>
                               <TableCell>
                                 {s.is_approved ? (
                                   <span className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100">
@@ -2031,22 +2041,22 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
-                          <TableHead className="hidden sm:table-cell">Slug</TableHead>
+                          <TableHead>Slug</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
+                          <TableHead className="w-[200px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {pendingTags.map((t) => (
                           <TableRow key={t.id}>
-                            <TableCell className="font-medium text-sm">{t.name}</TableCell>
-                            <TableCell className="hidden sm:table-cell font-mono text-xs">{t.slug}</TableCell>
+                            <TableCell className="font-medium">{t.name}</TableCell>
+                            <TableCell className="font-mono text-xs">{t.slug}</TableCell>
                             <TableCell>
                               <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
                                 Pending
                               </span>
                             </TableCell>
-                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                            <TableCell className="flex flex-wrap gap-2">
                               <Button variant="outline" size="sm" onClick={() => handleApproveTag(t.slug)}>
                                 Approve
                               </Button>
@@ -2077,60 +2087,62 @@ const AdminDashboard = () => {
                 {loading.tags ? (
                   <p className="text-sm text-muted-foreground">Loading…</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Slug</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tags.length === 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={4} className="text-muted-foreground">
-                            No tags yet. Add one above.
-                          </TableCell>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Slug</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                         </TableRow>
-                      ) : (
-                        tags.map((t) => (
-                          <TableRow key={t.id} className={!t.is_approved ? "bg-muted/50" : ""}>
-                            <TableCell>{t.name}</TableCell>
-                            <TableCell className="font-mono text-xs">{t.slug}</TableCell>
-                            <TableCell>
-                              {t.is_approved ? (
-                                <span className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100">
-                                  Approved
-                                </span>
-                              ) : t.approved_by == null ? (
-                                <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
-                                  Pending
-                                </span>
-                              ) : (
-                                <span className="text-xs px-2 py-1 rounded bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100">
-                                  Rejected
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => openEditTag(t)}>
-                                Edit
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setTagDeleteSlug(t.slug)}
-                              >
-                                Delete
-                              </Button>
+                      </TableHeader>
+                      <TableBody>
+                        {tags.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-muted-foreground">
+                              No tags yet. Add one above.
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          tags.map((t) => (
+                            <TableRow key={t.id} className={!t.is_approved ? "bg-muted/50" : ""}>
+                              <TableCell>{t.name}</TableCell>
+                              <TableCell className="font-mono text-xs">{t.slug}</TableCell>
+                              <TableCell>
+                                {t.is_approved ? (
+                                  <span className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100">
+                                    Approved
+                                  </span>
+                                ) : t.approved_by == null ? (
+                                  <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
+                                    Pending
+                                  </span>
+                                ) : (
+                                  <span className="text-xs px-2 py-1 rounded bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100">
+                                    Rejected
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => openEditTag(t)}>
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setTagDeleteSlug(t.slug)}
+                                >
+                                  Delete
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
