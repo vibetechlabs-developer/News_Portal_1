@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
-from datetime import datetime, timedelta
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -68,7 +68,8 @@ class JobPosting(models.Model):
         """Check if job is still open for applications"""
         if self.status != 'OPEN':
             return False
-        if self.deadline and datetime.now() > self.deadline:
+        # Use timezone-aware comparison to avoid naive/aware datetime errors
+        if self.deadline and timezone.now() > self.deadline:
             return False
         return True
 
