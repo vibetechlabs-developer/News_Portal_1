@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
+  ApiError,
   getSections,
   getCategories,
   getDistricts,
@@ -35,6 +36,23 @@ import {
   createEpaperEditionAdmin,
   deleteEpaperEditionAdmin,
 } from "@/lib/api";
+
+function formatApiErrorDetails(err: ApiError): string {
+  const data = err.data;
+  if (!data) return err.message;
+  if (typeof data === "string") return data;
+  if (typeof data === "object") {
+    try {
+      // Common DRF shapes: { detail: "..." } or { field: ["msg"] }
+      const maybeDetail = (data as { detail?: unknown }).detail;
+      if (typeof maybeDetail === "string" && maybeDetail.trim()) return maybeDetail;
+      return JSON.stringify(data);
+    } catch {
+      return err.message;
+    }
+  }
+  return err.message;
+}
 
 const EditorDashboard = () => {
   const { user, accessToken, logout } = useAuth();
@@ -303,7 +321,12 @@ const EditorDashboard = () => {
     } catch (err: unknown) {
       toast({
         title: "Could not save article",
-        description: err instanceof Error ? err.message : "Please try again.",
+        description:
+          err instanceof ApiError
+            ? formatApiErrorDetails(err)
+            : err instanceof Error
+              ? err.message
+              : "Please try again.",
         variant: "destructive",
       });
     } finally {
