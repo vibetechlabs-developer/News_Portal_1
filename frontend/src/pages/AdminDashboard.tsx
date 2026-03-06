@@ -2124,7 +2124,7 @@ const AdminDashboard = () => {
 
         {/* User dialog */}
         <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{userEditing ? "Edit user" : "Add user"}</DialogTitle>
             </DialogHeader>
@@ -2335,7 +2335,7 @@ const AdminDashboard = () => {
 
         {/* Advertisement dialog */}
         <Dialog open={adDialogOpen} onOpenChange={setAdDialogOpen}>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="w-[95vw] sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>{adEditing ? "Edit advertisement" : "Add advertisement"}</DialogTitle>
             </DialogHeader>
@@ -2423,7 +2423,7 @@ const AdminDashboard = () => {
 
         {/* Section dialog */}
         <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{sectionEditing ? "Edit section" : "Add section"}</DialogTitle>
             </DialogHeader>
@@ -2494,7 +2494,7 @@ const AdminDashboard = () => {
 
         {/* Category dialog */}
         <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{categoryEditing ? "Edit category" : "Add category"}</DialogTitle>
             </DialogHeader>
@@ -2556,7 +2556,7 @@ const AdminDashboard = () => {
 
         {/* Tag dialog */}
         <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{tagEditing ? "Edit tag" : "Add tag"}</DialogTitle>
             </DialogHeader>
