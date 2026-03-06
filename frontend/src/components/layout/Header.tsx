@@ -132,12 +132,12 @@ export function Header() {
           {/* Center: Logo */}
           <Link
             to="/"
-            className="flex-1 flex justify-center items-center py-2 sm:py-3"
+            className="flex-1 min-w-0 flex justify-center items-center py-2 sm:py-3 px-1"
           >
             <img
               src={logo}
               alt="Kanam Express"
-              className="h-20 sm:h-24 md:h-28 lg:h-32 xl:h-36 w-auto object-contain drop-shadow-lg hover:opacity-90 transition-opacity"
+              className="h-16 sm:h-24 md:h-28 lg:h-32 xl:h-36 w-auto max-w-full object-contain drop-shadow-lg hover:opacity-90 transition-opacity"
             />
           </Link>
 
@@ -147,13 +147,13 @@ export function Header() {
             {/* E-Paper Button */}
             <Link
               to="/epaper"
-              className="flex flex-col items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group"
+              className="flex flex-col items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-3 py-0 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group"
               title={t('epaper')}
             >
               <div className="relative">
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-foreground group-hover:text-primary-foreground">
+              <span className="hidden sm:inline text-xs font-medium text-foreground group-hover:text-primary-foreground">
                 {t('epaper')}
               </span>
             </Link>
@@ -161,14 +161,14 @@ export function Header() {
             {/* Live TV Button */}
             <Link
               to="/videos"
-              className="flex flex-col items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group relative overflow-visible"
+              className="flex flex-col items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-3 py-0 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group relative overflow-visible"
               title={t('live_tv')}
             >
               <div className="relative">
                 <Radio className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-lg shadow-green-500/50"></span>
               </div>
-              <div className="flex items-center gap-1 relative">
+              <div className="hidden sm:flex items-center gap-1 relative">
                 <span className="text-[9px] sm:text-[10px] font-extrabold text-green-600 dark:text-green-400 uppercase tracking-wider bg-green-500/10 dark:bg-green-500/20 px-1.5 py-0.5 rounded">
                   LIVE
                 </span>

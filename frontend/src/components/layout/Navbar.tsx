@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -52,6 +52,7 @@ export function Navbar() {
   const { t, language } = useLanguage();
   const location = useLocation();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [mobileMenu, setMobileMenu] = useState<string | null>(null);
   const { data: sections = [] } = useSections();
 
   const gujaratSection = sections.find((s) => s.slug === 'gujarat');
@@ -126,6 +127,11 @@ export function Navbar() {
     return location.pathname.startsWith(href);
   };
 
+  // Close mobile submenu on navigation
+  useEffect(() => {
+    setMobileMenu(null);
+  }, [location.pathname]);
+
   return (
     <nav className="bg-nav sticky top-0 z-50 shadow-nav">
       <div className="container mx-auto px-4">
@@ -168,23 +174,74 @@ export function Navbar() {
         </div>
 
         {/* Mobile Navigation - Horizontal Scroll */}
-        <div className="lg:hidden overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-1 py-2 min-w-max">
-            {navItems.map((item) => (
-              <Link
-                key={item.key}
-                to={item.href}
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-colors",
-                  isActive(item.href)
-                    ? "bg-accent text-accent-foreground"
-                    : "text-primary-foreground/90 hover:text-primary-foreground hover:bg-nav-hover"
-                )}
-              >
-                {getNavLabel(item)}
-              </Link>
-            ))}
+        <div className="lg:hidden">
+          <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-1 py-2 min-w-max">
+              {navItems.map((item) =>
+                item.hasSubmenu && item.submenu ? (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setMobileMenu((cur) => (cur === item.key ? null : item.key))}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-colors inline-flex items-center gap-1",
+                      mobileMenu === item.key || isActive(item.href)
+                        ? "bg-accent text-accent-foreground"
+                        : "text-primary-foreground/90 hover:text-primary-foreground hover:bg-nav-hover",
+                    )}
+                    aria-expanded={mobileMenu === item.key}
+                    aria-controls={`mobile-submenu-${item.key}`}
+                  >
+                    {getNavLabel(item)}
+                    <ChevronDown
+                      className={cn("w-3.5 h-3.5 transition-transform", mobileMenu === item.key && "rotate-180")}
+                    />
+                  </button>
+                ) : (
+                  <Link
+                    key={item.key}
+                    to={item.href}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-colors",
+                      isActive(item.href)
+                        ? "bg-accent text-accent-foreground"
+                        : "text-primary-foreground/90 hover:text-primary-foreground hover:bg-nav-hover",
+                    )}
+                  >
+                    {getNavLabel(item)}
+                  </Link>
+                ),
+              )}
+            </div>
           </div>
+
+          {/* Mobile submenu (Gujarat districts etc.) */}
+          {navItems.map(
+            (item) =>
+              item.hasSubmenu &&
+              item.submenu &&
+              mobileMenu === item.key && (
+                <div
+                  key={`${item.key}-submenu`}
+                  id={`mobile-submenu-${item.key}`}
+                  className="pb-3"
+                >
+                  <div className="rounded-xl border border-border bg-card shadow-elevated p-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
+                    <div className="grid grid-cols-2 gap-1">
+                      {item.submenu.map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          to={subItem.href}
+                          className="px-3 py-2 rounded-lg text-sm hover:bg-secondary transition-colors"
+                        >
+                          {getSubmenuLabel(subItem)}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ),
+          )}
         </div>
       </div>
     </nav>
