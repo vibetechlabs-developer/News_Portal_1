@@ -1384,3 +1384,83 @@ export async function getCricketMatches(
   return request<CricketMatchesResponse>(url, { method: "GET", auth: false });
 }
 
+// ---------- E-paper Editions ----------
+
+export interface EpaperEditionItem {
+  id: number;
+  publication_date: string;
+  title: string;
+  pdf_file: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EpaperEditionsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: EpaperEditionItem[];
+}
+
+export type EpaperEditionPayload = {
+  publication_date: string;
+  title?: string;
+  pdf_file: File;
+};
+
+export async function getEpaperEditions(
+  params?: Record<string, string | number | boolean>
+): Promise<EpaperEditionItem[] | EpaperEditionsResponse> {
+  const search = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        search.set(key, String(value));
+      }
+    });
+  }
+  const qs = search.toString();
+  const url = apiUrl("/epaper/editions/" + (qs ? `?${qs}` : ""));
+  return request<EpaperEditionItem[] | EpaperEditionsResponse>(url, { method: "GET", auth: false });
+}
+
+export async function getEpaperEdition(id: number): Promise<EpaperEditionItem> {
+  const url = apiUrl(`/epaper/editions/${id}/`);
+  return request<EpaperEditionItem>(url, { method: "GET", auth: false });
+}
+
+export async function createEpaperEdition(payload: EpaperEditionPayload): Promise<EpaperEditionItem> {
+  const formData = new FormData();
+  formData.append("publication_date", payload.publication_date);
+  if (payload.title) {
+    formData.append("title", payload.title);
+  }
+  formData.append("pdf_file", payload.pdf_file);
+  
+  const url = apiUrl("/epaper/editions/");
+  return request<EpaperEditionItem>(url, { method: "POST", auth: true, json: formData });
+}
+
+export async function updateEpaperEdition(
+  id: number,
+  payload: Partial<EpaperEditionPayload>
+): Promise<EpaperEditionItem> {
+  const formData = new FormData();
+  if (payload.publication_date) {
+    formData.append("publication_date", payload.publication_date);
+  }
+  if (payload.title !== undefined) {
+    formData.append("title", payload.title || "");
+  }
+  if (payload.pdf_file) {
+    formData.append("pdf_file", payload.pdf_file);
+  }
+  
+  const url = apiUrl(`/epaper/editions/${id}/`);
+  return request<EpaperEditionItem>(url, { method: "PATCH", auth: true, json: formData });
+}
+
+export async function deleteEpaperEdition(id: number): Promise<void> {
+  const url = apiUrl(`/epaper/editions/${id}/`);
+  return request<void>(url, { method: "DELETE", auth: true });
+}

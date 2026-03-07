@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'analytics',
     'site_settings',
     'careers',
+    'reels',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +83,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
 ]
+
+# Allow same-origin embedding (needed for in-page PDF viewer on /epaper).
+# Default is "DENY" which blocks <object>/<iframe> PDF display.
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -216,10 +221,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# File upload settings - allow large video files
+# File upload settings - allow large files (PDFs, videos, etc.)
 # Files larger than this will be streamed to disk instead of kept in memory
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB - files larger than this go to disk
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB - files larger than this go to disk
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB - maximum size for request body
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000  # Increase field limit for large forms
 # No limit on actual file size - removed validators from models
 
 # Custom user model

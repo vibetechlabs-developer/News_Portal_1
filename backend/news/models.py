@@ -35,6 +35,11 @@ def media_upload_to(instance: "Media", filename: str) -> str:
     return f"news/media/{timezone.now():%Y/%m}/{filename}"
 
 
+def epaper_upload_to(instance: "EpaperEdition", filename: str) -> str:
+    """Upload e-paper PDFs to epaper/YYYY/MM/ directory"""
+    return f"epaper/{timezone.now():%Y/%m}/{filename}"
+
+
 class Section(models.Model):
     """
     Navbar sections:
@@ -404,3 +409,36 @@ class Comment(models.Model):
 
     def __str__(self) -> str:
         return f"Comment({self.article_id})"
+
+
+class EpaperEdition(models.Model):
+    """
+    E-paper edition model for uploading and displaying PDF files.
+    """
+    publication_date = models.DateField()
+    title = models.CharField(max_length=300, blank=True)
+    pdf_file = models.FileField(
+        upload_to=epaper_upload_to,
+        help_text="Upload PDF file for the e-paper edition"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-publication_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["publication_date"]),
+        ]
+        verbose_name = "E-paper Edition"
+        verbose_name_plural = "E-paper Editions"
+
+    def __str__(self) -> str:
+        if self.title:
+            return f"{self.title} - {self.publication_date}"
+        return f"Kanam Express ePaper - {self.publication_date}"
+
+    def save(self, *args, **kwargs):
+        # Auto-generate title if not provided
+        if not self.title:
+            self.title = f"Kanam Express ePaper - {self.publication_date.strftime('%d-%m-%Y')}"
+        super().save(*args, **kwargs)

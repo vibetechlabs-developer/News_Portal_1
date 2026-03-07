@@ -11,6 +11,7 @@ from .models import (
     Comment,
     VideoContent,
     ReelContent,
+    EpaperEdition,
 )
 
 
@@ -106,3 +107,13 @@ class ReelContentSerializer(serializers.ModelSerializer):
 		model = ReelContent
 		fields = "__all__"
 		read_only_fields = ("id", "view_count", "likes_count", "published_at", "created_at", "updated_at")
+
+
+class EpaperEditionSerializer(serializers.ModelSerializer):
+	# Explicitly serialize PDF file field as full URL
+	pdf_file = serializers.FileField(use_url=True)
+	
+	class Meta:
+		model = EpaperEdition
+		fields = "__all__"
+		read_only_fields = ("id", "created_at", "updated_at")

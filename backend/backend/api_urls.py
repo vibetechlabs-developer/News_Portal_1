@@ -22,6 +22,7 @@ from news.views import (
     CricketMatchesProxyView,
     MarketIndicesProxyView,
     DistrictViewSet,
+    EpaperEditionViewSet,
     LikeViewSet,
     MediaViewSet,
     NewsArticleViewSet,
@@ -30,6 +31,7 @@ from news.views import (
     VideoContentViewSet,
     ReelContentViewSet,
 )
+from reels.views import ReelViewSet, ReelCategoryViewSet, ReelTagViewSet
 from users.views import (
     MeView,
     PasswordResetConfirmView,
@@ -57,6 +59,14 @@ router.register(r"news/likes", LikeViewSet, basename="news-likes")
 # Dedicated video/reel tables
 router.register(r"videos", VideoContentViewSet, basename="videos")
 router.register(r"reels", ReelContentViewSet, basename="reels")
+
+# Reels app (new)
+router.register(r"reels-new/reels", ReelViewSet, basename="reels-new")
+router.register(r"reels-new/categories", ReelCategoryViewSet, basename="reels-categories")
+router.register(r"reels-new/tags", ReelTagViewSet, basename="reels-tags")
+
+# E-paper editions
+router.register(r"epaper/editions", EpaperEditionViewSet, basename="epaper-editions")
 
 # Ads
 router.register(r"ads/slots", GoogleAdSenseSlotViewSet, basename="ads-slots")

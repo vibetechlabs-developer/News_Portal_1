@@ -21,6 +21,7 @@ import LatestNews from "./pages/LatestNews";
 import Search from "./pages/Search";
 import Trending from "./pages/Trending";
 import CityNews from "./pages/CityNews";
+import Epaper from "./pages/Epaper";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/technology" element={<Technology />} />
               <Route path="/videos" element={<Videos />} />
               <Route path="/reels" element={<Reels />} />
+              <Route path="/epaper" element={<Epaper />} />
               <Route path="/latest" element={<LatestNews />} />
               <Route path="/search" element={<Search />} />
               <Route path="/trending" element={<Trending />} />

@@ -25,12 +25,16 @@ import {
   createMedia,
   deleteMedia,
   getMediaUrl,
+  getEpaperEditions,
+  createEpaperEdition,
+  deleteEpaperEdition,
   type SectionItem,
   type CategoryItem,
   type DistrictItem,
   type TagItem,
   type ArticleListItem,
   type MediaType,
+  type EpaperEditionItem,
 } from "@/lib/api";
 
 function formatApiErrorDetails(err: ApiError): string {
@@ -111,6 +115,14 @@ const EditorDashboard = () => {
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaSaving, setMediaSaving] = useState(false);
+
+  // E-paper upload
+  const [epaperPublicationDate, setEpaperPublicationDate] = useState("");
+  const [epaperTitle, setEpaperTitle] = useState("");
+  const [epaperPdfFile, setEpaperPdfFile] = useState<File | null>(null);
+  const [epaperUploading, setEpaperUploading] = useState(false);
+  const [epaperEditions, setEpaperEditions] = useState<EpaperEditionItem[]>([]);
+  const [epaperLoading, setEpaperLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -441,6 +453,88 @@ const EditorDashboard = () => {
     }
   };
 
+  // E-paper functions
+  const loadEpaperEditions = async () => {
+    setEpaperLoading(true);
+    try {
+      const data = await getEpaperEditions();
+      const editions = Array.isArray(data) ? data : (data as { results: EpaperEditionItem[] }).results || [];
+      setEpaperEditions(editions);
+    } catch (err) {
+      console.error("Failed to load e-paper editions:", err);
+      toast({
+        title: "Could not load e-paper editions",
+        variant: "destructive",
+      });
+    } finally {
+      setEpaperLoading(false);
+    }
+  };
+
+  const handleEpaperSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!accessToken) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!epaperPublicationDate || !epaperPdfFile) {
+      toast({
+        title: "Missing details",
+        description: "Publication date and PDF file are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEpaperUploading(true);
+    try {
+      await createEpaperEdition({
+        publication_date: epaperPublicationDate,
+        title: epaperTitle || undefined,
+        pdf_file: epaperPdfFile,
+      });
+      toast({
+        title: "E-paper uploaded successfully",
+        description: "The PDF has been uploaded.",
+      });
+      // Reset form
+      setEpaperPublicationDate("");
+      setEpaperTitle("");
+      setEpaperPdfFile(null);
+      // Reload list
+      await loadEpaperEditions();
+    } catch (err) {
+      const errorMsg = err instanceof ApiError ? formatApiErrorDetails(err) : String(err);
+      toast({
+        title: "Upload failed",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    } finally {
+      setEpaperUploading(false);
+    }
+  };
+
+  const removeEpaperEdition = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this e-paper edition?")) return;
+    try {
+      await deleteEpaperEdition(id);
+      toast({ title: "E-paper edition deleted" });
+      await loadEpaperEditions();
+    } catch (e) {
+      toast({ title: "Delete failed", variant: "destructive", description: String(e) });
+    }
+  };
+
+  // Load e-paper editions on mount
+  useEffect(() => {
+    loadEpaperEditions();
+  }, []);
+
   return (
     <PageLayout showTicker={false}>
       <div className="container mx-auto px-4 py-8 space-y-6">
@@ -466,6 +560,7 @@ const EditorDashboard = () => {
           <TabsList>
             <TabsTrigger value="create">Create</TabsTrigger>
             <TabsTrigger value="manage" onClick={() => loadManage()}>Manage</TabsTrigger>
+            <TabsTrigger value="epaper" onClick={() => loadEpaperEditions()}>E-paper</TabsTrigger>
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
@@ -823,6 +918,106 @@ const EditorDashboard = () => {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="epaper" className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
+              <form onSubmit={handleEpaperSubmit} className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-semibold">E-paper editions</h2>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Upload PDF</span>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="epaper-date">Publication date *</Label>
+                  <Input
+                    id="epaper-date"
+                    type="date"
+                    value={epaperPublicationDate}
+                    onChange={(e) => setEpaperPublicationDate(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="epaper-title">Title</Label>
+                  <Input
+                    id="epaper-title"
+                    value={epaperTitle}
+                    onChange={(e) => setEpaperTitle(e.target.value)}
+                    placeholder="Optional - defaults to Kanam Express ePaper + date"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    If left empty, the title will be auto-generated as "Kanam Express ePaper - DD-MM-YYYY"
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="epaper-pdf">PDF file *</Label>
+                  <Input
+                    id="epaper-pdf"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => setEpaperPdfFile(e.target.files?.[0] ?? null)}
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Upload PDF file for the e-paper edition. Maximum file size: 100MB
+                  </p>
+                  {epaperPdfFile && (
+                    <p className="text-xs text-muted-foreground">
+                      Selected: {epaperPdfFile.name} ({(epaperPdfFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </p>
+                  )}
+                </div>
+
+                <Button type="submit" disabled={epaperUploading} className="w-full">
+                  {epaperUploading ? "Uploading..." : "Upload e-paper"}
+                </Button>
+              </form>
+
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">E-paper editions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {epaperLoading ? (
+                    <p className="text-xs text-muted-foreground">Loading...</p>
+                  ) : epaperEditions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No e-paper editions uploaded yet.</p>
+                  ) : (
+                    <ul className="space-y-2 text-xs">
+                      {epaperEditions.map((edition) => (
+                        <li key={edition.id} className="flex items-start justify-between gap-2 border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                          <div>
+                            <p className="font-medium line-clamp-2">{edition.title}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Date: {new Date(edition.publication_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            <a
+                              href={getMediaUrl(edition.pdf_file)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] font-medium text-primary hover:underline"
+                            >
+                              View
+                            </a>
+                            <button
+                              onClick={() => removeEpaperEdition(edition.id)}
+                              className="text-[11px] font-medium text-destructive hover:underline ml-2"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 

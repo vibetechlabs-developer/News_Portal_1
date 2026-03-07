@@ -1,0 +1,375 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Upload Reel - News Portal Admin{% endblock %}
+
+{% block extrahead %}
+<style>
+    .upload-container {
+        max-width: 900px;
+        margin: 30px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .upload-header {
+        border-bottom: 2px solid #417690;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .upload-header h1 {
+        color: #417690;
+        margin: 0;
+        font-size: 28px;
+    }
+    
+    .upload-header p {
+        color: #666;
+        margin: 10px 0 0 0;
+        font-size: 14px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group textarea,
+    .form-group select,
+    .form-group input[type="file"] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    
+    .form-group input[type="text"]:focus,
+    .form-group input[type="number"]:focus,
+    .form-group textarea:focus,
+    .form-group select:focus,
+    .form-group input[type="file"]:focus {
+        outline: none;
+        border-color: #417690;
+        box-shadow: 0 0 0 3px rgba(65, 118, 144, 0.1);
+    }
+    
+    .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+    }
+    
+    .form-row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    
+    .form-row .form-group {
+        margin-bottom: 0;
+    }
+    
+    .form-row-2 .form-group {
+        margin-bottom: 0;
+    }
+    
+    .language-section {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 6px;
+        border-left: 4px solid #417690;
+        margin-bottom: 20px;
+    }
+    
+    .language-section h3 {
+        margin: 0 0 15px 0;
+        color: #333;
+        font-size: 16px;
+    }
+    
+    .video-upload-section {
+        background: #f0f7f9;
+        padding: 30px;
+        border: 2px dashed #417690;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .video-upload-section:hover {
+        background: #e6f0f5;
+        border-color: #2c5282;
+    }
+    
+    .video-upload-section input[type="file"] {
+        display: none;
+    }
+    
+    .upload-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        display: block;
+    }
+    
+    .upload-text {
+        color: #417690;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .upload-hint {
+        color: #999;
+        font-size: 12px;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+    }
+    
+    .btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background-color: #417690;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2c5282;
+    }
+    
+    .btn-secondary {
+        background-color: #ddd;
+        color: #333;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #ccc;
+    }
+    
+    .errorlist {
+        background-color: #fee;
+        border: 1px solid #fcc;
+        color: #c00;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    
+    .errorlist li {
+        margin-bottom: 5px;
+    }
+    
+    .help-text {
+        color: #666;
+        font-size: 12px;
+        margin-top: 5px;
+        display: block;
+    }
+    
+    .required {
+        color: #c00;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row,
+        .form-row-2 {
+            grid-template-columns: 1fr;
+        }
+        
+        .upload-container {
+            margin: 15px;
+            padding: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-header">
+        <h1>📹 Upload New Reel</h1>
+        <p>Create and upload a new reel or short video to the portal</p>
+    </div>
+    
+    {% if errors %}
+    <div class="errorlist">
+        <strong>Please correct the following errors:</strong>
+        <ul>
+            {% for field, error_list in errors.items %}
+                {% for error in error_list %}
+                    <li><strong>{{ field }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- English Content -->
+        <div class="language-section">
+            <h3>🇮🇳 English Content</h3>
+            <div class="form-group">
+                <label for="id_title_en">Title <span class="required">*</span></label>
+                {{ form.title_en }}
+                {% if form.title_en.errors %}
+                    <span class="help-text" style="color: #c00;">{{ form.title_en.errors.0 }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_description_en">Description</label>
+                {{ form.description_en }}
+                {% if form.description_en.errors %}
+                    <span class="help-text" style="color: #c00;">{{ form.description_en.errors.0 }}</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Hindi Content (Optional) -->
+        <div class="language-section">
+            <h3>🇮🇳 हिंदी सामग्री (Hindi Content)</h3>
+            <div class="form-group">
+                <label for="id_title_hi">शीर्षक (Title)</label>
+                {{ form.title_hi }}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_description_hi">विवरण (Description)</label>
+                {{ form.description_hi }}
+            </div>
+        </div>
+        
+        <!-- Gujarati Content (Optional) -->
+        <div class="language-section">
+            <h3>🇮🇳 ગુજરાતી સામગ્રી (Gujarati Content)</h3>
+            <div class="form-group">
+                <label for="id_title_gu">શીર્ષક (Title)</label>
+                {{ form.title_gu }}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_description_gu">વર્ણન (Description)</label>
+                {{ form.description_gu }}
+            </div>
+        </div>
+        
+        <!-- Video Upload -->
+        <div class="form-group">
+            <label>Video File <span class="required">*</span></label>
+            <div class="video-upload-section" onclick="document.getElementById('id_video').click()">
+                <span class="upload-icon">🎬</span>
+                <div class="upload-text">Click to upload or drag and drop</div>
+                <span class="upload-hint">MP4, MOV, AVI, WebM, or MKV (Max 100 MB)</span>
+            </div>
+            {{ form.video }}
+            {% if form.video.errors %}
+                <span class="help-text" style="color: #c00; display: block; margin-top: 10px;">{{ form.video.errors.0 }}</span>
+            {% endif %}
+        </div>
+        
+        <!-- Thumbnail & Duration -->
+        <div class="form-row-2">
+            <div class="form-group">
+                <label for="id_thumbnail">Thumbnail Image (Optional)</label>
+                {{ form.thumbnail }}
+                <span class="help-text">Recommended: 16:9 aspect ratio, JPG or PNG</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="id_duration">Duration (seconds)</label>
+                {{ form.duration }}
+                <span class="help-text">Auto-detected if not specified</span>
+            </div>
+        </div>
+        
+        <!-- Primary Language -->
+        <div class="form-group">
+            <label for="id_primary_language">Primary Language <span class="required">*</span></label>
+            {{ form.primary_language }}
+            <span class="help-text">This determines the main content language for the reel</span>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">✓ Upload Reel</button>
+            <a href="{% url 'admin:reels_reel_changelist' %}" class="btn btn-secondary">← Back to Reels</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Handle drag and drop for video upload
+    const videoSection = document.querySelector('.video-upload-section');
+    const videoInput = document.getElementById('id_video');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        videoSection.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        videoSection.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        videoSection.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight(e) {
+        videoSection.style.background = '#e6f0f5';
+        videoSection.style.borderColor = '#2c5282';
+    }
+    
+    function unhighlight(e) {
+        videoSection.style.background = '#f0f7f9';
+        videoSection.style.borderColor = '#417690';
+    }
+    
+    videoSection.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        videoInput.files = files;
+    }
+</script>
+{% endblock %}

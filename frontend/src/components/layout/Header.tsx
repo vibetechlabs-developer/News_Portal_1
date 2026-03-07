@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Play, Search, X, User, LogOut, Newspaper, Radio } from 'lucide-react';
+import { Search, X, User, LogOut, Newspaper, Radio } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -157,6 +157,21 @@ export function Header() {
               <div className="hidden sm:flex items-center gap-1 relative">
                 <span className="text-[9px] sm:text-[10px] font-extrabold text-green-600 dark:text-green-400 uppercase tracking-wider bg-green-500/10 dark:bg-green-500/20 px-1.5 py-0.5 rounded">
                   LIVE
+                </span>
+              </div>
+            </Link>
+            {/* E-paper Button */}
+            <Link
+              to="/epaper"
+              className="flex flex-col items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-3 py-0 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group relative overflow-visible"
+              title={t('epaper')}
+            >
+              <div className="relative">
+                <Newspaper className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
+              </div>
+              <div className="hidden sm:flex items-center gap-1 relative">
+                <span className="text-[9px] sm:text-[10px] font-extrabold text-primary uppercase tracking-wider bg-primary/10 dark:bg-primary/20 px-1.5 py-0.5 rounded">
+                  {t('epaper')}
                 </span>
               </div>
             </Link>

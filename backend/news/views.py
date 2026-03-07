@@ -20,6 +20,7 @@ from .models import (
     Comment,
     ContentStatus,
     District,
+    EpaperEdition,
     Like,
     Media,
     NewsArticle,
@@ -32,6 +33,7 @@ from .serializers import (
     CategorySerializer,
     CommentSerializer,
     DistrictSerializer,
+    EpaperEditionSerializer,
     LikeSerializer,
     MediaSerializer,
     NewsArticleSerializer,
@@ -780,6 +782,31 @@ class LikeViewSet(
         article_id = instance.article_id
         instance.delete()
         NewsArticle.objects.filter(pk=article_id, likes_count__gt=0).update(likes_count=F("likes_count") - 1)
+
+
+class EpaperEditionViewSet(viewsets.ModelViewSet):
+    """
+    CRUD API for e-paper editions.
+    Public can view published editions; editors/admins can manage all.
+    """
+    serializer_class = EpaperEditionSerializer
+    filterset_fields = ["publication_date"]
+    ordering_fields = ["publication_date", "created_at"]
+    ordering = ["-publication_date", "-created_at"]
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [AllowAny()]
+        return [IsEditorOrSuperAdmin()]
+
+    def get_queryset(self):
+        qs = EpaperEdition.objects.all()
+        user = self.request.user
+        if not _is_content_manager(user):
+            # Public: see all editions (no status field, all are public)
+            pass
+        # Editors and admins see all for management
+        return qs
 
 
 class CricketNewsProxyView(APIView):
