@@ -221,12 +221,22 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# File upload settings - allow large files (PDFs, videos, etc.)
+# File upload settings - allow large files (PDFs, videos, reels, etc.)
+# These limits control how much of the *request body* Django will accept in memory.
+# Very large files are streamed to disk, but DATA_UPLOAD_MAX_MEMORY_SIZE must still
+# be high enough or Django/DRF will return 413 Request Entity Too Large.
+#
+# You can override the default (in megabytes) via environment variable:
+#   MAX_UPLOAD_MB=500
+_max_upload_mb = config("MAX_UPLOAD_MB", default=500, cast=int)
+_max_upload_bytes = _max_upload_mb * 1024 * 1024
+
 # Files larger than this will be streamed to disk instead of kept in memory
-FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB - files larger than this go to disk
-DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100 MB - maximum size for request body
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000  # Increase field limit for large forms
-# No limit on actual file size - removed validators from models
+FILE_UPLOAD_MAX_MEMORY_SIZE = _max_upload_bytes
+# Maximum size for the entire request body before Django raises RequestDataTooBig
+DATA_UPLOAD_MAX_MEMORY_SIZE = _max_upload_bytes
+# Increase field limit for large multipart forms (many form fields + files)
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
 # Custom user model
 AUTH_USER_MODEL = 'users.User'

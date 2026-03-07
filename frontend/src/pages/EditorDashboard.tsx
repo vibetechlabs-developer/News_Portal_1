@@ -1012,7 +1012,7 @@ const EditorDashboard = () => {
                       <TableHead>Title</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Slug</TableHead>
-                      <TableHead className="w-[220px]">Actions</TableHead>
+                      <TableHead className="w-[260px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1026,7 +1026,27 @@ const EditorDashboard = () => {
                           <TableCell className="font-medium">{a.title_en}</TableCell>
                           <TableCell className="text-xs">{a.status}</TableCell>
                           <TableCell className="text-xs font-mono">{a.slug}</TableCell>
-                          <TableCell className="flex gap-2">
+                          <TableCell className="flex flex-wrap gap-2">
+                            {a.status === "DRAFT" && (
+                              <Button
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    await updateArticle(a.slug, { status: "PUBLISHED" });
+                                    toast({ title: "Article published" });
+                                    loadManage();
+                                  } catch (e) {
+                                    toast({
+                                      title: "Publish failed",
+                                      variant: "destructive",
+                                      description: String(e),
+                                    });
+                                  }
+                                }}
+                              >
+                                Publish
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" onClick={() => openEdit(a.slug)}>Edit</Button>
                             <Button size="sm" variant="ghost" onClick={() => window.open(`/article/${a.slug}`, "_blank")}>View</Button>
                             <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeArticle(a.slug)}>Delete</Button>
@@ -1082,7 +1102,7 @@ const EditorDashboard = () => {
                     required
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Upload PDF file for the e-paper edition. Maximum file size: 100MB
+                    Upload PDF file for the e-paper edition. Maximum recommended file size: 500MB
                   </p>
                   {epaperPdfFile && (
                     <p className="text-xs text-muted-foreground">
