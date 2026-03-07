@@ -35,13 +35,6 @@ def media_upload_to(instance: "Media", filename: str) -> str:
     return f"news/media/{timezone.now():%Y/%m}/{filename}"
 
 
-def epaper_upload_to(instance: "EpaperEdition", filename: str) -> str:
-    """
-    Store uploaded e-paper PDFs under /media/epaper/YYYY/MM/<filename>.
-    """
-    return f"epaper/{timezone.now():%Y/%m}/{filename}"
-
-
 class Section(models.Model):
     """
     Navbar sections:
@@ -233,31 +226,6 @@ class NewsArticle(models.Model):
 
     def __str__(self) -> str:
         return self.title_en
-
-
-class EpaperEdition(models.Model):
-    """
-    Single-file e-paper edition (typically one PDF per publication date).
-    Editors/Super Admins can upload; public users can download.
-    """
-
-    publication_date = models.DateField(unique=True)
-    title = models.CharField(max_length=200)
-    pdf_file = models.FileField(
-        upload_to=epaper_upload_to,
-        validators=[validate_file_size],
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-publication_date", "-created_at"]
-        indexes = [
-            models.Index(fields=["publication_date"]),
-        ]
-
-    def __str__(self) -> str:
-        return f"{self.title} ({self.publication_date:%Y-%m-%d})"
 
 
 class MediaType(models.TextChoices):

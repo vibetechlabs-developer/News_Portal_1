@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Play, Search, X, User, LogOut, Newspaper, Radio, FileText } from 'lucide-react';
+import { Play, Search, X, User, LogOut, Newspaper, Radio } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -142,22 +142,8 @@ export function Header() {
           </Link>
 
 
-          {/* Right: ePaper + Live TV + Login/Signup */}
+          {/* Right: Live TV + Login/Signup */}
           <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
-            {/* E-Paper Button */}
-            <Link
-              to="/epaper"
-              className="flex flex-col items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-3 py-0 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group"
-              title={t('epaper')}
-            >
-              <div className="relative">
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
-              </div>
-              <span className="hidden sm:inline text-xs font-medium text-foreground group-hover:text-primary-foreground">
-                {t('epaper')}
-              </span>
-            </Link>
-
             {/* Live TV Button */}
             <Link
               to="/videos"

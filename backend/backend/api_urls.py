@@ -29,7 +29,6 @@ from news.views import (
     TagViewSet,
     VideoContentViewSet,
     ReelContentViewSet,
-    EpaperEditionViewSet,
 )
 from users.views import (
     MeView,
@@ -58,9 +57,6 @@ router.register(r"news/likes", LikeViewSet, basename="news-likes")
 # Dedicated video/reel tables
 router.register(r"videos", VideoContentViewSet, basename="videos")
 router.register(r"reels", ReelContentViewSet, basename="reels")
-
-# E-paper editions
-router.register(r"epaper/editions", EpaperEditionViewSet, basename="epaper-editions")
 
 # Ads
 router.register(r"ads/slots", GoogleAdSenseSlotViewSet, basename="ads-slots")

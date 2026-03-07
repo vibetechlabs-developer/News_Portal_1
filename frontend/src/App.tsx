@@ -27,7 +27,6 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Careers from "./pages/Careers";
 import Advertise from "./pages/Advertise";
-import Epaper from "./pages/Epaper";
 import NotFound from "./pages/NotFound";
 import ArticleDetail from "./pages/ArticleDetail";
 import Login from "./pages/Login";
@@ -74,7 +73,6 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/advertise" element={<Advertise />} />
-              <Route path="/epaper" element={<Epaper />} />
 
               {/* Dynamic category by slug (backend categories) */}
               <Route path="/category/:slug" element={<CategoryPage />} />

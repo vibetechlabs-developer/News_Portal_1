@@ -27,18 +27,4 @@ class Migration(migrations.Migration):
             name='file',
             field=models.FileField(blank=True, null=True, upload_to=news.models.media_upload_to),
         ),
-        migrations.CreateModel(
-            name='EpaperEdition',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('publication_date', models.DateField(unique=True)),
-                ('title', models.CharField(max_length=200)),
-                ('pdf_file', models.FileField(upload_to=news.models.epaper_upload_to, validators=[utils.validators.validate_file_size])),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-            ],
-            options={
-                'ordering': ['-publication_date', '-created_at'],
-                'indexes': [models.Index(fields=['publication_date'], name='news_epaper_publica_43b7f1_idx')],
-            },
-        ),
     ]

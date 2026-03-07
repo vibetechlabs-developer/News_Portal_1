@@ -31,10 +31,6 @@ import {
   type TagItem,
   type ArticleListItem,
   type MediaType,
-  type EpaperEdition,
-  listEpaperEditionsAdmin,
-  createEpaperEditionAdmin,
-  deleteEpaperEditionAdmin,
 } from "@/lib/api";
 
 function formatApiErrorDetails(err: ApiError): string {
@@ -116,14 +112,6 @@ const EditorDashboard = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaSaving, setMediaSaving] = useState(false);
 
-  // E-paper management
-  const [epaperItems, setEpaperItems] = useState<EpaperEdition[]>([]);
-  const [epaperLoading, setEpaperLoading] = useState(false);
-  const [epaperSaving, setEpaperSaving] = useState(false);
-  const [epaperDate, setEpaperDate] = useState("");
-  const [epaperTitle, setEpaperTitle] = useState("");
-  const [epaperFile, setEpaperFile] = useState<File | null>(null);
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -182,23 +170,6 @@ const EditorDashboard = () => {
   }, [sectionId]);
 
   const sectionOptions = useMemo(() => sections.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)), [sections]);
-
-  const loadEpaper = async () => {
-    if (!accessToken) return;
-    setEpaperLoading(true);
-    try {
-      const items = await listEpaperEditionsAdmin({ page_size: 50 });
-      setEpaperItems(Array.isArray(items) ? items : []);
-    } catch (err) {
-      toast({
-        title: "Failed to load e-paper editions",
-        description: String(err),
-        variant: "destructive",
-      });
-    } finally {
-      setEpaperLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -470,63 +441,6 @@ const EditorDashboard = () => {
     }
   };
 
-  const handleEpaperSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!accessToken) {
-      toast({
-        title: "Not authenticated",
-        description: "Please log in again.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!epaperDate || !epaperFile) {
-      toast({
-        title: "Missing details",
-        description: "Publication date and PDF file are required.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setEpaperSaving(true);
-    try {
-      const title = epaperTitle.trim() || `Kanam Express ePaper ${epaperDate}`;
-      await createEpaperEditionAdmin({
-        publication_date: epaperDate,
-        title,
-        pdf_file: epaperFile,
-      });
-      toast({ title: "E-paper uploaded" });
-      setEpaperTitle("");
-      setEpaperFile(null);
-      await loadEpaper();
-    } catch (err) {
-      toast({
-        title: "Upload failed",
-        description: String(err),
-        variant: "destructive",
-      });
-    } finally {
-      setEpaperSaving(false);
-    }
-  };
-
-  const handleDeleteEpaper = async (id: number) => {
-    if (!window.confirm("Delete this e-paper edition? This cannot be undone.")) return;
-    try {
-      await deleteEpaperEditionAdmin(id);
-      toast({ title: "E-paper deleted" });
-      await loadEpaper();
-    } catch (err) {
-      toast({
-        title: "Delete failed",
-        description: String(err),
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <PageLayout showTicker={false}>
       <div className="container mx-auto px-4 py-8 space-y-6">
@@ -552,7 +466,6 @@ const EditorDashboard = () => {
           <TabsList>
             <TabsTrigger value="create">Create</TabsTrigger>
             <TabsTrigger value="manage" onClick={() => loadManage()}>Manage</TabsTrigger>
-            <TabsTrigger value="epaper" onClick={() => loadEpaper()}>E-paper</TabsTrigger>
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
@@ -908,113 +821,6 @@ const EditorDashboard = () => {
                     )}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="epaper" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">E-paper editions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <form onSubmit={handleEpaperSubmit} className="grid gap-4 md:grid-cols-3 items-end">
-                  <div className="space-y-2">
-                    <Label htmlFor="epaper-date">Publication date *</Label>
-                    <Input
-                      id="epaper-date"
-                      type="date"
-                      value={epaperDate}
-                      onChange={(e) => setEpaperDate(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="epaper-title">Title</Label>
-                    <Input
-                      id="epaper-title"
-                      value={epaperTitle}
-                      onChange={(e) => setEpaperTitle(e.target.value)}
-                      placeholder="Optional – defaults to Kanam Express ePaper + date"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="epaper-file">PDF file *</Label>
-                    <Input
-                      id="epaper-file"
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      onChange={(e) => setEpaperFile(e.target.files?.[0] ?? null)}
-                    />
-                  </div>
-                  <div className="md:col-span-3 flex justify-end">
-                    <Button type="submit" disabled={epaperSaving}>
-                      {epaperSaving ? "Uploading…" : "Upload e-paper"}
-                    </Button>
-                  </div>
-                </form>
-
-                <div className="space-y-3">
-                  {epaperLoading ? (
-                    <p className="text-sm text-muted-foreground">Loading editions…</p>
-                  ) : epaperItems.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No e-paper editions uploaded yet.</p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Title</TableHead>
-                          <TableHead>File</TableHead>
-                          <TableHead className="w-[180px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {epaperItems.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="text-sm">
-                              {new Date(item.publication_date).toLocaleDateString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </TableCell>
-                            <TableCell className="text-sm">{item.title}</TableCell>
-                            <TableCell className="text-xs">
-                              <a
-                                href={getMediaUrl(item.pdf_file)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-primary hover:underline"
-                              >
-                                Open PDF
-                              </a>
-                            </TableCell>
-                            <TableCell className="flex gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => window.open(getMediaUrl(item.pdf_file), "_blank")}
-                              >
-                                View
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={() => handleDeleteEpaper(item.id)}
-                              >
-                                Delete
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -27,7 +27,6 @@ from .models import (
     Tag,
     VideoContent,
     ReelContent,
-    EpaperEdition,
 )
 from .serializers import (
     CategorySerializer,
@@ -40,7 +39,6 @@ from .serializers import (
     TagSerializer,
     VideoContentSerializer,
     ReelContentSerializer,
-    EpaperEditionSerializer,
 )
 
 import logging
@@ -722,23 +720,6 @@ class ReelContentViewSet(viewsets.ModelViewSet):
         if _is_content_manager(user):
             return qs
         return qs.filter(status=ContentStatus.PUBLISHED)
-
-
-class EpaperEditionViewSet(viewsets.ModelViewSet):
-    """
-    CRUD API for single-file e-paper editions (PDF per publication date).
-    Public users can list/retrieve to download; editors/admins can manage.
-    """
-
-    serializer_class = EpaperEditionSerializer
-    queryset = EpaperEdition.objects.all()
-    filterset_fields = ["publication_date"]
-    ordering_fields = ["publication_date", "created_at"]
-
-    def get_permissions(self):
-        if self.action in ("list", "retrieve"):
-            return [AllowAny()]
-        return [IsEditorOrSuperAdmin()]
 
 
 class CommentViewSet(viewsets.ModelViewSet):

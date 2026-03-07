@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Comment, District, Like, Media, NewsArticle, Section, Tag, VideoContent, ReelContent, EpaperEdition
+from .models import Category, Comment, District, Like, Media, NewsArticle, Section, Tag, VideoContent, ReelContent
 
 
 @admin.register(Section)
@@ -95,14 +95,6 @@ class ReelContentAdmin(admin.ModelAdmin):
     search_fields = ("title_en", "title_hi", "title_gu", "slug")
     prepopulated_fields = {"slug": ("title_en",)}
     autocomplete_fields = ("section", "category", "tags")
-
-
-@admin.register(EpaperEdition)
-class EpaperEditionAdmin(admin.ModelAdmin):
-    list_display = ("title", "publication_date", "pdf_file", "created_at")
-    list_filter = ("publication_date",)
-    search_fields = ("title",)
-    ordering = ("-publication_date", "-created_at")
 
 
 @admin.register(Like)
