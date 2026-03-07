@@ -68,13 +68,20 @@ const EditorDashboard = () => {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [content, setContent] = useState("");
+  // Optional translations for Hindi / Gujarati
+  const [titleHi, setTitleHi] = useState("");
+  const [titleGu, setTitleGu] = useState("");
+  const [summaryHi, setSummaryHi] = useState("");
+  const [summaryGu, setSummaryGu] = useState("");
+  const [contentHi, setContentHi] = useState("");
+  const [contentGu, setContentGu] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [districtId, setDistrictId] = useState<number | "">("");
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [contentType, setContentType] = useState<"ARTICLE" | "REEL" | "VIDEO" | "YOUTUBE">("ARTICLE");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
-  const [primaryLanguage, setPrimaryLanguage] = useState<"EN" | "HI" | "GU">("EN");
+  const [primaryLanguage, setPrimaryLanguage] = useState<"EN" | "HI" | "GU">("GU");
   const [isBreaking, setIsBreaking] = useState(false);
   const [isTop, setIsTop] = useState(false);
   const [isTrending, setIsTrending] = useState(false);
@@ -158,10 +165,22 @@ const EditorDashboard = () => {
     };
   }, [toast]);
 
-  // Load districts when section changes (like Django admin "District" filtered by section)
+  // Gujarat section id (used to decide when to show district dropdown)
+  const gujaratSectionId = useMemo(() => {
+    const found = sections.find(
+      (s) =>
+        s.slug === "gujarat" ||
+        s.name_en.toLowerCase() === "gujarat" ||
+        (s.name_gu && s.name_gu.toLowerCase().includes("ગુજરાત"))
+    );
+    return found?.id ?? null;
+  }, [sections]);
+
+  // Load districts when section changes (only when Gujarat section is selected)
   useEffect(() => {
     let cancelled = false;
-    if (!sectionId) {
+    // Hide / reset districts when no section selected or section is not Gujarat
+    if (!sectionId || (gujaratSectionId && Number(sectionId) !== gujaratSectionId)) {
       setDistricts([]);
       setDistrictId("");
       return;
@@ -179,9 +198,12 @@ const EditorDashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [sectionId]);
+  }, [sectionId, gujaratSectionId]);
 
-  const sectionOptions = useMemo(() => sections.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)), [sections]);
+  const sectionOptions = useMemo(
+    () => sections.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [sections]
+  );
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -213,6 +235,13 @@ const EditorDashboard = () => {
           .slice(0, 60),
         summary_en: summary,
         content_en: content,
+        // Optional translations
+        title_hi: titleHi || undefined,
+        title_gu: titleGu || undefined,
+        summary_hi: summaryHi || undefined,
+        summary_gu: summaryGu || undefined,
+        content_hi: contentHi || undefined,
+        content_gu: contentGu || undefined,
         section: Number(sectionId),
         status,
         primary_language: primaryLanguage,
@@ -279,12 +308,18 @@ const EditorDashboard = () => {
       setTitle("");
       setSummary("");
       setContent("");
+      setTitleHi("");
+      setTitleGu("");
+      setSummaryHi("");
+      setSummaryGu("");
+      setContentHi("");
+      setContentGu("");
       setSectionId("");
       setStatus("DRAFT");
       setCategoryId("");
       setDistrictId("");
       setSelectedTagIds([]);
-      setPrimaryLanguage("EN");
+      setPrimaryLanguage("GU");
       setIsBreaking(false);
       setIsTop(false);
       setIsTrending(false);
@@ -293,6 +328,9 @@ const EditorDashboard = () => {
       setCreateMediaCaption("");
       setCreateMediaUrl("");
       setCreateMediaFile(null);
+
+      // Reload manage list so the new article appears without manual refresh
+      loadManage();
 
       toast({
         title: "Article saved",
@@ -577,13 +615,92 @@ const EditorDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="summary">Summary</Label>
-                  <textarea id="summary" value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                  <Label htmlFor="summary">Summary (English)</Label>
+                  <textarea
+                    id="summary"
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
-                  <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} rows={8} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                  <Label htmlFor="content">Content (English)</Label>
+                  <textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={8}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="title-hi">Title (Hindi, optional)</Label>
+                    <Input
+                      id="title-hi"
+                      value={titleHi}
+                      onChange={(e) => setTitleHi(e.target.value)}
+                      placeholder="हिंदी में शीर्षक"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="title-gu">Title (Gujarati, optional)</Label>
+                    <Input
+                      id="title-gu"
+                      value={titleGu}
+                      onChange={(e) => setTitleGu(e.target.value)}
+                      placeholder="ગુજરાતીમાં શીર્ષક"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="summary-hi">Summary (Hindi, optional)</Label>
+                    <textarea
+                      id="summary-hi"
+                      value={summaryHi}
+                      onChange={(e) => setSummaryHi(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="summary-gu">Summary (Gujarati, optional)</Label>
+                    <textarea
+                      id="summary-gu"
+                      value={summaryGu}
+                      onChange={(e) => setSummaryGu(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="content-hi">Content (Hindi, optional)</Label>
+                    <textarea
+                      id="content-hi"
+                      value={contentHi}
+                      onChange={(e) => setContentHi(e.target.value)}
+                      rows={6}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="content-gu">Content (Gujarati, optional)</Label>
+                    <textarea
+                      id="content-gu"
+                      value={contentGu}
+                      onChange={(e) => setContentGu(e.target.value)}
+                      rows={6}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -650,7 +767,8 @@ const EditorDashboard = () => {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
-                  <div className="space-y-2">
+                  {/* Category is optional; hide it entirely if not needed */}
+                  {/* <div className="space-y-2">
                     <Label htmlFor="category">Category</Label>
                     <select
                       id="category"
@@ -665,24 +783,26 @@ const EditorDashboard = () => {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </div> */}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="district">District</Label>
-                    <select
-                      id="district"
-                      value={districtId}
-                      onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : "")}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">No district</option>
-                      {districts.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name_en}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {gujaratSectionId && sectionId === gujaratSectionId && (
+                    <div className="space-y-2">
+                      <Label htmlFor="district">District (only for Gujarat section)</Label>
+                      <select
+                        id="district"
+                        value={districtId}
+                        onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : "")}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">No district</option>
+                        {districts.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name_en}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="primaryLanguage">Primary language</Label>

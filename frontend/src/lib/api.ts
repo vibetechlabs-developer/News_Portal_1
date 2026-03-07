@@ -440,6 +440,8 @@ export async function getArticles(params?: {
   is_breaking?: boolean;
   is_top?: boolean;
   is_trending?: boolean;
+  /** Optional explicit ordering, e.g. "-published_at,-created_at" */
+  ordering?: string;
 }): Promise<ArticlesResponse> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
@@ -459,6 +461,12 @@ export async function getArticles(params?: {
   }
   if (typeof params?.is_trending === "boolean") {
     search.set("is_trending", String(params.is_trending));
+  }
+  // Default ordering: newest first by published time, then creation time
+  if (params?.ordering) {
+    search.set("ordering", params.ordering);
+  } else {
+    search.set("ordering", "-published_at,-created_at");
   }
   const qs = search.toString();
   const url = apiUrl("/news/articles/" + (qs ? `?${qs}` : ""));

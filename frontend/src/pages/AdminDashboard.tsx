@@ -2481,15 +2481,7 @@ const AdminDashboard = () => {
                   onChange={(e) => setSectionForm((f) => ({ ...f, name_gu: e.target.value }))}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="section-slug">Slug (leave blank to auto-generate)</Label>
-                <Input
-                  id="section-slug"
-                  value={sectionForm.slug ?? ""}
-                  onChange={(e) => setSectionForm((f) => ({ ...f, slug: e.target.value }))}
-                  placeholder="national"
-                />
-              </div>
+              {/* Slug is auto-generated on the backend; hide it from the approval UI */}
               <div className="space-y-2">
                 <Label htmlFor="section-order">Order</Label>
                 <Input
@@ -2552,15 +2544,7 @@ const AdminDashboard = () => {
                   onChange={(e) => setCategoryForm((f) => ({ ...f, name_gu: e.target.value }))}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="cat-slug">Slug (leave blank to auto-generate)</Label>
-                <Input
-                  id="cat-slug"
-                  value={categoryForm.slug ?? ""}
-                  onChange={(e) => setCategoryForm((f) => ({ ...f, slug: e.target.value }))}
-                  placeholder="politics"
-                />
-              </div>
+              {/* Slug is auto-generated on the backend; hide it from the approval UI */}
               <div className="flex items-center gap-2">
                 <Switch
                   id="cat-active"
@@ -2598,15 +2582,7 @@ const AdminDashboard = () => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="tag-slug">Slug (leave blank to auto-generate)</Label>
-                <Input
-                  id="tag-slug"
-                  value={tagForm.slug ?? ""}
-                  onChange={(e) => setTagForm((f) => ({ ...f, slug: e.target.value }))}
-                  placeholder="elections"
-                />
-              </div>
+              {/* Slug is auto-generated on the backend; hide it from the approval UI */}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setTagDialogOpen(false)}>
                   Cancel
