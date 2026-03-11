@@ -15,6 +15,10 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ job, onC
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [aadharFile, setAadharFile] = useState<File | null>(null);
+  const [panFile, setPanFile] = useState<File | null>(null);
+  const [policeFile, setPoliceFile] = useState<File | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -31,19 +35,26 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ job, onC
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<File | null>>, fileType: 'doc' | 'image' | 'both' = 'both') => {
     const file = e.target.files?.[0];
     if (file) {
-      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const docTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const imageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      const validTypes = fileType === 'doc' ? docTypes : fileType === 'image' ? imageTypes : [...docTypes, ...imageTypes];
+
       if (!validTypes.includes(file.type)) {
-        setError(language === 'en' ? 'Please upload a PDF or Word document' : 'કૃપયા PDF અથવા Word દસ્તાવેજ અપલોડ કરો');
+        const errorMsg = fileType === 'image'
+          ? (language === 'en' ? 'Please upload an image (JPG, PNG)' : 'કૃપયા છબી અપલોડ કરો (JPG, PNG)')
+          : (language === 'en' ? 'Please upload a valid document or image' : 'કૃપયા માન્ય દસ્તાવેજ અપલોડ કરો');
+
+        setError(errorMsg);
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
         setError(language === 'en' ? 'File size must be less than 5MB' : 'ફાઇલનું કદ 5MB કરતાં ઓછું હોવું જોઈએ');
         return;
       }
-      setResumeFile(file);
+      setter(file);
       setError(null);
     }
   };
@@ -53,8 +64,8 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ job, onC
     setError(null);
     setLoading(true);
 
-    if (!resumeFile) {
-      setError(language === 'en' ? 'Please upload your resume' : 'કૃપયા તમારો રેઝ્યુમે અપલોડ કરો');
+    if (!resumeFile || !aadharFile || !panFile || !policeFile || !photoFile) {
+      setError(language === 'en' ? 'Please upload all mandatory documents' : 'કૃપયા તમામ ફરજિયાત દસ્તાવેજો અપલોડ કરો');
       setLoading(false);
       return;
     }
@@ -63,6 +74,10 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ job, onC
       const submitData = {
         job_posting: job.id,
         resume: resumeFile,
+        aadhar_card: aadharFile,
+        pan_card: panFile,
+        police_verification: policeFile,
+        photo: photoFile,
         ...formData,
         years_of_experience: parseInt(formData.years_of_experience),
       };
@@ -75,11 +90,11 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ job, onC
       }, 2000);
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message;
-      
+
       // Provide user-friendly error messages
       let userFriendlyError = errorMsg;
       if (errorMsg.includes('resume') || errorMsg.includes('file')) {
-        userFriendlyError = language === 'en' 
+        userFriendlyError = language === 'en'
           ? 'Please upload a valid resume file (PDF, DOC, or DOCX)'
           : 'કૃપયા માન્ય રેઝ્યુમે ફાઇલ અપલોડ કરો (PDF, DOC, અથવા DOCX)';
       } else if (errorMsg.includes('email') || errorMsg.includes('invalid')) {
@@ -87,7 +102,7 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ job, onC
           ? 'Please check your email address and try again.'
           : 'કૃપયા તમારું ઇમેઇલ સરનામું તપાસો અને ફરી પ્રયાસ કરો.';
       }
-      
+
       setError(language === 'en' ? `Error: ${userFriendlyError}` : `ભૂલ: ${userFriendlyError}`);
     } finally {
       setLoading(false);
@@ -193,35 +208,128 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ job, onC
             className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground">
-              {language === 'en' ? 'Resume (PDF, DOC, DOCX)' : 'રેઝ્યુમે (PDF, DOC, DOCX)'}
-            </label>
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-              <input
-                type="file"
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx"
-                className="hidden"
-                id="resume-upload"
-              />
-              <label htmlFor="resume-upload" className="cursor-pointer block">
-                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                {resumeFile ? (
-                  <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                    {language === 'en' ? 'File selected:' : 'ફાઇલ પસંદ કરી:'} {resumeFile.name}
-                  </p>
-                ) : (
-                  <>
-                    <p className="text-sm font-medium text-foreground">
-                      {language === 'en' ? 'Click to upload resume' : 'રેઝ્યુમે અપલોડ કરવા માટે ક્લિક કરો'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {language === 'en' ? 'Max file size: 5 MB' : 'મહત્તમ ફાઇલ કદ: 5 MB'}
-                    </p>
-                  </>
-                )}
-              </label>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Mandatory Documents</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Resume */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">
+                  {language === 'en' ? 'Resume (PDF, DOC, DOCX) *' : 'રેઝ્યુમે (PDF, DOC, DOCX) *'}
+                </label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, setResumeFile, 'doc')}
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
+                    id="resume-upload"
+                  />
+                  <label htmlFor="resume-upload" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    {resumeFile ? (
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400">✅ {resumeFile.name}</p>
+                    ) : (
+                      <p className="text-sm font-medium text-foreground">Upload Resume</p>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* Aadhaar Card */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">
+                  {language === 'en' ? 'Aadhaar Card (PDF, JPG, PNG) *' : 'આધાર કાર્ડ (PDF, JPG, PNG) *'}
+                </label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, setAadharFile)}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    className="hidden"
+                    id="aadhar-upload"
+                  />
+                  <label htmlFor="aadhar-upload" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    {aadharFile ? (
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400">✅ {aadharFile.name}</p>
+                    ) : (
+                      <p className="text-sm font-medium text-foreground">Upload Aadhaar</p>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* PAN Card */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">
+                  {language === 'en' ? 'PAN Card (PDF, JPG, PNG) *' : 'પાન કાર્ડ (PDF, JPG, PNG) *'}
+                </label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, setPanFile)}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    className="hidden"
+                    id="pan-upload"
+                  />
+                  <label htmlFor="pan-upload" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    {panFile ? (
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400">✅ {panFile.name}</p>
+                    ) : (
+                      <p className="text-sm font-medium text-foreground">Upload PAN Card</p>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* Police Verification */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">
+                  {language === 'en' ? 'Police Verification (PDF, Image) *' : 'પોલીસ વેરિફિકેશન *'}
+                </label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, setPoliceFile)}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    className="hidden"
+                    id="police-upload"
+                  />
+                  <label htmlFor="police-upload" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    {policeFile ? (
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400">✅ {policeFile.name}</p>
+                    ) : (
+                      <p className="text-sm font-medium text-foreground">Upload Police Verification</p>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* Photo */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="block text-sm font-medium text-foreground">
+                  {language === 'en' ? 'Passport Photo (JPG, PNG) *' : 'પાસપોર્ટ ફોટો (JPG, PNG) *'}
+                </label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, setPhotoFile, 'image')}
+                    accept=".jpg,.jpeg,.png"
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label htmlFor="photo-upload" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    {photoFile ? (
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400">✅ {photoFile.name}</p>
+                    ) : (
+                      <p className="text-sm font-medium text-foreground">Upload Photo</p>
+                    )}
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -22,8 +22,8 @@ import {
   updateArticle,
   deleteArticle,
   updateArticleFeaturedImage,
-  createMedia,
-  deleteMedia,
+  createTag,
+
   getMediaUrl,
   getEpaperEditions,
   createEpaperEdition,
@@ -33,7 +33,7 @@ import {
   type DistrictItem,
   type TagItem,
   type ArticleListItem,
-  type MediaType,
+
   type EpaperEditionItem,
   getVideosAdmin,
   createVideoContentAdmin,
@@ -87,6 +87,8 @@ const EditorDashboard = () => {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [districtId, setDistrictId] = useState<number | "">("");
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [newTagName, setNewTagName] = useState("");
+  const [creatingTag, setCreatingTag] = useState(false);
   const [contentType, setContentType] = useState<"ARTICLE" | "REEL" | "VIDEO" | "YOUTUBE">("ARTICLE");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [primaryLanguage, setPrimaryLanguage] = useState<"EN" | "HI" | "GU">("GU");
@@ -95,12 +97,8 @@ const EditorDashboard = () => {
   const [isTrending, setIsTrending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Create-form media/featured image
+  // Create-form featured image
   const [createFeaturedImageFile, setCreateFeaturedImageFile] = useState<File | null>(null);
-  const [createMediaType, setCreateMediaType] = useState<MediaType>("IMAGE");
-  const [createMediaCaption, setCreateMediaCaption] = useState("");
-  const [createMediaUrl, setCreateMediaUrl] = useState("");
-  const [createMediaFile, setCreateMediaFile] = useState<File | null>(null);
 
   const [recentArticles, setRecentArticles] = useState<ArticleListItem[]>([]);
   const [manageStatus, setManageStatus] = useState<"ALL" | "DRAFT" | "PUBLISHED">("ALL");
@@ -122,16 +120,12 @@ const EditorDashboard = () => {
   const [editBreaking, setEditBreaking] = useState(false);
   const [editTop, setEditTop] = useState(false);
   const [editTrending, setEditTrending] = useState(false);
+  const [editSelectedTagIds, setEditSelectedTagIds] = useState<number[]>([]);
   const [editDistrictId, setEditDistrictId] = useState<number | "">("");
   const [editDistrictOptions, setEditDistrictOptions] = useState<DistrictItem[]>([]);
   const [editFeaturedImageFile, setEditFeaturedImageFile] = useState<File | null>(null);
 
-  // Media add
-  const [mediaType, setMediaType] = useState<MediaType>("IMAGE");
-  const [mediaCaption, setMediaCaption] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaSaving, setMediaSaving] = useState(false);
+
 
   // E-paper upload
   const [epaperPublicationDate, setEpaperPublicationDate] = useState("");
@@ -238,6 +232,31 @@ const EditorDashboard = () => {
     return () => { cancelled = true; };
   }, [editSectionId]);
 
+  const handleAddTag = async (e: React.MouseEvent, isEditForm: boolean) => {
+    e.preventDefault();
+    if (!newTagName.trim()) return;
+    setCreatingTag(true);
+    try {
+      const created = await createTag({ name: newTagName.trim() });
+      setTags((prev) => [...prev, created]);
+      if (isEditForm) {
+        setEditSelectedTagIds((prev) => [...prev, created.id]);
+      } else {
+        setSelectedTagIds((prev) => [...prev, created.id]);
+      }
+      setNewTagName("");
+      toast({ title: "Tag created" });
+    } catch (err) {
+      toast({
+        title: "Failed to create tag",
+        description: err instanceof ApiError ? formatApiErrorDetails(err) : String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingTag(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!accessToken) {
@@ -303,40 +322,7 @@ const EditorDashboard = () => {
         }
       }
 
-      // Optional: attach a first media item (image / video / YouTube), similar to Django inline media
-      const trimmedUrl = createMediaUrl.trim();
-      const wantsImage = createMediaType === "IMAGE" && !!createMediaFile;
-      const wantsVideoOrReel =
-        (createMediaType === "VIDEO" || createMediaType === "REEL") &&
-        (!!createMediaFile || !!trimmedUrl);
-      const wantsYoutube = createMediaType === "YOUTUBE" && !!trimmedUrl;
 
-      if (wantsImage || wantsVideoOrReel || wantsYoutube) {
-        try {
-          await createMedia({
-            article: created.id,
-            media_type: createMediaType,
-            caption: createMediaCaption || undefined,
-            youtube_url:
-              (createMediaType === "YOUTUBE" ||
-                createMediaType === "VIDEO" ||
-                createMediaType === "REEL") && trimmedUrl
-                ? trimmedUrl
-                : undefined,
-            file:
-              (createMediaType === "VIDEO" || createMediaType === "REEL") && createMediaFile
-                ? createMediaFile
-                : null,
-            image: createMediaType === "IMAGE" ? createMediaFile : null,
-          });
-        } catch (err) {
-          toast({
-            title: "Article saved, but media upload failed",
-            description: err instanceof Error ? err.message : "You can re-attach media from the Edit dialog.",
-            variant: "destructive",
-          });
-        }
-      }
 
       setTitle("");
       setSummary("");
@@ -357,10 +343,6 @@ const EditorDashboard = () => {
       setIsTop(false);
       setIsTrending(false);
       setCreateFeaturedImageFile(null);
-      setCreateMediaType("IMAGE");
-      setCreateMediaCaption("");
-      setCreateMediaUrl("");
-      setCreateMediaFile(null);
 
       // Reload manage list so the new article appears without manual refresh
       loadManage();
@@ -417,7 +399,9 @@ const EditorDashboard = () => {
       setEditSummaryEn(a.summary_en ?? "");
       setEditContentEn(a.content_en ?? "");
       setEditSectionId(a.section ?? "");
+      setEditSectionId(a.section ?? "");
       setEditDistrictId(a.district ?? "");
+      setEditSelectedTagIds(a.tags ?? []);
       const s = a.status;
       setEditStatus(s === "PUBLISHED" || s === "ARCHIVED" || s === "DRAFT" ? s : "DRAFT");
       setEditBreaking(!!a.is_breaking);
@@ -449,6 +433,7 @@ const EditorDashboard = () => {
         is_breaking: editBreaking,
         is_top: editTop,
         is_trending: editTrending,
+        tags: editSelectedTagIds,
       });
       if (editFeaturedImageFile) {
         await updateArticleFeaturedImage(editSlug, editFeaturedImageFile);
@@ -476,55 +461,7 @@ const EditorDashboard = () => {
     }
   };
 
-  const addMedia = async () => {
-    if (!editArticle) return;
-    if (mediaType === "YOUTUBE" && !mediaUrl.trim()) {
-      toast({ title: "YouTube URL required", variant: "destructive" });
-      return;
-    }
-    if (mediaType === "IMAGE" && !mediaFile) {
-      toast({ title: "File required", variant: "destructive" });
-      return;
-    }
-    // VIDEO and REEL: require either file OR YouTube URL
-    if ((mediaType === "VIDEO" || mediaType === "REEL") && !mediaFile && !mediaUrl.trim()) {
-      toast({ title: "Upload a file or enter a YouTube URL", variant: "destructive" });
-      return;
-    }
-    setMediaSaving(true);
-    try {
-      await createMedia({
-        article: editArticle.id,
-        media_type: mediaType,
-        caption: mediaCaption || undefined,
-        youtube_url: (mediaType === "YOUTUBE" || mediaType === "VIDEO" || mediaType === "REEL") && mediaUrl.trim() ? mediaUrl.trim() : undefined,
-        file: (mediaType === "VIDEO" || mediaType === "REEL") && mediaFile ? mediaFile : null,
-        image: mediaType === "IMAGE" ? mediaFile : null,
-      });
-      const refetched = await getArticleBySlug(editArticle.slug);
-      setEditArticle(refetched);
-      setMediaCaption("");
-      setMediaUrl("");
-      setMediaFile(null);
-      toast({ title: "Media added" });
-    } catch (e) {
-      toast({ title: "Media upload failed", variant: "destructive", description: String(e) });
-    } finally {
-      setMediaSaving(false);
-    }
-  };
 
-  const removeMedia = async (id: number) => {
-    if (!editArticle) return;
-    try {
-      await deleteMedia(id);
-      const refetched = await getArticleBySlug(editArticle.slug);
-      setEditArticle(refetched);
-      toast({ title: "Media deleted" });
-    } catch (e) {
-      toast({ title: "Delete failed", variant: "destructive", description: String(e) });
-    }
-  };
 
   // E-paper functions
   const loadEpaperEditions = async () => {
@@ -948,6 +885,27 @@ const EditorDashboard = () => {
                       ))}
                     </select>
                     <p className="text-[11px] text-muted-foreground">Hold Ctrl (Windows) or Cmd (Mac) to select multiple tags.</p>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="New tag name"
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddTag(e as any, false);
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={(e) => handleAddTag(e, false)}
+                        disabled={creatingTag || !newTagName.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -969,78 +927,7 @@ const EditorDashboard = () => {
                   </div>
                 </div>
 
-                <div className="mt-2 space-y-3 border-t border-border pt-4">
-                  <p className="text-xs font-semibold">Optional media (photos / video / YouTube)</p>
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="create-media-type">Type</Label>
-                      <select
-                        id="create-media-type"
-                        value={createMediaType}
-                        onChange={(e) => setCreateMediaType(e.target.value as MediaType)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      >
-                        <option value="IMAGE">Image</option>
-                        <option value="VIDEO">Video</option>
-                        <option value="REEL">Reel</option>
-                        <option value="YOUTUBE">YouTube</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="create-media-caption">Caption</Label>
-                      <Input
-                        id="create-media-caption"
-                        value={createMediaCaption}
-                        onChange={(e) => setCreateMediaCaption(e.target.value)}
-                        placeholder="Optional description for the photo/video"
-                      />
-                    </div>
-                  </div>
 
-                  {createMediaType === "YOUTUBE" ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="create-media-url">YouTube URL</Label>
-                      <Input
-                        id="create-media-url"
-                        value={createMediaUrl}
-                        onChange={(e) => setCreateMediaUrl(e.target.value)}
-                        placeholder="https://www.youtube.com/watch?v=..."
-                      />
-                    </div>
-                  ) : createMediaType === "VIDEO" || createMediaType === "REEL" ? (
-                    <div className="space-y-4">
-                      <p className="text-xs text-muted-foreground">Upload a file OR paste a YouTube link (both are optional).</p>
-                      <div className="space-y-2">
-                        <Label htmlFor="create-media-file">File (optional)</Label>
-                        <Input
-                          id="create-media-file"
-                          type="file"
-                          accept="video/*"
-                          onChange={(e) => setCreateMediaFile(e.target.files?.[0] ?? null)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="create-media-url-video">YouTube URL (optional)</Label>
-                        <Input
-                          id="create-media-url-video"
-                          value={createMediaUrl}
-                          onChange={(e) => setCreateMediaUrl(e.target.value)}
-                          placeholder="https://www.youtube.com/watch?v=..."
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="create-media-image-file">Image file (optional)</Label>
-                      <Input
-                        id="create-media-image-file"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setCreateMediaFile(e.target.files?.[0] ?? null)}
-                      />
-                    </div>
-                  )}
-                </div>
 
                 <Button type="submit" disabled={submitting}>
                   {submitting ? "Saving..." : "Save"}
@@ -1407,6 +1294,48 @@ const EditorDashboard = () => {
                   )}
 
                   <div className="space-y-2">
+                    <Label htmlFor="edit-tags">Tags</Label>
+                    <select
+                      id="edit-tags"
+                      multiple
+                      value={editSelectedTagIds.map((id) => String(id))}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value));
+                        setEditSelectedTagIds(selected);
+                      }}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm h-24"
+                    >
+                      {tags.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-muted-foreground">Hold Ctrl (Windows) or Cmd (Mac) to select multiple tags.</p>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="New tag name"
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddTag(e as any, true);
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={(e) => handleAddTag(e, true)}
+                        disabled={creatingTag || !newTagName.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label>Summary (EN)</Label>
                     <textarea value={editSummaryEn} onChange={(e) => setEditSummaryEn(e.target.value)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
                   </div>
@@ -1457,76 +1386,7 @@ const EditorDashboard = () => {
                     <Input type="file" accept="image/*" onChange={(e) => setEditFeaturedImageFile(e.target.files?.[0] ?? null)} />
                   </div>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Media</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <div className="space-y-2">
-                          <Label>Type</Label>
-                          <select value={mediaType} onChange={(e) => setMediaType(e.target.value as MediaType)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                            <option value="IMAGE">Image</option>
-                            <option value="VIDEO">Video</option>
-                            <option value="REEL">Reel</option>
-                            <option value="YOUTUBE">YouTube</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>Caption</Label>
-                          <Input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />
-                        </div>
-                      </div>
 
-                      {mediaType === "YOUTUBE" ? (
-                        <div className="space-y-2">
-                          <Label>YouTube URL</Label>
-                          <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                        </div>
-                      ) : mediaType === "VIDEO" || mediaType === "REEL" ? (
-                        <div className="space-y-4">
-                          <p className="text-xs text-muted-foreground">Upload a file OR paste a YouTube link</p>
-                          <div className="space-y-2">
-                            <Label>File (optional)</Label>
-                            <Input type="file" accept="video/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>YouTube URL (optional)</Label>
-                            <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label>File</Label>
-                          <Input type="file" accept="image/*" onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)} />
-                        </div>
-                      )}
-
-                      <Button type="button" onClick={addMedia} disabled={mediaSaving}>
-                        {mediaSaving ? "Uploading…" : "Add media"}
-                      </Button>
-
-                      <div className="space-y-2">
-                        {(editArticle.media ?? []).length === 0 ? (
-                          <p className="text-xs text-muted-foreground">No media items.</p>
-                        ) : (
-                          <ul className="space-y-2 text-sm">
-                            {(editArticle.media ?? []).map((m) => (
-                              <li key={m.id} className="flex items-center justify-between gap-3 rounded border border-border p-2">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-mono">{m.media_type}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{m.caption || m.youtube_url || m.file || m.image || ""}</p>
-                                </div>
-                                <Button type="button" variant="ghost" className="text-destructive" onClick={() => removeMedia(m.id)}>
-                                  Delete
-                                </Button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
               )}
             </div>
@@ -1559,7 +1419,7 @@ const EditorDashboard = () => {
           </Card>
         )}
       </div>
-    </PageLayout>
+    </PageLayout >
   );
 };
 

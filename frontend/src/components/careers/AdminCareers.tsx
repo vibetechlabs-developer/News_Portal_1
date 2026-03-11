@@ -144,21 +144,19 @@ const AdminComponent = () => {
       <div className="flex gap-2 border-b border-border">
         <button
           onClick={() => setActiveTab('jobs')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-            activeTab === 'jobs'
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'jobs'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+            }`}
         >
           {language === 'en' ? 'Job Postings' : 'નોકરી પોસ્ટિંગ'}
         </button>
         <button
           onClick={() => setActiveTab('applications')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-            activeTab === 'applications'
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'applications'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+            }`}
         >
           {language === 'en' ? 'Applications' : 'અરજીઓ'}
         </button>
@@ -420,13 +418,12 @@ const AdminComponent = () => {
                     <select
                       value={app.status}
                       onChange={(e) => handleChangeApplicationStatus(app.id, e.target.value)}
-                      className={`px-3 py-1 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-primary ${
-                        app.status === 'ACCEPTED'
+                      className={`px-3 py-1 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-primary ${app.status === 'ACCEPTED'
                           ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
                           : app.status === 'REJECTED'
-                          ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
-                          : 'bg-muted border-border text-foreground'
-                      }`}
+                            ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                            : 'bg-muted border-border text-foreground'
+                        }`}
                     >
                       <option value="SUBMITTED">{language === 'en' ? 'Submitted' : 'સમર્પિત'}</option>
                       <option value="UNDER_REVIEW">{language === 'en' ? 'Under Review' : 'પર્યાલોચન હેઠળ'}</option>
@@ -434,14 +431,70 @@ const AdminComponent = () => {
                       <option value="REJECTED">{language === 'en' ? 'Rejected' : 'અસ્વીકૃત'}</option>
                       <option value="ACCEPTED">{language === 'en' ? 'Accepted' : 'સ્વીકૃત'}</option>
                     </select>
-                    <a
-                      href={app.resume_url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 hover:bg-muted rounded-lg transition-colors text-primary"
-                    >
-                      <Download className="w-4 h-4" />
-                    </a>
+                    {app.resume_url && (
+                      <a
+                        href={app.resume_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={language === 'en' ? 'Download Resume' : 'રેઝ્યુમે ડાઉનલોડ કરો'}
+                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="text-xs hidden md:inline">Resume</span>
+                      </a>
+                    )}
+
+                    {app.aadhar_card_url && (
+                      <a
+                        href={app.aadhar_card_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={language === 'en' ? 'Download Aadhaar' : 'આધાર ડાઉનલોડ કરો'}
+                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="text-xs hidden md:inline">Aadhaar</span>
+                      </a>
+                    )}
+
+                    {app.pan_card_url && (
+                      <a
+                        href={app.pan_card_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={language === 'en' ? 'Download PAN Card' : 'પાન કાર્ડ ડાઉનલોડ કરો'}
+                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="text-xs hidden md:inline">PAN</span>
+                      </a>
+                    )}
+
+                    {app.police_verification_url && (
+                      <a
+                        href={app.police_verification_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={language === 'en' ? 'Download Police Verification' : 'પોલીસ વેરિફિકેશન ડાઉનલોડ કરો'}
+                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="text-xs hidden md:inline">Police Ver.</span>
+                      </a>
+                    )}
+
+                    {app.photo_url && (
+                      <a
+                        href={app.photo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={language === 'en' ? 'Download Photo' : 'ફોટો ડાઉનલોડ કરો'}
+                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="text-xs hidden md:inline">Photo</span>
+                      </a>
+                    )}
                   </div>
                 </div>
               )) : (

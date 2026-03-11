@@ -35,6 +35,14 @@ export interface JobApplication {
   skills: string;
   resume: string;
   resume_url?: string;
+  aadhar_card?: string;
+  aadhar_card_url?: string;
+  pan_card?: string;
+  pan_card_url?: string;
+  police_verification?: string;
+  police_verification_url?: string;
+  photo?: string;
+  photo_url?: string;
   portfolio_url: string | null;
   linkedin_url: string | null;
   status: string;
