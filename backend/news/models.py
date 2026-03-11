@@ -442,3 +442,77 @@ class EpaperEdition(models.Model):
         if not self.title:
             self.title = f"Kanam Express ePaper - {self.publication_date.strftime('%d-%m-%Y')}"
         super().save(*args, **kwargs)
+
+
+class VideoLike(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="video_likes")
+    video = models.ForeignKey(VideoContent, on_delete=models.CASCADE, related_name="likes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "video"], name="unique_like_per_user_video")
+        ]
+        indexes = [models.Index(fields=["video", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"VideoLike({self.user_id}, {self.video_id})"
+
+
+class ReelLike(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reel_likes")
+    reel = models.ForeignKey(ReelContent, on_delete=models.CASCADE, related_name="likes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "reel"], name="unique_like_per_user_reel")
+        ]
+        indexes = [models.Index(fields=["reel", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"ReelLike({self.user_id}, {self.reel_id})"
+
+
+class VideoComment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="video_comments")
+    video = models.ForeignKey(VideoContent, on_delete=models.CASCADE, related_name="comments")
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="replies")
+    content = models.TextField()
+    is_approved = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["video", "created_at"]),
+            models.Index(fields=["parent"]),
+            models.Index(fields=["is_approved"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"VideoComment({self.video_id})"
+
+
+class ReelComment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="reel_comments")
+    reel = models.ForeignKey(ReelContent, on_delete=models.CASCADE, related_name="comments")
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="replies")
+    content = models.TextField()
+    is_approved = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["reel", "created_at"]),
+            models.Index(fields=["parent"]),
+            models.Index(fields=["is_approved"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"ReelComment({self.reel_id})"

@@ -12,6 +12,10 @@ from .models import (
     VideoContent,
     ReelContent,
     EpaperEdition,
+    VideoLike,
+    ReelLike,
+    VideoComment,
+    ReelComment,
 )
 
 
@@ -115,5 +119,33 @@ class EpaperEditionSerializer(serializers.ModelSerializer):
 	
 	class Meta:
 		model = EpaperEdition
+		fields = "__all__"
+		read_only_fields = ("id", "created_at", "updated_at")
+
+
+class VideoLikeSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = VideoLike
+		fields = "__all__"
+		read_only_fields = ("id", "created_at")
+
+
+class ReelLikeSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = ReelLike
+		fields = "__all__"
+		read_only_fields = ("id", "created_at")
+
+
+class VideoCommentSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = VideoComment
+		fields = "__all__"
+		read_only_fields = ("id", "created_at", "updated_at")
+
+
+class ReelCommentSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = ReelComment
 		fields = "__all__"
 		read_only_fields = ("id", "created_at", "updated_at")

@@ -81,7 +81,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
+
 ]
 
 # Allow same-origin embedding (needed for in-page PDF viewer on /epaper).
@@ -256,19 +256,8 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ),
     # Throttling: disabled when DEBUG (development); enabled when DEBUG=False (deploy).
-    'DEFAULT_THROTTLE_CLASSES': () if DEBUG else (
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-        'rest_framework.throttling.ScopedRateThrottle',
-    ),
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100000/hour' if DEBUG else '100/hour',
-        'user': '100000/hour' if DEBUG else '1000/hour',
-        'auth': '100000/hour' if DEBUG else '10/hour',
-        'contact': '100000/minute' if DEBUG else '5/minute',
-        'ads_requests': '100000/hour' if DEBUG else '10/hour',
-    },
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': (),
+    'DEFAULT_THROTTLE_RATES': {},
 }
 
 SIMPLE_JWT = {

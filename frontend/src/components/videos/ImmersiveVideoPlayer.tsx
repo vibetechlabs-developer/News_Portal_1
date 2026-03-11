@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { Play, Pause, ChevronLeft, ChevronRight, X, Share2, Heart, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getMediaUrl, type VideoContentItem } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { getMediaUrl, type VideoContentItem, toggleVideoLike, getVideoComments, postVideoComment, type CommentItem } from '@/lib/api';
 import { getUploadedVideoUrl, isYouTubeUrl, getVideoUrl as getVideoUrlUtil } from '@/lib/videoUtils';
 import ReactPlayer from 'react-player';
+import { CommentModal } from '../shared/CommentModal';
 
 interface ImmersiveVideoPlayerProps {
   videos: VideoContentItem[];
@@ -31,25 +33,34 @@ function getVideoUrl(video: VideoContentItem): string | null {
       return youtubeUrl;
     }
   }
-  
+
   // Check for uploaded video
   const uploadedUrl = getUploadedVideoUrl(video.youtube_url, video.file, getMediaUrl);
   if (uploadedUrl) {
     console.log('ImmersiveVideoPlayer - Uploaded video URL found:', uploadedUrl);
     return uploadedUrl;
   }
-  
+
   console.warn('ImmersiveVideoPlayer - No video URL found for video:', video);
   return null;
 }
 
 export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: ImmersiveVideoPlayerProps) {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(true);
+
+  // Likes State
+  const [localLikeCounts, setLocalLikeCounts] = useState<Record<number, number>>({});
   const [likedVideos, setLikedVideos] = useState<number[]>([]);
+
+  // Comments State
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsList, setCommentsList] = useState<CommentItem[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
-  const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const currentVideo = videos[currentIndex];
@@ -64,7 +75,7 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
       // YouTube player is handled by ReactPlayer
       return;
     }
-    
+
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.play().catch(err => {
@@ -84,7 +95,7 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
       setIsPlaying(true);
       return;
     }
-    
+
     if (videoRef.current && videoUrl) {
       console.log('ImmersiveVideoPlayer - Loading video:', videoUrl);
       videoRef.current.load();
@@ -163,10 +174,59 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
     setIsPlaying(!isPlaying);
   };
 
-  const toggleLike = (id: number) => {
-    setLikedVideos(prev => 
-      prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
+  const handleToggleLike = async (id: number) => {
+    if (!user) {
+      alert(language === 'en' ? 'Please log in to like' : 'લાઇક કરવા માટે લૉગ ઇન કરો');
+      return;
+    }
+
+    const isLiked = likedVideos.includes(id);
+    const newLikedState = !isLiked;
+
+    // Optimistic UI update
+    setLikedVideos(prev =>
+      newLikedState ? [...prev, id] : prev.filter(v => v !== id)
     );
+    setLocalLikeCounts(prev => ({
+      ...prev,
+      [id]: (prev[id] ?? videos.find(v => v.id === id)?.likes_count ?? 0) + (newLikedState ? 1 : -1)
+    }));
+
+    try {
+      await toggleVideoLike(id, newLikedState);
+    } catch (err) {
+      console.error('Failed to toggle like', err);
+      // Revert on error
+      setLikedVideos(prev => isLiked ? [...prev, id] : prev.filter(v => v !== id));
+      setLocalLikeCounts(prev => ({
+        ...prev,
+        [id]: (prev[id] ?? videos.find(v => v.id === id)?.likes_count ?? 0) + (isLiked ? 1 : -1)
+      }));
+    }
+  };
+
+  const handleOpenComments = async (id: number) => {
+    setCommentsOpen(true);
+    setCommentsLoading(true);
+    try {
+      const fetchedComments = await getVideoComments(id);
+      setCommentsList(fetchedComments);
+    } catch (err) {
+      console.error('Failed to fetch comments', err);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handlePostComment = async (content: string) => {
+    if (!currentVideo) return;
+    try {
+      const newComment = await postVideoComment(currentVideo.id, content);
+      setCommentsList([newComment, ...commentsList]);
+    } catch (err) {
+      console.error('Failed to post comment', err);
+      throw err;
+    }
   };
 
   const handleShare = async () => {
@@ -191,8 +251,10 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
     return null;
   }
 
+  const Player: any = ReactPlayer;
+
   return (
-    <div 
+    <div
       ref={containerRef}
       className="fixed inset-0 z-50 bg-black"
       onTouchStart={handleTouchStart}
@@ -233,23 +295,23 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
       <div className="relative w-full h-full flex items-center justify-center">
         {isYouTube ? (
           <div className="w-full h-full">
-            <ReactPlayer
-              ref={playerRef}
+            {/* @ts-ignore - react-player typings are overly strict */}
+            <Player
               url={videoUrl}
               playing={isPlaying}
               controls
               width="100%"
               height="100%"
               config={{
-                youtube: { 
-                  playerVars: { 
+                youtube: {
+                  playerVars: {
                     modestbranding: 1,
                     autoplay: 1,
                     playsinline: 1,
                     rel: 0,
                     showinfo: 0,
-                  } 
-                },
+                  }
+                } as Record<string, any>,
               }}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
@@ -320,10 +382,10 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
                 </div>
               </button>
             )}
-            
+
             {/* Pause button overlay - show when playing (optional, can click video to pause) */}
             {isPlaying && (
-              <div 
+              <div
                 onClick={togglePlayPause}
                 className="absolute inset-0 z-40 cursor-pointer"
                 aria-label="Pause"
@@ -333,9 +395,9 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
         )}
 
         {/* Bottom Gradient Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-20 pb-8 px-6 z-30">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-20 pb-8 px-6 z-50 pointer-events-none">
           {/* Author Info */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 pointer-events-auto">
             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">K</span>
             </div>
@@ -351,34 +413,44 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
 
           {/* Action Buttons */}
           <div className="flex items-center gap-6">
-            <button 
-              onClick={() => toggleLike(currentVideo.id)}
-              className="flex flex-col items-center gap-1"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleLike(currentVideo.id);
+              }}
+              className="flex flex-col items-center gap-1 pointer-events-auto"
             >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                likedVideos.includes(currentVideo.id) ? 'bg-red-500' : 'bg-white/10 backdrop-blur-md'
-              }`}>
-                <Heart className={`w-6 h-6 ${
-                  likedVideos.includes(currentVideo.id) ? 'text-white fill-white' : 'text-white'
-                }`} />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${likedVideos.includes(currentVideo.id) ? 'bg-red-500' : 'bg-white/10 backdrop-blur-md'
+                }`}>
+                <Heart className={`w-6 h-6 ${likedVideos.includes(currentVideo.id) ? 'text-white fill-white' : 'text-white'
+                  }`} />
               </div>
               <span className="text-white text-xs">
-                {formatCount(currentVideo.likes_count)}
+                {formatCount(localLikeCounts[currentVideo.id] ?? currentVideo.likes_count)}
               </span>
             </button>
 
-            <button className="flex flex-col items-center gap-1">
-              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenComments(currentVideo.id);
+              }}
+              className="flex flex-col items-center gap-1 pointer-events-auto"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
                 <MessageCircle className="w-6 h-6 text-white" />
               </div>
               <span className="text-white text-xs">
-                {formatCount(currentVideo.view_count)}
+                {language === 'en' ? 'Comment' : 'ટિપ્પણી'}
               </span>
             </button>
 
-            <button 
-              onClick={handleShare}
-              className="flex flex-col items-center gap-1"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShare();
+              }}
+              className="flex flex-col items-center gap-1 pointer-events-auto"
             >
               <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
                 <Share2 className="w-6 h-6 text-white" />
@@ -391,21 +463,28 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
         </div>
 
         {/* Progress Indicator */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-1">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[45] flex gap-1">
           {videos.map((_, index) => (
             <div
               key={index}
-              className={`h-1 rounded-full transition-all ${
-                index === currentIndex 
-                  ? 'bg-white w-8' 
-                  : index < currentIndex 
-                    ? 'bg-white/50 w-2' 
-                    : 'bg-white/20 w-2'
-              }`}
+              className={`h-1 rounded-full transition-all ${index === currentIndex
+                ? 'bg-white w-8'
+                : index < currentIndex
+                  ? 'bg-white/50 w-2'
+                  : 'bg-white/20 w-2'
+                }`}
             />
           ))}
         </div>
       </div>
+
+      <CommentModal
+        isOpen={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+        comments={commentsList}
+        onSubmitComment={handlePostComment}
+        isLoading={commentsLoading}
+      />
     </div>
   );
 }

@@ -18,7 +18,6 @@ from backend.common.request import get_client_ip
 from .models import (
     Category,
     Comment,
-    ContentStatus,
     District,
     EpaperEdition,
     Like,
@@ -28,6 +27,11 @@ from .models import (
     Tag,
     VideoContent,
     ReelContent,
+    VideoLike,
+    ReelLike,
+    VideoComment,
+    ReelComment,
+    ContentStatus,
 )
 from .serializers import (
     CategorySerializer,
@@ -41,6 +45,10 @@ from .serializers import (
     TagSerializer,
     VideoContentSerializer,
     ReelContentSerializer,
+    VideoLikeSerializer,
+    VideoCommentSerializer,
+    ReelLikeSerializer,
+    ReelCommentSerializer,
 )
 
 import logging
@@ -259,7 +267,7 @@ class TagViewSet(viewsets.ModelViewSet):
     ordering_fields = ["name"]
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "trending"):
             return [AllowAny()]
         return [IsEditorOrSuperAdmin()]
 
@@ -666,6 +674,44 @@ class VideoContentViewSet(viewsets.ModelViewSet):
             return qs
         return qs.filter(status=ContentStatus.PUBLISHED)
 
+    @action(detail=True, methods=["post", "delete"], permission_classes=[IsAuthenticated])
+    def like(self, request, pk=None):
+        video = self.get_object()
+        user = request.user
+        if request.method == "POST":
+            # Like the video
+            _, created = VideoLike.objects.get_or_create(user=user, video=video)
+            if created:
+                VideoContent.objects.filter(pk=video.pk).update(likes_count=F("likes_count") + 1)
+                return Response({"status": "liked"})
+            return Response({"status": "already liked"}, status=status.HTTP_200_OK)
+        elif request.method == "DELETE":
+            # Unlike the video
+            deleted, _ = VideoLike.objects.filter(user=user, video=video).delete()
+            if deleted:
+                VideoContent.objects.filter(pk=video.pk, likes_count__gt=0).update(likes_count=F("likes_count") - 1)
+            return Response({"status": "unliked"}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["get", "post"], permission_classes=[AllowAny])
+    def comment(self, request, pk=None):
+        video = self.get_object()
+        if request.method == "GET":
+            # Fetch comments for this video
+            comments = VideoComment.objects.filter(video=video, is_approved=True)
+            serializer = VideoCommentSerializer(comments, many=True)
+            return Response(serializer.data)
+        elif request.method == "POST":
+            # Post a new comment
+            if not request.user.is_authenticated:
+                return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+            data = request.data.copy()
+            data["video"] = video.pk
+            serializer = VideoCommentSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save(user=request.user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ReelContentViewSet(viewsets.ModelViewSet):
     """
@@ -722,6 +768,44 @@ class ReelContentViewSet(viewsets.ModelViewSet):
         if _is_content_manager(user):
             return qs
         return qs.filter(status=ContentStatus.PUBLISHED)
+
+    @action(detail=True, methods=["post", "delete"], permission_classes=[IsAuthenticated])
+    def like(self, request, pk=None):
+        reel = self.get_object()
+        user = request.user
+        if request.method == "POST":
+            # Like the reel
+            _, created = ReelLike.objects.get_or_create(user=user, reel=reel)
+            if created:
+                ReelContent.objects.filter(pk=reel.pk).update(likes_count=F("likes_count") + 1)
+                return Response({"status": "liked"})
+            return Response({"status": "already liked"}, status=status.HTTP_200_OK)
+        elif request.method == "DELETE":
+            # Unlike the reel
+            deleted, _ = ReelLike.objects.filter(user=user, reel=reel).delete()
+            if deleted:
+                ReelContent.objects.filter(pk=reel.pk, likes_count__gt=0).update(likes_count=F("likes_count") - 1)
+            return Response({"status": "unliked"}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["get", "post"], permission_classes=[AllowAny])
+    def comment(self, request, pk=None):
+        reel = self.get_object()
+        if request.method == "GET":
+            # Fetch comments for this reel
+            comments = ReelComment.objects.filter(reel=reel, is_approved=True)
+            serializer = ReelCommentSerializer(comments, many=True)
+            return Response(serializer.data)
+        elif request.method == "POST":
+            # Post a new comment
+            if not request.user.is_authenticated:
+                return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+            data = request.data.copy()
+            data["reel"] = reel.pk
+            serializer = ReelCommentSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save(user=request.user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

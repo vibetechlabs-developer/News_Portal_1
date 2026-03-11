@@ -50,6 +50,23 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
   json?: JsonBody;
 }
 
+export interface CommentItem {
+  id: number;
+  content: string;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+  user: number | {
+    id: number;
+    first_name?: string;
+    last_name?: string;
+  } | null;
+  parent: number | null;
+  video?: number;
+  reel?: number;
+  article?: number;
+}
+
 /**
  * Core request helper that all other helpers can build on.
  * - Adds optional auth header
@@ -123,7 +140,7 @@ export interface LoginResponse {
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return request<LoginResponse>(apiUrl("/auth/token/"), {
     method: "POST",
-    json: payload,
+    json: payload as unknown as Record<string, unknown>,
   });
 }
 
@@ -142,8 +159,8 @@ export async function getCurrentUser(accessToken?: string): Promise<AuthUser> {
     auth: !accessToken,
     headers: accessToken
       ? {
-          Authorization: `Bearer ${accessToken}`,
-        }
+        Authorization: `Bearer ${accessToken}`,
+      }
       : undefined,
   });
 }
@@ -615,6 +632,45 @@ export async function deleteVideoContentAdmin(id: number): Promise<void> {
   await request(apiUrl(`/videos/${id}/`), { method: "DELETE", auth: true });
 }
 
+export interface VideoContentResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: VideoContentItem[];
+}
+
+export async function getVideosAdmin(pageOpts?: { page?: number; limit?: number; status?: string }): Promise<VideoContentResponse> {
+  const qs = new URLSearchParams();
+  if (pageOpts?.page) qs.set("page", String(pageOpts.page));
+  if (pageOpts?.limit) qs.set("page_size", String(pageOpts.limit));
+  if (pageOpts?.status) qs.set("status", pageOpts.status);
+  return request<VideoContentResponse>(apiUrl(`/videos/?${qs.toString()}`), { method: "GET", auth: true });
+}
+
+// ---------- Video Engagement (Likes/Comments) ----------
+
+export async function toggleVideoLike(videoId: number, isLike: boolean): Promise<void> {
+  await request(apiUrl(`/videos/${videoId}/like/`), {
+    method: isLike ? "POST" : "DELETE",
+    auth: true,
+  });
+}
+
+export async function getVideoComments(videoId: number): Promise<CommentItem[]> {
+  return request<CommentItem[]>(
+    apiUrl(`/videos/${videoId}/comment/`),
+    { method: "GET" }
+  );
+}
+
+export async function postVideoComment(videoId: number, content: string, parentId?: number): Promise<CommentItem> {
+  return request<CommentItem>(apiUrl(`/videos/${videoId}/comment/`), {
+    method: "POST",
+    auth: true,
+    json: { content, parent: parentId || null },
+  });
+}
+
 export async function createReelContentAdmin(payload: ReelContentPayload): Promise<ReelContentItem> {
   const fd = clipPayloadToFormData(payload, "reel");
   return request<ReelContentItem>(apiUrl("/reels/"), { method: "POST", auth: true, json: fd });
@@ -641,6 +697,45 @@ export async function updateReelContentAdmin(id: number, payload: Partial<ReelCo
 
 export async function deleteReelContentAdmin(id: number): Promise<void> {
   await request(apiUrl(`/reels/${id}/`), { method: "DELETE", auth: true });
+}
+
+export interface ReelContentResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ReelContentItem[];
+}
+
+export async function getReelsAdmin(pageOpts?: { page?: number; limit?: number; status?: string }): Promise<ReelContentResponse> {
+  const qs = new URLSearchParams();
+  if (pageOpts?.page) qs.set("page", String(pageOpts.page));
+  if (pageOpts?.limit) qs.set("page_size", String(pageOpts.limit));
+  if (pageOpts?.status) qs.set("status", pageOpts.status);
+  return request<ReelContentResponse>(apiUrl(`/reels/?${qs.toString()}`), { method: "GET", auth: true });
+}
+
+// ---------- Reel Engagement (Likes/Comments) ----------
+
+export async function toggleReelLike(reelId: number, isLike: boolean): Promise<void> {
+  await request(apiUrl(`/reels/${reelId}/like/`), {
+    method: isLike ? "POST" : "DELETE",
+    auth: true,
+  });
+}
+
+export async function getReelComments(reelId: number): Promise<CommentItem[]> {
+  return request<CommentItem[]>(
+    apiUrl(`/reels/${reelId}/comment/`),
+    { method: "GET" }
+  );
+}
+
+export async function postReelComment(reelId: number, content: string, parentId?: number): Promise<CommentItem> {
+  return request<CommentItem>(apiUrl(`/reels/${reelId}/comment/`), {
+    method: "POST",
+    auth: true,
+    json: { content, parent: parentId || null },
+  });
 }
 
 // ---------- Content Studio (Editor/Super Admin) ----------
@@ -703,10 +798,15 @@ export async function updateArticleFeaturedImage(slug: string, file: File | null
 }
 
 export async function getArticleBySlug(slug: string): Promise<ArticleListItem | null> {
-  const res = await fetch(apiUrl(`/news/articles/${slug}/`));
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Article fetch failed: ${res.status}`);
-  return (await res.json()) as ArticleListItem;
+  try {
+    return await request<ArticleListItem>(apiUrl(`/news/articles/${slug}/`), {
+      method: "GET",
+      auth: true,
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }
 
 export interface SectionItem {
@@ -822,6 +922,82 @@ export async function getTrendingTags(limit = 20): Promise<TagItem[]> {
     method: "GET",
     auth: false,
   });
+}
+
+// ---------- Likes (authenticated users only) ----------
+
+export interface LikeItem {
+  id: number;
+  user: number;
+  article: number;
+  created_at: string;
+}
+
+/**
+ * Returns the current user's Like for a given article, or null if not liked.
+ * Must be called with auth; returns empty if unauthenticated.
+ */
+export async function getUserLikeForArticle(articleId: number): Promise<LikeItem | null> {
+  try {
+    const data = await request<{ results?: LikeItem[] } | LikeItem[]>(
+      apiUrl(`/news/likes/?article=${articleId}`),
+      { method: "GET", auth: true }
+    );
+    const items = Array.isArray(data) ? data : (data?.results ?? []);
+    return items.length > 0 ? items[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** POST to /news/likes/ to create a Like for an article. */
+export async function createLike(articleId: number): Promise<LikeItem> {
+  return request<LikeItem>(apiUrl("/news/likes/"), {
+    method: "POST",
+    auth: true,
+    json: { article: articleId },
+  });
+}
+
+/** DELETE /news/likes/{id}/ to remove a Like. */
+export async function deleteLike(likeId: number): Promise<void> {
+  await request(apiUrl(`/news/likes/${likeId}/`), { method: "DELETE", auth: true });
+}
+
+// ---------- Comments ----------
+
+export interface CommentsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: CommentItem[];
+}
+
+/** GET /news/comments/?article={id} — returns approved comments for an article. */
+export async function getArticleComments(articleId: number): Promise<CommentItem[]> {
+  const data = await request<CommentsResponse | CommentItem[]>(
+    apiUrl(`/news/comments/?article=${articleId}&page_size=100`),
+    { method: "GET" }
+  );
+  return Array.isArray(data) ? data : (data?.results ?? []);
+}
+
+/** POST /news/comments/ — post a new comment (requires auth). */
+export async function postComment(
+  articleId: number,
+  content: string,
+  parentId?: number
+): Promise<CommentItem> {
+  return request<CommentItem>(apiUrl("/news/comments/"), {
+    method: "POST",
+    auth: true,
+    json: { article: articleId, content, ...(parentId != null ? { parent: parentId } : {}) },
+  });
+}
+
+/** DELETE /news/comments/{id}/ — delete a comment (requires auth, own comment or privileged). */
+export async function deleteComment(commentId: number): Promise<void> {
+  await request(apiUrl(`/news/comments/${commentId}/`), { method: "DELETE", auth: true });
 }
 
 // ---------- Admin CRUD (require auth: Editor/Super Admin) ----------
@@ -973,12 +1149,10 @@ export async function trackArticleView(slug: string): Promise<void> {
   if (!res.ok) throw new Error(`View tracking failed: ${res.status}`);
 }
 
-export async function toggleArticleLike(slug: string, token: string): Promise<{ liked: boolean }> {
-  return request(apiUrl(`/news/articles/${slug}/toggle_like/`), {
+export async function toggleArticleLike(slug: string): Promise<{ liked: boolean }> {
+  return request<{ liked: boolean }>(apiUrl(`/news/articles/${slug}/toggle_like/`), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    auth: true,
   });
 }
 // Ads
@@ -1133,15 +1307,15 @@ export async function deleteAdSlotAdmin(id: number): Promise<void> {
 
 export type AdvertisementPayload =
   | (Partial<Omit<Advertisement, "id" | "image" | "video" | "impression_count" | "click_count" | "created_at" | "updated_at">> & {
-      title: string;
-      placement: AdPlacement;
-      ad_type: AdType;
-      status?: AdStatus;
-      is_active?: boolean;
-      /** Optional upload fields (use FormData) */
-      image_file?: File | null;
-      video_file?: File | null;
-    });
+    title: string;
+    placement: AdPlacement;
+    ad_type: AdType;
+    status?: AdStatus;
+    is_active?: boolean;
+    /** Optional upload fields (use FormData) */
+    image_file?: File | null;
+    video_file?: File | null;
+  });
 
 export async function listAdvertisementsAdmin(params?: { page_size?: number }): Promise<Advertisement[]> {
   const qs = new URLSearchParams();
@@ -1242,7 +1416,7 @@ export interface ContactMessagePayload {
 export async function submitContactMessage(payload: ContactMessagePayload): Promise<{ id: number }> {
   return request(apiUrl("/contact/messages/"), {
     method: "POST",
-    json: payload,
+    json: payload as unknown as Record<string, unknown>,
   });
 }
 
@@ -1332,8 +1506,8 @@ export interface CricketMatchInnings {
 }
 
 export interface CricketMatchScore {
-  team1Score?: { inngs1?: CricketMatchInnings; [key: string]: unknown };
-  team2Score?: { inngs1?: CricketMatchInnings; [key: string]: unknown };
+  team1Score?: { inngs1?: CricketMatchInnings;[key: string]: unknown };
+  team2Score?: { inngs1?: CricketMatchInnings;[key: string]: unknown };
   [key: string]: unknown;
 }
 
@@ -1444,7 +1618,7 @@ export async function createEpaperEdition(payload: EpaperEditionPayload): Promis
     formData.append("title", payload.title);
   }
   formData.append("pdf_file", payload.pdf_file);
-  
+
   const url = apiUrl("/epaper/editions/");
   return request<EpaperEditionItem>(url, { method: "POST", auth: true, json: formData });
 }
@@ -1463,7 +1637,7 @@ export async function updateEpaperEdition(
   if (payload.pdf_file) {
     formData.append("pdf_file", payload.pdf_file);
   }
-  
+
   const url = apiUrl(`/epaper/editions/${id}/`);
   return request<EpaperEditionItem>(url, { method: "PATCH", auth: true, json: formData });
 }

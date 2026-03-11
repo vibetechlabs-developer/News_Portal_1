@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { Play, ChevronLeft, ChevronRight, X, Share2, Heart, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getMediaUrl, type ReelContentItem } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { getMediaUrl, type ReelContentItem, type CommentItem, toggleReelLike, getReelComments, postReelComment } from '@/lib/api';
 import { getReelUrl as getReelUrlUtil } from '@/lib/videoUtils';
+import { CommentModal } from '../shared/CommentModal';
 
 function getReelUrl(reel: ReelContentItem): string | null {
   return getReelUrlUtil(reel.youtube_url, reel.file, getMediaUrl);
@@ -27,9 +29,19 @@ function getTitle(reel: ReelContentItem, lang: string): string {
 
 export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveReelPlayerProps) {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(true);
+
+  // Likes State
+  const [localLikeCounts, setLocalLikeCounts] = useState<Record<number, number>>({});
   const [likedReels, setLikedReels] = useState<number[]>([]);
+
+  // Comments State
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsList, setCommentsList] = useState<CommentItem[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -120,10 +132,59 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
     setIsPlaying(!isPlaying);
   };
 
-  const toggleLike = (id: number) => {
-    setLikedReels(prev => 
-      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+  const handleToggleLike = async (id: number) => {
+    if (!user) {
+      alert(language === 'en' ? 'Please log in to like' : 'લાઇક કરવા માટે લૉગ ઇન કરો');
+      return;
+    }
+
+    const isLiked = likedReels.includes(id);
+    const newLikedState = !isLiked;
+
+    // Optimistic UI update
+    setLikedReels(prev =>
+      newLikedState ? [...prev, id] : prev.filter(r => r !== id)
     );
+    setLocalLikeCounts(prev => ({
+      ...prev,
+      [id]: (prev[id] ?? reels.find(r => r.id === id)?.likes_count ?? 0) + (newLikedState ? 1 : -1)
+    }));
+
+    try {
+      await toggleReelLike(id, newLikedState);
+    } catch (err) {
+      console.error('Failed to toggle sequence like', err);
+      // Revert on error
+      setLikedReels(prev => isLiked ? [...prev, id] : prev.filter(r => r !== id));
+      setLocalLikeCounts(prev => ({
+        ...prev,
+        [id]: (prev[id] ?? reels.find(r => r.id === id)?.likes_count ?? 0) + (isLiked ? 1 : -1)
+      }));
+    }
+  };
+
+  const handleOpenComments = async (id: number) => {
+    setCommentsOpen(true);
+    setCommentsLoading(true);
+    try {
+      const fetchedComments = await getReelComments(id);
+      setCommentsList(fetchedComments);
+    } catch (err) {
+      console.error('Failed to fetch reel comments', err);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handlePostComment = async (content: string) => {
+    if (!currentReel) return;
+    try {
+      const newComment = await postReelComment(currentReel.id, content);
+      setCommentsList([newComment, ...commentsList]);
+    } catch (err) {
+      console.error('Failed to post reel comment', err);
+      throw err;
+    }
   };
 
   const handleShare = async () => {
@@ -149,7 +210,7 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="fixed inset-0 z-50 bg-black"
       onTouchStart={handleTouchStart}
@@ -215,9 +276,9 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
         </button>
 
         {/* Bottom Gradient Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-20 pb-8 px-6 z-30">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-20 pb-8 px-6 z-50 pointer-events-none">
           {/* Author Info */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 pointer-events-auto">
             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">K</span>
             </div>
@@ -233,34 +294,44 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
 
           {/* Action Buttons */}
           <div className="flex items-center gap-6">
-            <button 
-              onClick={() => toggleLike(currentReel.id)}
-              className="flex flex-col items-center gap-1"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleLike(currentReel.id);
+              }}
+              className="flex flex-col items-center gap-1 pointer-events-auto"
             >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                likedReels.includes(currentReel.id) ? 'bg-red-500' : 'bg-white/10 backdrop-blur-md'
-              }`}>
-                <Heart className={`w-6 h-6 ${
-                  likedReels.includes(currentReel.id) ? 'text-white fill-white' : 'text-white'
-                }`} />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${likedReels.includes(currentReel.id) ? 'bg-red-500' : 'bg-white/10 backdrop-blur-md'
+                }`}>
+                <Heart className={`w-6 h-6 ${likedReels.includes(currentReel.id) ? 'text-white fill-white' : 'text-white'
+                  }`} />
               </div>
               <span className="text-white text-xs">
-                {formatCount(currentReel.likes_count)}
+                {formatCount(localLikeCounts[currentReel.id] ?? currentReel.likes_count)}
               </span>
             </button>
 
-            <button className="flex flex-col items-center gap-1">
-              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenComments(currentReel.id);
+              }}
+              className="flex flex-col items-center gap-1 pointer-events-auto"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
                 <MessageCircle className="w-6 h-6 text-white" />
               </div>
               <span className="text-white text-xs">
-                {formatCount(currentReel.view_count)}
+                {language === 'en' ? 'Comment' : 'ટિપ્પણી'}
               </span>
             </button>
 
-            <button 
-              onClick={handleShare}
-              className="flex flex-col items-center gap-1"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShare();
+              }}
+              className="flex flex-col items-center gap-1 pointer-events-auto"
             >
               <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
                 <Share2 className="w-6 h-6 text-white" />
@@ -273,21 +344,28 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
         </div>
 
         {/* Progress Indicator */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-1">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[45] flex gap-1">
           {reels.map((_, index) => (
             <div
               key={index}
-              className={`h-1 rounded-full transition-all ${
-                index === currentIndex 
-                  ? 'bg-white w-8' 
-                  : index < currentIndex 
-                    ? 'bg-white/50 w-2' 
-                    : 'bg-white/20 w-2'
-              }`}
+              className={`h-1 rounded-full transition-all ${index === currentIndex
+                ? 'bg-white w-8'
+                : index < currentIndex
+                  ? 'bg-white/50 w-2'
+                  : 'bg-white/20 w-2'
+                }`}
             />
           ))}
         </div>
       </div>
+
+      <CommentModal
+        isOpen={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+        comments={commentsList}
+        onSubmitComment={handlePostComment}
+        isLoading={commentsLoading}
+      />
     </div>
   );
 }

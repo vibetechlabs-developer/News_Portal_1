@@ -17,7 +17,7 @@ export function Header() {
   const [trendingTags, setTrendingTags] = useState<TagItem[]>([]);
 
   useEffect(() => {
-    getTrendingTags(8).then((tags) => setTrendingTags(Array.isArray(tags) ? tags : [])).catch(() => {});
+    getTrendingTags(8).then((tags) => setTrendingTags(Array.isArray(tags) ? tags : [])).catch(() => { });
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -59,7 +59,7 @@ export function Header() {
   };
 
   return (
-    <header className="bg-card border-b border-border py-4 md:py-5 lg:py-6">
+    <header className="bg-card border-b border-border py-5 md:py-6 lg:py-8">
       <div className="container mx-auto px-2 sm:px-4">
         <div className="flex items-center justify-between gap-2">
           {/* Left: Search */}
@@ -104,25 +104,25 @@ export function Header() {
                   <div className="flex flex-wrap gap-2">
                     {trendingTags.length > 0
                       ? trendingTags.map((tag) => (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            onClick={() => handleTagClick(tag.name)}
-                            className="trending-tag"
-                          >
-                            #{tag.name}
-                          </button>
-                        ))
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => handleTagClick(tag.name)}
+                          className="trending-tag"
+                        >
+                          #{tag.name}
+                        </button>
+                      ))
                       : ['#ગુજરાત', '#Cricket', '#Budget2024', '#Election'].map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => handleTagClick(tag)}
-                            className="trending-tag"
-                          >
-                            {tag}
-                          </button>
-                        ))}
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => handleTagClick(tag)}
+                          className="trending-tag"
+                        >
+                          {tag}
+                        </button>
+                      ))}
                   </div>
                 </div>
               </DialogContent>
@@ -132,12 +132,12 @@ export function Header() {
           {/* Center: Logo */}
           <Link
             to="/"
-            className="flex-1 min-w-0 flex justify-center items-center py-2 sm:py-3 px-1"
+            className="flex-[2] min-w-0 flex justify-center items-center py-1 px-2"
           >
             <img
               src={logo}
               alt="Kanam Express"
-              className="h-16 sm:h-24 md:h-28 lg:h-32 xl:h-36 w-auto max-w-full object-contain drop-shadow-lg hover:opacity-90 transition-opacity"
+              className="w-52 sm:w-64 md:w-72 lg:w-80 xl:w-96 h-auto max-h-32 md:max-h-36 lg:max-h-40 object-contain drop-shadow-lg hover:opacity-90 transition-opacity"
             />
           </Link>
 

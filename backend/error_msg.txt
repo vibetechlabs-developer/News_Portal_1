@@ -1,0 +1,3 @@
+column news_newsarticle.is_featured does not exist
+LINE 1: ...icle"."is_breaking", "news_newsarticle"."is_top", "news_news...
+                                                             ^

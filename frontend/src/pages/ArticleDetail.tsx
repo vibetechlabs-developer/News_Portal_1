@@ -1,18 +1,28 @@
-import { useEffect, useMemo, useRef } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
+import { Heart, MessageCircle, Share2, Send, Trash2 } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/PageLayout";
 import { NewsCard } from "@/components/news/NewsCard";
 import { VideoPlayer } from "@/components/news/VideoPlayer";
+import { ContentProtection } from "@/components/ContentProtection";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   getArticleBySlug,
   getRelatedArticles,
   getMediaUrl,
   trackArticleView,
+  toggleArticleLike,
+  getArticleComments,
+  postComment,
+  deleteComment,
+  ApiError,
   type ArticleListItem,
+  type CommentItem,
 } from "@/lib/api";
 
 function getTitle(article: ArticleListItem, language: string) {
@@ -42,9 +52,27 @@ function getVideoMedia(article: ArticleListItem) {
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { language } = useLanguage();
+  const { isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
   const trackedRef = useRef<string | null>(null);
   const autoplay = searchParams.get("autoplay") === "1";
+
+  // --- Like state ---
+  const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
+
+  // --- Comment state ---
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // --- Share feedback ---
+  const [shareCopied, setShareCopied] = useState(false);
 
   const articleQuery = useQuery({
     queryKey: ["article", slug],
@@ -76,9 +104,101 @@ export default function ArticleDetail() {
   }, [slug, articleQuery.data]);
 
   const article = articleQuery.data;
+
+  // Initialise like count from article data
+  useEffect(() => {
+    if (article) {
+      setLikesCount(article.likes_count ?? 0);
+    }
+  }, [article]);
+
+  // Fetch comments when article is loaded
+  useEffect(() => {
+    if (!article) return;
+    setCommentsLoading(true);
+    getArticleComments(article.id)
+      .then((data) => setComments(data))
+      .catch(() => setComments([]))
+      .finally(() => setCommentsLoading(false));
+  }, [article]);
+
+  const handleLike = async () => {
+    if (!article) return;
+    if (!isAuthenticated) {
+      toast({ title: language === "en" ? "Please login to like" : "લૉગ ઇન કરો", description: language === "en" ? "You need to be logged in to like articles." : "" });
+      navigate("/login");
+      return;
+    }
+    setLikeLoading(true);
+    try {
+      const result = await toggleArticleLike(slug!);
+      setLiked(result.liked);
+      setLikesCount((c) => result.liked ? c + 1 : Math.max(0, c - 1));
+    } catch (e) {
+      toast({ title: "Could not update like", description: String(e), variant: "destructive" });
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const titleText = article ? getTitle(article, language) : document.title;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: titleText, url });
+      } catch {
+        // user cancelled
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!article || !commentText.trim()) return;
+    setSubmittingComment(true);
+    try {
+      const newComment = await postComment(article.id, commentText.trim(), replyTo ?? undefined);
+      setComments((prev) => [newComment, ...prev]);
+      setCommentText("");
+      setReplyTo(null);
+      toast({ title: language === "en" ? "Comment posted!" : "ટિપ્પણી પ્રકાશિત!" });
+    } catch (e) {
+      toast({ title: "Could not post comment", description: String(e), variant: "destructive" });
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      await deleteComment(commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      // silently fail
+    }
+  };
+
   const title = useMemo(() => (article ? getTitle(article, language) : ""), [article, language]);
   const summary = useMemo(() => (article ? getSummary(article, language) : ""), [article, language]);
   const content = useMemo(() => (article ? getContent(article, language) : ""), [article, language]);
+
+  // Top-level comments only; replies are nested
+  const topLevelComments = useMemo(() => comments.filter((c) => c.parent == null), [comments]);
+  const repliesMap = useMemo(() => {
+    const map: Record<number, CommentItem[]> = {};
+    comments.forEach((c) => {
+      if (c.parent != null) {
+        if (!map[c.parent]) map[c.parent] = [];
+        map[c.parent].push(c);
+      }
+    });
+    return map;
+  }, [comments]);
 
   return (
     <PageLayout>
@@ -110,37 +230,200 @@ export default function ArticleDetail() {
           </div>
         ) : (
           <>
+            {/* ─── Article body ─────────────────────── */}
             <article className="mx-auto max-w-3xl">
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
-                {title}
-              </h1>
+              <ContentProtection>
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
+                  {title}
+                </h1>
 
-              {summary ? (
-                <p className="mt-4 text-lg text-muted-foreground">
-                  {summary}
-                </p>
-              ) : null}
+                {summary ? (
+                  <p className="mt-4 text-lg text-muted-foreground">
+                    {summary}
+                  </p>
+                ) : null}
 
-              {getVideoMedia(article) ? (
-                <div className="mt-6">
-                  <VideoPlayer
-                    media={getVideoMedia(article)!}
-                    playing={autoplay}
-                  />
+                {getVideoMedia(article) ? (
+                  <div className="mt-6">
+                    <VideoPlayer
+                      media={getVideoMedia(article)!}
+                      playing={autoplay}
+                    />
+                  </div>
+                ) : article.featured_image ? (
+                  <div className="mt-6 overflow-hidden rounded-xl border border-border bg-card">
+                    <img
+                      src={getMediaUrl(article.featured_image)}
+                      alt={title}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                ) : null}
+
+                <div className="mt-6 whitespace-pre-line text-foreground leading-7">
+                  {content}
                 </div>
-              ) : article.featured_image ? (
-                <div className="mt-6 overflow-hidden rounded-xl border border-border bg-card">
-                  <img
-                    src={getMediaUrl(article.featured_image)}
-                    alt={title}
-                    className="w-full h-auto object-cover"
-                  />
-                </div>
-              ) : null}
+              </ContentProtection>
 
-              <div className="mt-6 whitespace-pre-line text-foreground leading-7">
-                {content}
+              {/* ─── Engagement Bar ─────────────────── */}
+              <div className="mt-8 pt-6 border-t border-border flex items-center gap-4">
+                {/* Like */}
+                <button
+                  onClick={handleLike}
+                  disabled={likeLoading}
+                  title={isAuthenticated ? (liked ? "Unlike" : "Like") : "Login to like"}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${liked
+                    ? "bg-red-50 border-red-300 text-red-600 dark:bg-red-950 dark:border-red-700 dark:text-red-400"
+                    : "border-border text-muted-foreground hover:border-red-400 hover:text-red-500"
+                    } disabled:opacity-50`}
+                >
+                  <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+                  <span>{likesCount}</span>
+                </button>
+
+                {/* Comment count indicator */}
+                <button
+                  onClick={() => document.getElementById("comments-section")?.scrollIntoView({ behavior: "smooth" })}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{comments.length}</span>
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors ml-auto"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>{shareCopied ? (language === "en" ? "Copied!" : "કૉપી!") : (language === "en" ? "Share" : "શેર")}</span>
+                </button>
               </div>
+
+              {/* ─── Comments Section ────────────────── */}
+              <section id="comments-section" className="mt-10">
+                <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                  {language === "en" ? "Comments" : "ટિપ્પણીઓ"} ({comments.length})
+                </h2>
+
+                {/* Comment form */}
+                {isAuthenticated ? (
+                  <form onSubmit={handleSubmitComment} className="mb-8">
+                    {replyTo != null && (
+                      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{language === "en" ? "Replying to comment" : "ટિપ્પણીનો જવાબ"} #{replyTo}</span>
+                        <button type="button" className="text-primary hover:underline" onClick={() => setReplyTo(null)}>
+                          {language === "en" ? "Cancel" : "રદ"}
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <textarea
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder={language === "en" ? "Write a comment…" : "ટિપ્પણી લખો…"}
+                        rows={3}
+                        className="flex-1 resize-none rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={submittingComment || !commentText.trim()}
+                        className="self-end flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                        {language === "en" ? "Post" : "મોકલો"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="mb-6 text-sm text-muted-foreground bg-muted/40 rounded-xl px-4 py-3">
+                    <Link to="/login" className="text-primary hover:underline font-medium">
+                      {language === "en" ? "Login" : "લૉગ ઇન"}
+                    </Link>{" "}
+                    {language === "en" ? "to post a comment." : "ટિપ્પણી કરવા."}
+                  </div>
+                )}
+
+                {/* Comment list */}
+                {commentsLoading ? (
+                  <div className="text-sm text-muted-foreground">{language === "en" ? "Loading comments…" : "ટિપ્પણીઓ લોડ થઈ રહ્યા છે..."}</div>
+                ) : topLevelComments.length === 0 ? (
+                  <div className="text-sm text-muted-foreground py-4">
+                    {language === "en" ? "No comments yet. Be the first!" : "હજી કોઈ ટિપ્પણી નથી."}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {topLevelComments.map((comment) => (
+                      <div key={comment.id} className="rounded-xl border border-border bg-card p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold text-foreground">
+                                {language === "en" ? "User" : "વપરાશકર્તા"} #{(typeof comment.user === 'object' ? comment.user?.id : comment.user) ?? "?"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-foreground leading-relaxed">{comment.content}</p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isAuthenticated && (
+                              <button
+                                onClick={() => setReplyTo(comment.id)}
+                                className="text-xs text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors"
+                              >
+                                {language === "en" ? "Reply" : "જવાબ"}
+                              </button>
+                            )}
+                            {isAuthenticated && (user as { id?: number })?.id === comment.user && (
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Replies */}
+                        {(repliesMap[comment.id] ?? []).length > 0 && (
+                          <div className="mt-3 ml-4 pl-4 border-l-2 border-border space-y-3">
+                            {repliesMap[comment.id].map((reply) => (
+                              <div key={reply.id} className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-xs font-semibold text-foreground">
+                                      {language === "en" ? "User" : "વપ."} #{(typeof reply.user === 'object' ? reply.user?.id : reply.user) ?? "?"}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-foreground">{reply.content}</p>
+                                </div>
+                                {isAuthenticated && (user as { id?: number })?.id === reply.user && (
+                                  <button
+                                    onClick={() => handleDeleteComment(reply.id)}
+                                    className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
             </article>
 
             {/* Related */}
@@ -187,4 +470,3 @@ export default function ArticleDetail() {
     </PageLayout>
   );
 }
-

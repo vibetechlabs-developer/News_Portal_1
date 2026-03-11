@@ -35,6 +35,14 @@ import {
   type ArticleListItem,
   type MediaType,
   type EpaperEditionItem,
+  getVideosAdmin,
+  createVideoContentAdmin,
+  deleteVideoContentAdmin,
+  getReelsAdmin,
+  createReelContentAdmin,
+  deleteReelContentAdmin,
+  type VideoContentItem,
+  type ReelContentItem,
 } from "@/lib/api";
 
 function formatApiErrorDetails(err: ApiError): string {
@@ -114,6 +122,8 @@ const EditorDashboard = () => {
   const [editBreaking, setEditBreaking] = useState(false);
   const [editTop, setEditTop] = useState(false);
   const [editTrending, setEditTrending] = useState(false);
+  const [editDistrictId, setEditDistrictId] = useState<number | "">("");
+  const [editDistrictOptions, setEditDistrictOptions] = useState<DistrictItem[]>([]);
   const [editFeaturedImageFile, setEditFeaturedImageFile] = useState<File | null>(null);
 
   // Media add
@@ -130,6 +140,15 @@ const EditorDashboard = () => {
   const [epaperUploading, setEpaperUploading] = useState(false);
   const [epaperEditions, setEpaperEditions] = useState<EpaperEditionItem[]>([]);
   const [epaperLoading, setEpaperLoading] = useState(false);
+
+  // Media Tab (Reels & Videos)
+  const [mediaTabType, setMediaTabType] = useState<"VIDEO" | "REEL">("VIDEO");
+  const [mediaTabTitle, setMediaTabTitle] = useState("");
+  const [mediaTabFile, setMediaTabFile] = useState<File | null>(null);
+  const [mediaTabYoutube, setMediaTabYoutube] = useState("");
+  const [mediaTabUploading, setMediaTabUploading] = useState(false);
+  const [mediaTabLoading, setMediaTabLoading] = useState(false);
+  const [mediaTabItems, setMediaTabItems] = useState<Array<(VideoContentItem | ReelContentItem) & { _type: "VIDEO" | "REEL" }>>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,15 +195,12 @@ const EditorDashboard = () => {
     return found?.id ?? null;
   }, [sections]);
 
-  // Load districts when section changes (only when Gujarat section is selected)
+  // Load districts when section changes (for any section that has districts)
   useEffect(() => {
     let cancelled = false;
-    // Hide / reset districts when no section selected or section is not Gujarat
-    if (!sectionId || (gujaratSectionId && Number(sectionId) !== gujaratSectionId)) {
-      setDistricts([]);
-      setDistrictId("");
-      return;
-    }
+    setDistricts([]);
+    setDistrictId("");
+    if (!sectionId) return;
     (async () => {
       try {
         const data = await getDistricts({ section: Number(sectionId), is_active: true });
@@ -198,12 +214,29 @@ const EditorDashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [sectionId, gujaratSectionId]);
+  }, [sectionId]);
 
   const sectionOptions = useMemo(
     () => sections.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [sections]
   );
+
+  // Load districts for the edit dialog when editSectionId changes
+  useEffect(() => {
+    let cancelled = false;
+    setEditDistrictOptions([]);
+    setEditDistrictId("");
+    if (!editSectionId) return;
+    (async () => {
+      try {
+        const data = await getDistricts({ section: Number(editSectionId), is_active: true });
+        if (!cancelled) setEditDistrictOptions(Array.isArray(data) ? data : []);
+      } catch {
+        // silently skip
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [editSectionId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -384,6 +417,7 @@ const EditorDashboard = () => {
       setEditSummaryEn(a.summary_en ?? "");
       setEditContentEn(a.content_en ?? "");
       setEditSectionId(a.section ?? "");
+      setEditDistrictId(a.district ?? "");
       const s = a.status;
       setEditStatus(s === "PUBLISHED" || s === "ARCHIVED" || s === "DRAFT" ? s : "DRAFT");
       setEditBreaking(!!a.is_breaking);
@@ -410,6 +444,7 @@ const EditorDashboard = () => {
         summary_en: editSummaryEn,
         content_en: editContentEn,
         section: Number(editSectionId),
+        district: editDistrictId ? Number(editDistrictId) : null,
         status: editStatus,
         is_breaking: editBreaking,
         is_top: editTop,
@@ -568,6 +603,76 @@ const EditorDashboard = () => {
     }
   };
 
+  // Media Tab Functions
+  const loadMediaTabContent = async () => {
+    setMediaTabLoading(true);
+    try {
+      const [videos, reels] = await Promise.all([
+        getVideosAdmin(),
+        getReelsAdmin()
+      ]);
+      const vItems = Array.isArray(videos.results) ? videos.results.map(v => ({ ...v, _type: "VIDEO" as const })) : [];
+      const rItems = Array.isArray(reels.results) ? reels.results.map(r => ({ ...r, _type: "REEL" as const })) : [];
+
+      const combined = [...vItems, ...rItems].sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setMediaTabItems(combined);
+    } catch (err) {
+      console.error("Failed to load media tab content:", err);
+      toast({ title: "Could not load videos/reels", variant: "destructive" });
+    } finally {
+      setMediaTabLoading(false);
+    }
+  };
+
+  const handleMediaTabSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!accessToken) return toast({ title: "Not authenticated", variant: "destructive" });
+    if (!mediaTabTitle) return toast({ title: "Title required", variant: "destructive" });
+    if (!mediaTabFile && !mediaTabYoutube.trim()) return toast({ title: "File or YouTube URL required", variant: "destructive" });
+
+    setMediaTabUploading(true);
+    try {
+      const targetSectionId = sections.find(s => s.slug.toLowerCase() === (mediaTabType === "VIDEO" ? "videos" : "reels"))?.id || sections[0]?.id || 1;
+
+      const payload = {
+        title_en: mediaTabTitle,
+        section: targetSectionId,
+        file: mediaTabFile,
+        youtube_url: mediaTabYoutube.trim() || undefined,
+        status: "PUBLISHED",
+        primary_language: "GU",
+      };
+
+      if (mediaTabType === "VIDEO") await createVideoContentAdmin(payload);
+      else await createReelContentAdmin(payload);
+
+      toast({ title: `${mediaTabType === "VIDEO" ? "Video" : "Reel"} uploaded successfully` });
+      setMediaTabTitle("");
+      setMediaTabFile(null);
+      setMediaTabYoutube("");
+      await loadMediaTabContent();
+    } catch (err) {
+      const errorMsg = err instanceof ApiError ? formatApiErrorDetails(err) : String(err);
+      toast({ title: "Upload failed", description: errorMsg, variant: "destructive" });
+    } finally {
+      setMediaTabUploading(false);
+    }
+  };
+
+  const removeMediaTabContent = async (id: number, type: "VIDEO" | "REEL") => {
+    if (!confirm(`Are you sure you want to delete this ${type.toLowerCase()}?`)) return;
+    try {
+      if (type === "VIDEO") await deleteVideoContentAdmin(id);
+      else await deleteReelContentAdmin(id);
+      toast({ title: "Deleted successfully" });
+      await loadMediaTabContent();
+    } catch (e) {
+      toast({ title: "Delete failed", variant: "destructive", description: String(e) });
+    }
+  };
+
   // Load e-paper editions on mount
   useEffect(() => {
     loadEpaperEditions();
@@ -599,6 +704,7 @@ const EditorDashboard = () => {
             <TabsTrigger value="create">Create</TabsTrigger>
             <TabsTrigger value="manage" onClick={() => loadManage()}>Manage</TabsTrigger>
             <TabsTrigger value="epaper" onClick={() => loadEpaperEditions()}>E-paper</TabsTrigger>
+            <TabsTrigger value="media" onClick={() => loadMediaTabContent()}>Reels & Videos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
@@ -785,9 +891,9 @@ const EditorDashboard = () => {
                     </select>
                   </div> */}
 
-                  {gujaratSectionId && sectionId === gujaratSectionId && (
+                  {districts.length > 0 && (
                     <div className="space-y-2">
-                      <Label htmlFor="district">District (only for Gujarat section)</Label>
+                      <Label htmlFor="district">District</Label>
                       <select
                         id="district"
                         value={districtId}
@@ -1159,6 +1265,102 @@ const EditorDashboard = () => {
               </Card>
             </div>
           </TabsContent>
+
+          <TabsContent value="media" className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
+              <form onSubmit={handleMediaTabSubmit} className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-semibold">Upload Reel or Video</h2>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Media Studio</span>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="media-tab-title">Title *</Label>
+                  <Input
+                    id="media-tab-title"
+                    value={mediaTabTitle}
+                    onChange={(e) => setMediaTabTitle(e.target.value)}
+                    placeholder="Enter a catchy title..."
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="media-tab-type">Media Type *</Label>
+                  <select
+                    id="media-tab-type"
+                    value={mediaTabType}
+                    onChange={(e) => setMediaTabType(e.target.value as "VIDEO" | "REEL")}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  >
+                    <option value="VIDEO">Video (Horizontal)</option>
+                    <option value="REEL">Reel (Vertical)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-4 pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground font-medium">Upload a video file OR paste a YouTube link</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="media-tab-file">File</Label>
+                    <Input
+                      id="media-tab-file"
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => setMediaTabFile(e.target.files?.[0] ?? null)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="media-tab-youtube">YouTube URL</Label>
+                    <Input
+                      id="media-tab-youtube"
+                      value={mediaTabYoutube}
+                      onChange={(e) => setMediaTabYoutube(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={mediaTabUploading || loadingSections} className="w-full mt-4">
+                  {mediaTabUploading ? "Uploading..." : `Upload ${mediaTabType === "VIDEO" ? "Video" : "Reel"}`}
+                </Button>
+              </form>
+
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Recently uploaded</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {mediaTabLoading ? (
+                    <p className="text-xs text-muted-foreground">Loading...</p>
+                  ) : mediaTabItems.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No reels or videos uploaded yet.</p>
+                  ) : (
+                    <ul className="space-y-2 text-xs">
+                      {mediaTabItems.map((item) => (
+                        <li key={`${item._type}-${item.id}`} className="flex items-start justify-between gap-2 border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                          <div>
+                            <p className="font-medium line-clamp-2">{item.title_en}</p>
+                            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                              {item._type} • Status: {item.status}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => removeMediaTabContent(item.id, item._type)}
+                              className="text-[11px] font-medium text-destructive hover:underline"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -1186,6 +1388,23 @@ const EditorDashboard = () => {
                       </select>
                     </div>
                   </div>
+
+                  {/* District dropdown — shown when the selected section has districts */}
+                  {editDistrictOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>District</Label>
+                      <select
+                        value={editDistrictId}
+                        onChange={(e) => setEditDistrictId(e.target.value ? Number(e.target.value) : "")}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">No district</option>
+                        {editDistrictOptions.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name_en}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Summary (EN)</Label>
