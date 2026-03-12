@@ -133,10 +133,6 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
   };
 
   const handleToggleLike = async (id: number) => {
-    if (!user) {
-      alert(language === 'en' ? 'Please log in to like' : 'લાઇક કરવા માટે લૉગ ઇન કરો');
-      return;
-    }
 
     const isLiked = likedReels.includes(id);
     const newLikedState = !isLiked;

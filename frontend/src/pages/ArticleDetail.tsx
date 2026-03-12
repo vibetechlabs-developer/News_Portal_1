@@ -124,11 +124,6 @@ export default function ArticleDetail() {
 
   const handleLike = async () => {
     if (!article) return;
-    if (!isAuthenticated) {
-      toast({ title: language === "en" ? "Please login to like" : "લૉગ ઇન કરો", description: language === "en" ? "You need to be logged in to like articles." : "" });
-      navigate("/login");
-      return;
-    }
     setLikeLoading(true);
     try {
       const result = await toggleArticleLike(slug!);
@@ -271,13 +266,13 @@ export default function ArticleDetail() {
                 <button
                   onClick={handleLike}
                   disabled={likeLoading}
-                  title={isAuthenticated ? (liked ? "Unlike" : "Like") : "Login to like"}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${liked
-                    ? "bg-red-50 border-red-300 text-red-600 dark:bg-red-950 dark:border-red-700 dark:text-red-400"
-                    : "border-border text-muted-foreground hover:border-red-400 hover:text-red-500"
-                    } disabled:opacity-50`}
-                >
-                  <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                    liked
+                      ? "bg-primary/10 text-primary border-primary/20"
+                      : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted"
+                  }`}
+                  title={liked ? "Unlike" : "Like"}
+                >  <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
                   <span>{likesCount}</span>
                 </button>
 
@@ -308,43 +303,34 @@ export default function ArticleDetail() {
                 </h2>
 
                 {/* Comment form */}
-                {isAuthenticated ? (
-                  <form onSubmit={handleSubmitComment} className="mb-8">
-                    {replyTo != null && (
-                      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{language === "en" ? "Replying to comment" : "ટિપ્પણીનો જવાબ"} #{replyTo}</span>
-                        <button type="button" className="text-primary hover:underline" onClick={() => setReplyTo(null)}>
-                          {language === "en" ? "Cancel" : "રદ"}
-                        </button>
-                      </div>
-                    )}
-                    <div className="flex gap-3">
-                      <textarea
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder={language === "en" ? "Write a comment…" : "ટિપ્પણી લખો…"}
-                        rows={3}
-                        className="flex-1 resize-none rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        disabled={submittingComment || !commentText.trim()}
-                        className="self-end flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-                      >
-                        <Send className="w-4 h-4" />
-                        {language === "en" ? "Post" : "મોકલો"}
+                <form onSubmit={handleSubmitComment} className="mb-8">
+                  {replyTo != null && (
+                    <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{language === "en" ? "Replying to comment" : "ટિપ્પણીનો જવાબ"} #{replyTo}</span>
+                      <button type="button" className="text-primary hover:underline" onClick={() => setReplyTo(null)}>
+                        {language === "en" ? "Cancel" : "રદ"}
                       </button>
                     </div>
-                  </form>
-                ) : (
-                  <div className="mb-6 text-sm text-muted-foreground bg-muted/40 rounded-xl px-4 py-3">
-                    <Link to="/login" className="text-primary hover:underline font-medium">
-                      {language === "en" ? "Login" : "લૉગ ઇન"}
-                    </Link>{" "}
-                    {language === "en" ? "to post a comment." : "ટિપ્પણી કરવા."}
+                  )}
+                  <div className="flex gap-3">
+                    <textarea
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder={language === "en" ? "Write a comment…" : "ટિપ્પણી લખો…"}
+                      rows={3}
+                      className="flex-1 resize-none rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      disabled={submittingComment || !commentText.trim()}
+                      className="self-end flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4" />
+                      {language === "en" ? "Post" : "મોકલો"}
+                    </button>
                   </div>
-                )}
+                </form>
 
                 {/* Comment list */}
                 {commentsLoading ? (
@@ -361,7 +347,8 @@ export default function ArticleDetail() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-semibold text-foreground">
-                                {language === "en" ? "User" : "વપરાશકર્તા"} #{(typeof comment.user === 'object' ? comment.user?.id : comment.user) ?? "?"}
+                                {(comment as any).guest_name || 
+                                  ((comment.user ? ((typeof comment.user === 'object' ? comment.user?.id : comment.user)) : "Guest"))}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
@@ -370,14 +357,12 @@ export default function ArticleDetail() {
                             <p className="text-sm text-foreground leading-relaxed">{comment.content}</p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            {isAuthenticated && (
                               <button
                                 onClick={() => setReplyTo(comment.id)}
                                 className="text-xs text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors"
                               >
                                 {language === "en" ? "Reply" : "જવાબ"}
                               </button>
-                            )}
                             {isAuthenticated && (user as { id?: number })?.id === comment.user && (
                               <button
                                 onClick={() => handleDeleteComment(comment.id)}
@@ -397,9 +382,10 @@ export default function ArticleDetail() {
                               <div key={reply.id} className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="text-xs font-semibold text-foreground">
-                                      {language === "en" ? "User" : "વપ."} #{(typeof reply.user === 'object' ? reply.user?.id : reply.user) ?? "?"}
-                                    </span>
+                                      <span className="text-xs font-semibold text-foreground">
+                                        {(reply as any).guest_name || 
+                                          ((reply.user ? ((typeof reply.user === 'object' ? reply.user?.id : reply.user)) : "Guest"))}
+                                      </span>
                                     <span className="text-xs text-muted-foreground">
                                       {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
                                     </span>

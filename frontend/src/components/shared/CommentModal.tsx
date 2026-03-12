@@ -36,7 +36,7 @@ export function CommentModal({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newComment.trim() || !user || isSubmitting) return;
+        if (!newComment.trim() || isSubmitting) return;
 
         try {
             setIsSubmitting(true);
@@ -86,9 +86,11 @@ export function CommentModal({
                                 <div className="flex-1">
                                     <div className="flex items-baseline gap-2">
                                         <span className="font-semibold text-sm">
-                                            {typeof comment.user === 'object' && comment.user
-                                                ? `${comment.user.first_name || 'User'} ${comment.user.last_name || ''}`.trim()
-                                                : 'User'}
+                                            {(comment as any).guest_name || (
+                                                typeof comment.user === 'object' && comment.user
+                                                    ? `${comment.user.first_name || 'User'} ${comment.user.last_name || ''}`.trim()
+                                                    : 'Guest'
+                                            )}
                                         </span>
                                         <span className="text-xs text-gray-500">
                                             {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
@@ -105,29 +107,23 @@ export function CommentModal({
 
                 {/* Comment Input */}
                 <div className="sticky bottom-0 bg-white border-t p-4 z-10">
-                    {user ? (
-                        <form onSubmit={handleSubmit} className="flex gap-2">
-                            <input
-                                type="text"
-                                value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
-                                placeholder={t.placeholder}
-                                className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                disabled={isSubmitting}
-                            />
-                            <button
-                                type="submit"
-                                disabled={!newComment.trim() || isSubmitting}
-                                className="p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Send className="w-5 h-5 ml-1" />
-                            </button>
-                        </form>
-                    ) : (
-                        <div className="text-center py-2 text-sm text-gray-500 font-medium">
-                            {t.loginToComment}
-                        </div>
-                    )}
+                    <form onSubmit={handleSubmit} className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder={t.placeholder}
+                            className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            disabled={isSubmitting}
+                        />
+                        <button
+                            type="submit"
+                            disabled={!newComment.trim() || isSubmitting}
+                            className="p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Send className="w-5 h-5 ml-1" />
+                        </button>
+                    </form>
                 </div>
             </div>
         </>

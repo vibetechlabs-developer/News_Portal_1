@@ -175,10 +175,6 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
   };
 
   const handleToggleLike = async (id: number) => {
-    if (!user) {
-      alert(language === 'en' ? 'Please log in to like' : 'લાઇક કરવા માટે લૉગ ઇન કરો');
-      return;
-    }
 
     const isLiked = likedVideos.includes(id);
     const newLikedState = !isLiked;

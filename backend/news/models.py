@@ -375,22 +375,27 @@ class ReelContent(BaseClip):
 
 
 class Like(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="likes")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="likes", null=True, blank=True)
     article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE, related_name="likes")
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    session_id = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["user", "article"], name="unique_like_per_user_article")
-        ]
-        indexes = [models.Index(fields=["article", "created_at"])]
+        # Note: Database-level unique constraint removed because 'user' can be null.
+        # We will handle uniqueness check in the view layer for anonymous sessions.
+        indexes = [models.Index(fields=["article", "created_at"]), models.Index(fields=["session_id"])]
 
     def __str__(self) -> str:
         return f"Like({self.user_id}, {self.article_id})"
 
 
 class Comment(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="comments")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="comments")
+    guest_name = models.CharField(max_length=100, blank=True, null=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    session_id = models.CharField(max_length=255, blank=True, null=True)
+    
     article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE, related_name="comments")
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="replies")
     content = models.TextField()
@@ -445,37 +450,39 @@ class EpaperEdition(models.Model):
 
 
 class VideoLike(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="video_likes")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="video_likes", null=True, blank=True)
     video = models.ForeignKey(VideoContent, on_delete=models.CASCADE, related_name="likes")
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    session_id = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["user", "video"], name="unique_like_per_user_video")
-        ]
-        indexes = [models.Index(fields=["video", "created_at"])]
+        indexes = [models.Index(fields=["video", "created_at"]), models.Index(fields=["session_id"])]
 
     def __str__(self) -> str:
         return f"VideoLike({self.user_id}, {self.video_id})"
 
 
 class ReelLike(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reel_likes")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reel_likes", null=True, blank=True)
     reel = models.ForeignKey(ReelContent, on_delete=models.CASCADE, related_name="likes")
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    session_id = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["user", "reel"], name="unique_like_per_user_reel")
-        ]
-        indexes = [models.Index(fields=["reel", "created_at"])]
+        indexes = [models.Index(fields=["reel", "created_at"]), models.Index(fields=["session_id"])]
 
     def __str__(self) -> str:
         return f"ReelLike({self.user_id}, {self.reel_id})"
 
 
 class VideoComment(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="video_comments")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="video_comments")
+    guest_name = models.CharField(max_length=100, blank=True, null=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    session_id = models.CharField(max_length=255, blank=True, null=True)
+    
     video = models.ForeignKey(VideoContent, on_delete=models.CASCADE, related_name="comments")
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="replies")
     content = models.TextField()
@@ -497,7 +504,11 @@ class VideoComment(models.Model):
 
 
 class ReelComment(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="reel_comments")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="reel_comments")
+    guest_name = models.CharField(max_length=100, blank=True, null=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    session_id = models.CharField(max_length=255, blank=True, null=True)
+    
     reel = models.ForeignKey(ReelContent, on_delete=models.CASCADE, related_name="comments")
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="replies")
     content = models.TextField()

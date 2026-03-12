@@ -774,7 +774,7 @@ const AdminDashboard = () => {
     setAdVideoFile(null);
     setAdForm({
       title: a.title,
-      placement: a.placement,
+      placement: a.placement as AdPlacement,
       ad_type: a.ad_type,
       status: a.status,
       is_active: a.is_active,
@@ -1040,7 +1040,6 @@ const AdminDashboard = () => {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="sections">Sections</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
               <TabsTrigger value="ads">Ads</TabsTrigger>
               <TabsTrigger value="careers">Careers</TabsTrigger>
               <TabsTrigger value="site">Site</TabsTrigger>
@@ -1795,7 +1794,6 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name (EN)</TableHead>
-                          <TableHead>Slug</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="w-[200px]">Actions</TableHead>
                         </TableRow>
@@ -1804,7 +1802,6 @@ const AdminDashboard = () => {
                         {pendingCategories.map((c) => (
                           <TableRow key={c.id}>
                             <TableCell className="font-medium">{c.name_en}</TableCell>
-                            <TableCell className="font-mono text-xs">{c.slug}</TableCell>
                             <TableCell>
                               <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
                                 Pending
@@ -1846,7 +1843,6 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name (EN)</TableHead>
-                          <TableHead>Slug</TableHead>
                           <TableHead>Active</TableHead>
                           <TableHead>Approved</TableHead>
                           <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
@@ -1863,7 +1859,6 @@ const AdminDashboard = () => {
                           categories.map((c) => (
                             <TableRow key={c.id} className={!c.is_approved ? "bg-muted/50" : ""}>
                               <TableCell>{c.name_en}</TableCell>
-                              <TableCell className="font-mono text-xs">{c.slug}</TableCell>
                               <TableCell>{c.is_active ? "Yes" : "No"}</TableCell>
                               <TableCell>
                                 {c.is_approved ? (
@@ -1926,7 +1921,6 @@ const AdminDashboard = () => {
                         {pendingSections.map((s) => (
                           <TableRow key={s.id}>
                             <TableCell className="font-medium">{s.name_en}</TableCell>
-                            <TableCell className="font-mono text-xs">{s.slug}</TableCell>
                             <TableCell>
                               <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
                                 Pending
@@ -1968,7 +1962,6 @@ const AdminDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name (EN)</TableHead>
-                          <TableHead>Slug</TableHead>
                           <TableHead>Order</TableHead>
                           <TableHead>Active</TableHead>
                           <TableHead>Approved</TableHead>
@@ -1986,7 +1979,6 @@ const AdminDashboard = () => {
                           sections.map((s) => (
                             <TableRow key={s.id} className={!s.is_approved ? "bg-muted/50" : ""}>
                               <TableCell>{s.name_en}</TableCell>
-                              <TableCell className="font-mono text-xs">{s.slug}</TableCell>
                               <TableCell>{s.order}</TableCell>
                               <TableCell>{s.is_active ? "Yes" : "No"}</TableCell>
                               <TableCell>
@@ -2013,126 +2005,6 @@ const AdminDashboard = () => {
                                   size="sm"
                                   className="text-destructive hover:text-destructive"
                                   onClick={() => setSectionDeleteSlug(s.slug)}
-                                >
-                                  Delete
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="tags" className="space-y-4">
-            {isSuperAdmin && pendingTags.length > 0 && (
-              <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-                <CardHeader>
-                  <CardTitle className="text-base">Pending Approval ({pendingTags.length})</CardTitle>
-                  <CardDescription>Tags waiting for admin approval</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Slug</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="w-[200px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingTags.map((t) => (
-                          <TableRow key={t.id}>
-                            <TableCell className="font-medium">{t.name}</TableCell>
-                            <TableCell className="font-mono text-xs">{t.slug}</TableCell>
-                            <TableCell>
-                              <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
-                                Pending
-                              </span>
-                            </TableCell>
-                            <TableCell className="flex flex-wrap gap-2">
-                              <Button variant="outline" size="sm" onClick={() => handleApproveTag(t.slug)}>
-                                Approve
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleRejectTag(t.slug)} className="text-destructive">
-                                Reject
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => openEditTag(t)}>
-                                Edit
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            <Card>
-              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle>Tags</CardTitle>
-                  <CardDescription>Tags for articles (e.g. elections, cricket).</CardDescription>
-                </div>
-                <Button onClick={openAddTag}>Add tag</Button>
-              </CardHeader>
-              <CardContent>
-                {loading.tags ? (
-                  <p className="text-sm text-muted-foreground">Loading…</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Slug</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tags.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-muted-foreground">
-                              No tags yet. Add one above.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          tags.map((t) => (
-                            <TableRow key={t.id} className={!t.is_approved ? "bg-muted/50" : ""}>
-                              <TableCell>{t.name}</TableCell>
-                              <TableCell className="font-mono text-xs">{t.slug}</TableCell>
-                              <TableCell>
-                                {t.is_approved ? (
-                                  <span className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100">
-                                    Approved
-                                  </span>
-                                ) : t.approved_by == null ? (
-                                  <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
-                                    Pending
-                                  </span>
-                                ) : (
-                                  <span className="text-xs px-2 py-1 rounded bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100">
-                                    Rejected
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => openEditTag(t)}>
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-destructive hover:text-destructive"
-                                  onClick={() => setTagDeleteSlug(t.slug)}
                                 >
                                   Delete
                                 </Button>
