@@ -76,7 +76,13 @@ const EditorDashboard = () => {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [content, setContent] = useState("");
-  // Main article fields (can be strictly any language now)
+  // Optional translations for Hindi / Gujarati
+  const [titleHi, setTitleHi] = useState("");
+  const [titleGu, setTitleGu] = useState("");
+  const [summaryHi, setSummaryHi] = useState("");
+  const [summaryGu, setSummaryGu] = useState("");
+  const [contentHi, setContentHi] = useState("");
+  const [contentGu, setContentGu] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [districtId, setDistrictId] = useState<number | "">("");
@@ -281,8 +287,16 @@ const EditorDashboard = () => {
           .slice(0, 60),
         summary_en: summary,
         content_en: content,
+        // Optional translations
+        title_hi: titleHi || undefined,
+        title_gu: titleGu || undefined,
+        summary_hi: summaryHi || undefined,
+        summary_gu: summaryGu || undefined,
+        content_hi: contentHi || undefined,
+        content_gu: contentGu || undefined,
         section: Number(sectionId),
         status,
+        primary_language: primaryLanguage,
         content_type: contentType,
         category: categoryId ? Number(categoryId) : undefined,
         district: districtId ? Number(districtId) : undefined,
@@ -313,11 +327,18 @@ const EditorDashboard = () => {
       setTitle("");
       setSummary("");
       setContent("");
+      setTitleHi("");
+      setTitleGu("");
+      setSummaryHi("");
+      setSummaryGu("");
+      setContentHi("");
+      setContentGu("");
       setSectionId("");
       setStatus("DRAFT");
       setCategoryId("");
       setDistrictId("");
       setSelectedTagIds([]);
+      setPrimaryLanguage("GU");
       setIsBreaking(false);
       setIsTop(false);
       setIsTrending(false);
@@ -632,12 +653,12 @@ const EditorDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title">Title (English) *</Label>
                   <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter headline..." required />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="summary">Summary</Label>
+                  <Label htmlFor="summary">Summary (English)</Label>
                   <textarea
                     id="summary"
                     value={summary}
@@ -648,7 +669,7 @@ const EditorDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
+                  <Label htmlFor="content">Content (English)</Label>
                   <textarea
                     id="content"
                     value={content}
@@ -658,7 +679,72 @@ const EditorDashboard = () => {
                   />
                 </div>
 
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="title-hi">Title (Hindi, optional)</Label>
+                    <Input
+                      id="title-hi"
+                      value={titleHi}
+                      onChange={(e) => setTitleHi(e.target.value)}
+                      placeholder="हिंदी में शीर्षक"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="title-gu">Title (Gujarati, optional)</Label>
+                    <Input
+                      id="title-gu"
+                      value={titleGu}
+                      onChange={(e) => setTitleGu(e.target.value)}
+                      placeholder="ગુજરાતીમાં શીર્ષક"
+                    />
+                  </div>
+                </div>
 
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="summary-hi">Summary (Hindi, optional)</Label>
+                    <textarea
+                      id="summary-hi"
+                      value={summaryHi}
+                      onChange={(e) => setSummaryHi(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="summary-gu">Summary (Gujarati, optional)</Label>
+                    <textarea
+                      id="summary-gu"
+                      value={summaryGu}
+                      onChange={(e) => setSummaryGu(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="content-hi">Content (Hindi, optional)</Label>
+                    <textarea
+                      id="content-hi"
+                      value={contentHi}
+                      onChange={(e) => setContentHi(e.target.value)}
+                      rows={6}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="content-gu">Content (Gujarati, optional)</Label>
+                    <textarea
+                      id="content-gu"
+                      value={contentGu}
+                      onChange={(e) => setContentGu(e.target.value)}
+                      rows={6}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="featured-image">Featured image (optional)</Label>
@@ -760,6 +846,23 @@ const EditorDashboard = () => {
                       </select>
                     </div>
                   )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="primaryLanguage">Primary language</Label>
+                    <select
+                      id="primaryLanguage"
+                      value={primaryLanguage}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPrimaryLanguage(v === "HI" || v === "GU" ? v : "EN");
+                      }}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="EN">English</option>
+                      <option value="HI">Hindi</option>
+                      <option value="GU">Gujarati</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-[2fr,1fr]">
@@ -1159,7 +1262,7 @@ const EditorDashboard = () => {
                 <div className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Title</Label>
+                      <Label>Title (EN)</Label>
                       <Input value={editTitleEn} onChange={(e) => setEditTitleEn(e.target.value)} />
                     </div>
                     <div className="space-y-2">
@@ -1233,12 +1336,12 @@ const EditorDashboard = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Summary</Label>
+                    <Label>Summary (EN)</Label>
                     <textarea value={editSummaryEn} onChange={(e) => setEditSummaryEn(e.target.value)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Content</Label>
+                    <Label>Content (EN)</Label>
                     <textarea value={editContentEn} onChange={(e) => setEditContentEn(e.target.value)} rows={10} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
                   </div>
 
