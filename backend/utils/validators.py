@@ -3,12 +3,12 @@ from __future__ import annotations
 from django.core.exceptions import ValidationError
 
 
-def validate_file_size(value, max_mb: int = 5) -> None:
+def validate_file_size(value, max_mb: int = 15) -> None:
     """
     Generic file size validator.
 
     Use this on FileField / ImageField to prevent very large uploads which hurt
-    performance and storage. Default: 5 MB.
+    performance and storage. Default: 15 MB.
     """
 
     if not value:
@@ -32,5 +32,5 @@ def validate_image_size(value) -> None:
     Convenience wrapper for images specifically.
     """
 
-    validate_file_size(value, max_mb=5)
+    validate_file_size(value, max_mb=15)
 

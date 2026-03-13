@@ -82,16 +82,18 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class NewsArticleSerializer(serializers.ModelSerializer):
+	slug = serializers.SlugField(required=False, allow_blank=True)
 	tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, required=False)
 	media = MediaSerializer(many=True, read_only=True)
 
 	class Meta:
 		model = NewsArticle
 		fields = "__all__"
-		read_only_fields = ("id", "view_count", "likes_count", "published_at", "created_at", "updated_at")
+		read_only_fields = ("id", "view_count", "likes_count", "created_at", "updated_at")
 
 
 class VideoContentSerializer(serializers.ModelSerializer):
+	slug = serializers.SlugField(required=False, allow_blank=True)
 	# Explicitly serialize file field as full URL
 	file = serializers.FileField(use_url=True, required=False, allow_null=True)
 	thumbnail = serializers.ImageField(use_url=True, required=False, allow_null=True)
@@ -99,10 +101,11 @@ class VideoContentSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = VideoContent
 		fields = "__all__"
-		read_only_fields = ("id", "view_count", "likes_count", "published_at", "created_at", "updated_at")
+		read_only_fields = ("id", "view_count", "likes_count", "created_at", "updated_at")
 
 
 class ReelContentSerializer(serializers.ModelSerializer):
+	slug = serializers.SlugField(required=False, allow_blank=True)
 	# Explicitly serialize file field as full URL
 	file = serializers.FileField(use_url=True, required=False, allow_null=True)
 	thumbnail = serializers.ImageField(use_url=True, required=False, allow_null=True)
@@ -110,7 +113,7 @@ class ReelContentSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = ReelContent
 		fields = "__all__"
-		read_only_fields = ("id", "view_count", "likes_count", "published_at", "created_at", "updated_at")
+		read_only_fields = ("id", "view_count", "likes_count", "created_at", "updated_at")
 
 
 class EpaperEditionSerializer(serializers.ModelSerializer):

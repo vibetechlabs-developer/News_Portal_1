@@ -359,6 +359,7 @@ export interface ArticleListItem {
   is_breaking: boolean;
   is_top: boolean;
   is_trending: boolean;
+  is_editor_pick: boolean;
   view_count?: number;
   likes_count?: number;
   published_at: string | null;
@@ -762,6 +763,8 @@ export type ArticleUpsertPayload = Partial<
     | "is_breaking"
     | "is_top"
     | "is_trending"
+    | "is_editor_pick"
+    | "published_at"
   >
 > & {
   slug?: string;
@@ -1104,6 +1107,12 @@ export async function getTopNews(): Promise<ArticleListItem[]> {
   return fetchJson(apiUrl("/news/articles/top/"));
 }
 
+/** Get editor's pick articles */
+export async function getEditorPicks(): Promise<ArticleListItem[]> {
+  return fetchJson(apiUrl("/news/articles/editor-picks/"));
+}
+
+
 /** Get most-read articles */
 export async function getMostRead(params?: { limit?: number; days?: number }): Promise<ArticleListItem[]> {
   const qs = new URLSearchParams();
@@ -1423,27 +1432,26 @@ export async function submitContactMessage(payload: ContactMessagePayload): Prom
 /** Build full URL for backend media (e.g. featured_image). */
 export function getMediaUrl(path: string | null | undefined): string {
   if (!path) return "";
-  // In dev, the frontend runs on :8080 and Vite proxies /media -> Django (:8000).
-  // If the backend returns an absolute media URL (e.g. http://localhost:8000/media/...),
-  // embedding it inside the frontend can be blocked by browser frame protections due to
-  // cross-origin differences. Prefer the proxied relative /media/... path in dev.
+  const base = getBaseUrl();
+
   if (path.startsWith("http://") || path.startsWith("https://")) {
-    const base = getBaseUrl();
-    if (!base) {
-      try {
-        const u = new URL(path);
-        if (u.pathname.startsWith("/media/")) {
+    try {
+      const u = new URL(path);
+      if (u.pathname.startsWith("/media/")) {
+        // Rewrite the internal media URL to use our known correct base (proxy or prod API url)
+        if (!base) {
           return `${u.pathname}${u.search}${u.hash}`;
         }
-      } catch {
-        // fall through to return original path
+        return `${base}${u.pathname}${u.search}${u.hash}`;
       }
+    } catch {
+      // Ignore parse errors, fall through
     }
+    // External images (e.g. Unsplash, Youtube) handled here
     return path;
   }
-  const base = getBaseUrl();
-  // Backend generally returns absolute-ish paths like "/media/...".
-  // If it returns a relative path, fall back to "/media/<path>" for Vite proxy.
+  
+  // Backend often returns relative paths like "/media/..." or "news/..." depending on fields
   const normalized = path.startsWith("/") ? path : `/media/${path}`;
   return base ? `${base}${normalized}` : normalized;
 }

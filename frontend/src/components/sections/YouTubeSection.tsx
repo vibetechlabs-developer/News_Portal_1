@@ -4,8 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { VideoCard } from '@/components/news/VideoCard';
 import { getReels, getVideos, getMediaUrl, type ReelContentItem, type VideoContentItem } from '@/lib/api';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import ReactPlayer from 'react-player';
-import { getVideoUrl, isYouTubeUrl } from '@/lib/videoUtils';
+import { getVideoUrl, isYouTubeUrl, extractYouTubeVideoId } from '@/lib/videoUtils';
 
 function formatViews(count?: number): string | undefined {
   if (!count) return undefined;
@@ -45,20 +44,21 @@ export function YouTubeSection() {
         console.log('YouTube Section - Reels:', reelsRes.results?.length, reelsRes.results);
         console.log('YouTube Section - Videos:', videosRes.results?.length, videosRes.results);
         
-        // Combine and filter to only show items with YouTube URLs
+        // Combine and filter:
+        // • Must have a youtube_url
+        // • Must NOT also have an uploaded file (those belong in Video/Reel section)
         const reels = (reelsRes.results ?? []).map(r => ({ ...r, source: 'reel' as const }));
         const videos = (videosRes.results ?? []).map(v => ({ ...v, source: 'video' as const }));
         const allItems = [...reels, ...videos] as YouTubeItem[];
         
-        console.log('YouTube Section - All items:', allItems.length, allItems);
-        
         const youtubeOnly = allItems.filter((item) => {
-          const url = getYouTubeUrl(item);
-          console.log('YouTube Section - Checking item:', item.id, 'youtube_url:', item.youtube_url, 'result:', url);
-          return url !== null;
+          // Must have a valid YouTube URL
+          if (!getYouTubeUrl(item)) return false;
+          // Must NOT have an uploaded file (if it does, VideoSection owns it)
+          if (item.file) return false;
+          return true;
         });
         
-        console.log('YouTube Section - Filtered YouTube items:', youtubeOnly.length, youtubeOnly);
         setYoutubeItems(youtubeOnly);
       } catch (err) {
         console.error('Failed to fetch YouTube section:', err);
@@ -109,12 +109,21 @@ export function YouTubeSection() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {youtubeItems.slice(0, 4).map((item) => {
                 const videoUrl = getYouTubeUrl(item);
+                let thumbnailUrl = getMediaUrl(item.thumbnail);
+                
+                if (videoUrl) {
+                  const videoId = extractYouTubeVideoId(videoUrl);
+                  if (videoId) {
+                    thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                  }
+                }
+                
                 return (
                   <VideoCard
                     key={`${item.source}-${item.id}`}
                     thumbnail={
-                      getMediaUrl(item.thumbnail) ||
-                      'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=600'
+                      thumbnailUrl ||
+                      '/logo.png'
                     }
                     title={getTitle(item)}
                     views={formatViews(item.view_count)}
@@ -144,32 +153,13 @@ export function YouTubeSection() {
               </h2>
               <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
                 {isYouTubeUrl(activeVideoUrl) ? (
-                  <ReactPlayer
-                    url={activeVideoUrl}
-                    controls
-                    playing={true}
-                    width="100%"
-                    height="100%"
-                    config={{
-                      youtube: { 
-                        playerVars: { 
-                          modestbranding: 1,
-                          autoplay: 1,
-                          playsinline: 1,
-                          rel: 0,
-                          showinfo: 0,
-                        } 
-                      },
-                    }}
-                    onReady={() => {
-                      console.log('YouTube video player ready, URL:', activeVideoUrl);
-                    }}
-                    onError={(error) => {
-                      console.error('YouTube video player error:', error, 'URL:', activeVideoUrl);
-                    }}
-                    onStart={() => {
-                      console.log('YouTube video started playing');
-                    }}
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${activeVideoUrl.split('v=')[1] ?? activeVideoUrl.split('/').pop()}?autoplay=1&rel=0&modestbranding=1`}
+                    title={getTitle(activeVideo)}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full text-white">

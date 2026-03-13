@@ -5,15 +5,15 @@ import { getMediaUrl, type ArticleListItem } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 
 interface HeroSectionProps {
-  /** Top 3 headline articles (from getTopNews or first 3 published). */
+  /** Top 4 headline articles (from getTopNews or first 4 published). */
   articles: ArticleListItem[];
   getSectionName?: (sectionId: number) => string;
 }
 
 export function HeroSection({ articles, getSectionName }: HeroSectionProps) {
   const { language } = useLanguage();
-  const top3 = articles.slice(0, 3);
-  if (top3.length === 0) return null;
+  const top4 = articles.slice(0, 4);
+  if (top4.length === 0) return null;
 
   const getTitle = (a: ArticleListItem) =>
     language === 'en'
@@ -25,8 +25,8 @@ export function HeroSection({ articles, getSectionName }: HeroSectionProps) {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
 
-  const lead = top3[0];
-  const rest = top3.slice(1);
+  const lead = top4[0];
+  const rest = top4.slice(1);
 
   return (
     <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" aria-label="Top headlines">
@@ -61,7 +61,7 @@ export function HeroSection({ articles, getSectionName }: HeroSectionProps) {
         </div>
       </Link>
 
-      {/* Second & third – stacked */}
+      {/* Second, third & fourth – stacked */}
       <div className="flex flex-col gap-4 lg:gap-6">
         {rest.map((article) => (
           <Link

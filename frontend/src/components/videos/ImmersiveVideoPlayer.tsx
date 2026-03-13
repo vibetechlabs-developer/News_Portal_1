@@ -4,7 +4,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMediaUrl, type VideoContentItem, toggleVideoLike, getVideoComments, postVideoComment, type CommentItem } from '@/lib/api';
 import { getUploadedVideoUrl, isYouTubeUrl, getVideoUrl as getVideoUrlUtil } from '@/lib/videoUtils';
-import ReactPlayer from 'react-player';
 import { CommentModal } from '../shared/CommentModal';
 
 interface ImmersiveVideoPlayerProps {
@@ -247,8 +246,6 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
     return null;
   }
 
-  const Player: any = ReactPlayer;
-
   return (
     <div
       ref={containerRef}
@@ -291,26 +288,13 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
       <div className="relative w-full h-full flex items-center justify-center">
         {isYouTube ? (
           <div className="w-full h-full">
-            {/* @ts-ignore - react-player typings are overly strict */}
-            <Player
-              url={videoUrl}
-              playing={isPlaying}
-              controls
-              width="100%"
-              height="100%"
-              config={{
-                youtube: {
-                  playerVars: {
-                    modestbranding: 1,
-                    autoplay: 1,
-                    playsinline: 1,
-                    rel: 0,
-                    showinfo: 0,
-                  }
-                } as Record<string, any>,
-              }}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
+            <iframe
+              className="w-full h-full"
+              src={`https://www.youtube.com/embed/${videoUrl.split('v=')[1] ?? videoUrl.split('/').pop()}?autoplay=${isPlaying ? 1 : 0}&rel=0&modestbranding=1`}
+              title={getTitle(currentVideo, language)}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
             />
           </div>
         ) : (

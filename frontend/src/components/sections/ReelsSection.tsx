@@ -3,7 +3,7 @@ import { Play, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReels, getMediaUrl, type ReelContentItem } from '@/lib/api';
-import { getReelUrl as getReelUrlUtil } from '@/lib/videoUtils';
+import { getReelUrl as getReelUrlUtil, extractYouTubeVideoId } from '@/lib/videoUtils';
 import { ImmersiveReelPlayer } from '@/components/reels/ImmersiveReelPlayer';
 
 function formatViews(count?: number): string | undefined {
@@ -91,6 +91,15 @@ export function ReelsSection() {
                 .slice(0, 8)
                 .map((reel) => {
                   const reelUrl = getReelUrl(reel);
+                  
+                  let thumbnailUrl = getMediaUrl(reel.thumbnail);
+                  if (reel.youtube_url) {
+                    const videoId = extractYouTubeVideoId(reel.youtube_url);
+                    if (videoId) {
+                      thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                    }
+                  }
+
                   return (
                     <div
                       key={reel.id}
@@ -110,8 +119,8 @@ export function ReelsSection() {
                     <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-secondary">
                       <img
                         src={
-                          getMediaUrl(reel.thumbnail) ||
-                          'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=600'
+                          thumbnailUrl ||
+                          '/logo.png'
                         }
                         alt={getTitle(reel)}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

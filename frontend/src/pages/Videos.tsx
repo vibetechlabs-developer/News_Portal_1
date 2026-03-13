@@ -5,7 +5,7 @@ import { VideoCard } from '@/components/news/VideoCard';
 import { TrendingSidebar } from '@/components/news/TrendingSidebar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getVideos, getMediaUrl, type VideoContentItem } from '@/lib/api';
-import { getUploadedVideoUrl } from '@/lib/videoUtils';
+import { getUploadedVideoUrl, extractYouTubeVideoId } from '@/lib/videoUtils';
 import { ImmersiveVideoPlayer } from '@/components/videos/ImmersiveVideoPlayer';
 
 const videoCategories = [
@@ -105,10 +105,17 @@ const Videos = () => {
                   <div className="bg-card rounded-xl overflow-hidden border border-border shadow-sm">
                     <div className="relative aspect-video">
                       <img
-                        src={
-                          getMediaUrl(validVideos[0].thumbnail) ||
-                          'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1200'
-                        }
+                        src={(() => {
+                          const video = validVideos[0];
+                          let thumbnailUrl = getMediaUrl(video.thumbnail);
+                          if (video.youtube_url) {
+                            const videoId = extractYouTubeVideoId(video.youtube_url);
+                            if (videoId) {
+                              thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                            }
+                          }
+                          return thumbnailUrl || '/logo.png';
+                        })()}
                         alt={getTitle(validVideos[0])}
                         className="w-full h-full object-cover"
                       />
@@ -145,12 +152,21 @@ const Videos = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {validVideos.slice(1).map((video) => {
                       const videoUrl = getVideoUrl(video);
+                      
+                      let thumbnailUrl = getMediaUrl(video.thumbnail);
+                      if (video.youtube_url) {
+                        const videoId = extractYouTubeVideoId(video.youtube_url);
+                        if (videoId) {
+                          thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                        }
+                      }
+
                       return (
                         <VideoCard
                           key={video.id}
                           thumbnail={
-                            getMediaUrl(video.thumbnail) ||
-                            'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=600'
+                            thumbnailUrl ||
+                            '/logo.png'
                           }
                           title={getTitle(video)}
                           views={formatViews(video.view_count)}

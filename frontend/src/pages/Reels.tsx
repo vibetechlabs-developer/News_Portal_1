@@ -3,7 +3,7 @@ import { Play, Eye, Heart, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { getReels, getMediaUrl, type ReelContentItem } from '@/lib/api';
-import { getReelUrl as getReelUrlUtil } from '@/lib/videoUtils';
+import { getReelUrl as getReelUrlUtil, extractYouTubeVideoId } from '@/lib/videoUtils';
 import { ImmersiveReelPlayer } from '@/components/reels/ImmersiveReelPlayer';
 
 function formatCount(count?: number): string {
@@ -73,6 +73,15 @@ const Reels = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {validReels.map((reel) => {
               const reelUrl = getReelUrl(reel);
+              
+              let thumbnailUrl = getMediaUrl(reel.thumbnail);
+              if (reel.youtube_url) {
+                const videoId = extractYouTubeVideoId(reel.youtube_url);
+                if (videoId) {
+                  thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                }
+              }
+
               return (
                 <div
                   key={reel.id}
@@ -91,8 +100,8 @@ const Reels = () => {
               <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-secondary">
                 <img
                   src={
-                    getMediaUrl(reel.thumbnail) ||
-                    'https://images.unsplash.com/photo-1516031190212-da133013de50?w=800'
+                    thumbnailUrl ||
+                    '/logo.png'
                   }
                   alt=""
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

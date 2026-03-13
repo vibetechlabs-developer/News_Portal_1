@@ -53,7 +53,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/article/:slug" element={<ArticleDetail />} />
               <Route path="/gujarat" element={<Gujarat />} />
-              <Route path="/gujarat/:city" element={<CityNews />} />
+              <Route path="/gujarat/:districtSlug" element={<Gujarat />} />
               <Route path="/national" element={<National />} />
               <Route path="/national/:city" element={<CityNews />} />
               <Route path="/international" element={<International />} />

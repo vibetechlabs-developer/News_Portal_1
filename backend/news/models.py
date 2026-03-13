@@ -205,6 +205,8 @@ class NewsArticle(models.Model):
     is_top = models.BooleanField(default=False)
     # Editor-curated flag for articles that should appear in "Trending" sections
     is_trending = models.BooleanField(default=False)
+    # Editor-curated flag for articles that should appear in "Editor's Pick" section
+    is_editor_pick = models.BooleanField(default=False)
 
     view_count = models.PositiveIntegerField(default=0)
     likes_count = models.PositiveIntegerField(default=0)
@@ -219,6 +221,7 @@ class NewsArticle(models.Model):
             models.Index(fields=["status", "published_at"]),
             models.Index(fields=["is_breaking", "status", "published_at"]),
             models.Index(fields=["is_top", "status", "published_at"]),
+            models.Index(fields=["is_editor_pick", "status", "published_at"]),
             models.Index(fields=["section", "status", "published_at"]),
             models.Index(fields=["category", "status", "published_at"]),
             models.Index(fields=["district", "status", "published_at"]),
@@ -344,6 +347,7 @@ class BaseClip(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - simple repr
         return self.title_en
+
 
 
 class VideoContent(BaseClip):

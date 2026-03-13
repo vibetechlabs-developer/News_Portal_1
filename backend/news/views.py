@@ -478,7 +478,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
     @method_decorator(cache_page(60))
     def breaking_list(self, request):
         """Convenience list of breaking news (published, is_breaking=True)."""
-        qs = self.get_queryset().filter(is_breaking=True).order_by("-published_at", "-created_at")[:15]
+        qs = self.get_queryset().filter(is_breaking=True).order_by("-updated_at", "-published_at")[:5]
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
@@ -486,9 +486,18 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
     @method_decorator(cache_page(60))
     def top_list(self, request):
         """Convenience list of top news (published, is_top=True)."""
-        qs = self.get_queryset().filter(is_top=True).order_by("-published_at", "-created_at")[:15]
+        qs = self.get_queryset().filter(is_top=True).order_by("-updated_at", "-published_at")[:5]
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="editor-picks", permission_classes=[AllowAny])
+    @method_decorator(cache_page(30))
+    def editor_picks(self, request):
+        """Convenience list of editor's pick articles (published, is_editor_pick=True)."""
+        qs = self.get_queryset().filter(is_editor_pick=True).order_by("-updated_at", "-published_at")[:6]
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
 
     @action(detail=True, methods=["post"], permission_classes=[AllowAny])
     def track_view(self, request, slug=None):
@@ -660,7 +669,7 @@ class VideoContentViewSet(viewsets.ModelViewSet):
 
     serializer_class = VideoContentSerializer
     filterset_fields = ["section", "category", "tags", "status", "primary_language"]
-    ordering_fields = ["published_at", "created_at", "view_count", "likes_count"]
+    ordering_fields = ["published_at", "created_at", "updated_at", "view_count", "likes_count"]
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
@@ -798,7 +807,7 @@ class ReelContentViewSet(viewsets.ModelViewSet):
 
     serializer_class = ReelContentSerializer
     filterset_fields = ["section", "category", "tags", "status", "primary_language"]
-    ordering_fields = ["published_at", "created_at", "view_count", "likes_count"]
+    ordering_fields = ["published_at", "created_at", "updated_at", "view_count", "likes_count"]
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):

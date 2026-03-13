@@ -39,6 +39,7 @@ const LatestNews = () => {
           getArticles({ 
             page: 1,
             status: 'PUBLISHED',
+            ordering: '-updated_at',
             search: searchQuery || undefined,
             category: selectedCategory !== 'all' ? selectedCategory : undefined,
           }),

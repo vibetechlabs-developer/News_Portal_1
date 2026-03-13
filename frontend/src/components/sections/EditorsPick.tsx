@@ -3,7 +3,7 @@ import { Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { NewsCard } from '@/components/news/NewsCard';
-import { getTopNews, getMediaUrl, type ArticleListItem } from '@/lib/api';
+import { getEditorPicks, getMediaUrl, type ArticleListItem } from '@/lib/api';
 
 export function EditorsPick() {
   const { t, language } = useLanguage();
@@ -15,7 +15,7 @@ export function EditorsPick() {
     (async () => {
       try {
         setLoading(true);
-        const data = await getTopNews();
+        const data = await getEditorPicks();
         if (cancelled) return;
         setArticles(Array.isArray(data) ? data.slice(0, 3) : []);
       } catch (err) {

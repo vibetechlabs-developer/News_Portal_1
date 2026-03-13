@@ -80,7 +80,7 @@ const Index = () => {
         setLoading(true);
         setError(null);
         const [articlesSettled, sectionsSettled, breakingSettled, topSettled] = await Promise.allSettled([
-          getArticles({ page: 1 }),
+          getArticles({ page: 1, ordering: "-updated_at" }),
           getSections(),
           getBreakingNews(),
           getTopNews(),
@@ -96,7 +96,7 @@ const Index = () => {
         setBreakingNews(breakingData.slice(0, 1));
 
         const topRes = topSettled.status === 'fulfilled' ? topSettled.value : [];
-        setTopHeadlines(Array.isArray(topRes) ? topRes.slice(0, 3) : []);
+        setTopHeadlines(Array.isArray(topRes) ? topRes.slice(0, 4) : []);
 
         if (articlesSettled.status === 'rejected') {
           throw articlesSettled.reason;

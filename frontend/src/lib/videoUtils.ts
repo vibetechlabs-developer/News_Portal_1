@@ -104,20 +104,16 @@ export function getVideoUrl(
 }
 
 /**
- * Gets video URL for reels - supports BOTH uploaded files AND YouTube URLs
+ * Gets video URL for reels - ONLY returns uploaded file URLs.
+ * YouTube reels belong in YouTubeSection, not in ReelsSection.
+ * Use getVideoUrl() if you need YouTube support.
  */
 export function getReelUrl(
   youtubeUrl: string | null | undefined,
   fileUrl: string | null | undefined,
   getMediaUrlFn?: (path: string | null | undefined) => string | null
 ): string | null {
-  // Support YouTube URL first
-  if (youtubeUrl) {
-    const normalized = normalizeYouTubeUrl(youtubeUrl);
-    if (normalized) return normalized;
-  }
-
-  // Support uploaded file
+  // ONLY return uploaded file URLs — never YouTube links
   if (fileUrl) {
     if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
       return fileUrl;
@@ -132,20 +128,16 @@ export function getReelUrl(
 }
 
 /**
- * Gets video URL for videos - supports BOTH uploaded files AND YouTube URLs
+ * Gets video URL for videos - ONLY returns uploaded file URLs.
+ * YouTube links are intentionally NOT returned here — they belong in YouTubeSection.
+ * Use getVideoUrl() if you need YouTube support.
  */
 export function getUploadedVideoUrl(
   youtubeUrl: string | null | undefined,
   fileUrl: string | null | undefined,
   getMediaUrlFn?: (path: string | null | undefined) => string | null
 ): string | null {
-  // Support YouTube URL first
-  if (youtubeUrl) {
-    const normalized = normalizeYouTubeUrl(youtubeUrl);
-    if (normalized) return normalized;
-  }
-
-  // Support uploaded file
+  // ONLY return uploaded file URLs — never YouTube links
   if (fileUrl) {
     if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
       return fileUrl;

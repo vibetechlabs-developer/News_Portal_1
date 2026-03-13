@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MapPin, Search, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { NewsCard } from '@/components/news/NewsCard';
@@ -17,8 +17,8 @@ import {
 import { useSections, useDistricts } from '@/hooks/useNewsApi';
 
 const Gujarat = () => {
+  const { districtSlug } = useParams<{ districtSlug?: string }>();
   const { language } = useLanguage();
-  const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
@@ -29,7 +29,15 @@ const Gujarat = () => {
   const gujaratSection = useMemo(() => sectionsData.find((s) => s.slug === 'gujarat'), [sectionsData]);
   const { data: districts = [] } = useDistricts(gujaratSection?.id);
 
+  const selectedDistrict = useMemo(() => {
+    if (!districtSlug) return null;
+    const d = districts.find(d => d.slug.toLowerCase() === districtSlug.toLowerCase());
+    return d ? d.id : null;
+  }, [districtSlug, districts]);
+
   useEffect(() => {
+    if (districtSlug && !selectedDistrict && districts.length === 0) return; // Wait for districts to load
+
     let cancelled = false;
     (async () => {
       try {
@@ -54,7 +62,7 @@ const Gujarat = () => {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, selectedDistrict]);
+  }, [searchQuery, selectedDistrict, districtSlug, districts.length]);
 
   const getArticleTitle = (article: ArticleListItem) => {
     if (language === 'en') return article.title_en;
@@ -123,37 +131,32 @@ const Gujarat = () => {
           )}
         </div>
 
-        {/* District Filter - Horizontal Scroll */}
         <div className="overflow-x-auto scrollbar-hide mb-8">
           <div className="flex items-center gap-2 min-w-max pb-2">
-            <button
-              onClick={() => setSelectedDistrict(null)}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors whitespace-nowrap ${
+            <Link
+              to="/gujarat"
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors whitespace-nowrap inline-flex items-center gap-1 ${
                 selectedDistrict === null
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary text-secondary-foreground hover:bg-primary/10'
               }`}
             >
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {language === 'en' ? 'All' : 'બધા'}
-              </span>
-            </button>
+              <MapPin className="w-3 h-3" />
+              {language === 'en' ? 'All' : 'બધા'}
+            </Link>
             {districts.map((district) => (
-              <button
+              <Link
                 key={district.id}
-                onClick={() => setSelectedDistrict(district.id)}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors whitespace-nowrap ${
+                to={`/gujarat/${district.slug}`}
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors whitespace-nowrap inline-flex items-center gap-1 ${
                   selectedDistrict === district.id
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-secondary text-secondary-foreground hover:bg-primary/10'
                 }`}
               >
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {language === 'en' ? district.name_en : (district.name_gu || district.name_en)}
-                </span>
-              </button>
+                <MapPin className="w-3 h-3" />
+                {language === 'en' ? district.name_en : (district.name_gu || district.name_en)}
+              </Link>
             ))}
           </div>
         </div>
@@ -169,16 +172,16 @@ const Gujarat = () => {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {filteredNews.map((article) => (
-                    <Link key={article.id} to={`/article/${article.slug}`}>
-                      <NewsCard
-                        image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
-                        category={getSectionName(article.section)}
-                        headline={getArticleTitle(article)}
-                        time={article.published_at 
-                          ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
-                          : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
-                      />
-                    </Link>
+                    <NewsCard
+                      key={article.id}
+                      href={`/article/${article.slug}`}
+                      image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
+                      category={getSectionName(article.section)}
+                      headline={getArticleTitle(article)}
+                      time={article.published_at 
+                        ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
+                        : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
+                    />
                   ))}
                 </div>
                 {filteredNews.length === 0 && (

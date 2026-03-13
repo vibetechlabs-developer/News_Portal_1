@@ -64,28 +64,8 @@ export function TopBar() {
             <span className="hidden sm:inline text-xs">{formatDate()}</span>
           </div>
 
-          {/* Center: City & Weather */}
-          <div className="hidden md:flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-primary" />
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger className="h-7 w-auto border-none bg-transparent text-xs font-medium p-0 gap-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.id} className="text-xs">
-                      {language === 'en' ? city.nameEn : city.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Sun className="w-4 h-4 text-accent" />
-              <span className="font-medium">32°C</span>
-            </div>
-          </div>
+
+
 
           {/* Right: Language & Font Controls */}
           <div className="flex items-center gap-3">

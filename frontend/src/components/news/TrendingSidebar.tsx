@@ -33,7 +33,7 @@ export function TrendingSidebar() {
 
         // 1) Primary source: editor-curated trending flag on articles
         try {
-          const curated = await getArticles({ page: 1, page_size: 5, status: "PUBLISHED", is_trending: true });
+          const curated = await getArticles({ page: 1, page_size: 5, status: "PUBLISHED", is_trending: true, ordering: "-updated_at" });
           if (cancelled) return;
           const curatedResults = Array.isArray(curated.results) ? curated.results : [];
 
@@ -75,7 +75,7 @@ export function TrendingSidebar() {
         }
 
         // 4) Final fallback: latest published articles as "trending"
-        const latest = await getArticles({ page: 1, status: "PUBLISHED" });
+        const latest = await getArticles({ page: 1, status: "PUBLISHED", ordering: "-updated_at" });
         if (cancelled) return;
         const results = Array.isArray(latest.results) ? latest.results : [];
         setTrendingArticles(results.slice(0, 5));
@@ -99,7 +99,7 @@ export function TrendingSidebar() {
     (async () => {
       try {
         setLatestLoading(true);
-        const latest = await getArticles({ page: 1, status: "PUBLISHED" });
+        const latest = await getArticles({ page: 1, status: "PUBLISHED", ordering: "-updated_at" });
         if (cancelled) return;
         const results = Array.isArray(latest.results) ? latest.results : [];
         setLatestNews(results.slice(0, 5));
@@ -242,9 +242,9 @@ export function TrendingSidebar() {
         </p>
         {ad ? (
           <a
-            href={ad.target_url ?? '#'}
-            target={ad.target_url ? '_blank' : undefined}
-            rel={ad.target_url ? 'noopener noreferrer' : undefined}
+            href={ad.link_url ?? '#'}
+            target={ad.link_url ? '_blank' : undefined}
+            rel={ad.link_url ? 'noopener noreferrer' : undefined}
             className="block"
           >
             {ad.ad_type === 'HTML' && ad.html_snippet ? (

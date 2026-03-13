@@ -88,11 +88,12 @@ const EditorDashboard = () => {
   const [deletingTag, setDeletingTag] = useState(false);
   const [editingTag, setEditingTag] = useState(false);
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
-  const [contentType, setContentType] = useState<"ARTICLE" | "REEL" | "VIDEO" | "YOUTUBE">("ARTICLE");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
+  const [publishedAt, setPublishedAt] = useState<string>("");
   const [primaryLanguage, setPrimaryLanguage] = useState<"EN" | "HI" | "GU">("GU");
   const [isBreaking, setIsBreaking] = useState(false);
   const [isTop, setIsTop] = useState(false);
+  const [isEditorPick, setIsEditorPick] = useState(false);
   const [isTrending, setIsTrending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -116,8 +117,10 @@ const EditorDashboard = () => {
   const [editContentEn, setEditContentEn] = useState("");
   const [editSectionId, setEditSectionId] = useState<number | "">("");
   const [editStatus, setEditStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">("DRAFT");
+  const [editPublishedAt, setEditPublishedAt] = useState<string>("");
   const [editBreaking, setEditBreaking] = useState(false);
   const [editTop, setEditTop] = useState(false);
+  const [editEditorPick, setEditEditorPick] = useState(false);
   const [editTrending, setEditTrending] = useState(false);
   const [editSelectedTagIds, setEditSelectedTagIds] = useState<number[]>([]);
   const [editDistrictId, setEditDistrictId] = useState<number | "">("");
@@ -375,13 +378,14 @@ const EditorDashboard = () => {
         content_en: content,
         section: Number(sectionId),
         status,
-        content_type: contentType,
+        published_at: publishedAt ? new Date(publishedAt).toISOString() : undefined,
         category: categoryId ? Number(categoryId) : undefined,
         district: districtId ? Number(districtId) : undefined,
         tags: selectedTagIds,
         is_breaking: isBreaking,
         is_top: isTop,
         is_trending: isTrending,
+        is_editor_pick: isEditorPick,
       };
 
       const created = await createArticle(payload);
@@ -407,6 +411,7 @@ const EditorDashboard = () => {
       setContent("");
       setSectionId("");
       setStatus("DRAFT");
+      setPublishedAt("");
       setCategoryId("");
       setDistrictId("");
       setSelectedTagIds([]);
@@ -415,6 +420,7 @@ const EditorDashboard = () => {
       setIsBreaking(false);
       setIsTop(false);
       setIsTrending(false);
+      setIsEditorPick(false);
       setCreateFeaturedImageFile(null);
 
       // Reload manage list so the new article appears without manual refresh
@@ -477,9 +483,19 @@ const EditorDashboard = () => {
       setEditSelectedTagIds(a.tags ?? []);
       const s = a.status;
       setEditStatus(s === "PUBLISHED" || s === "ARCHIVED" || s === "DRAFT" ? s : "DRAFT");
+      
+      if (a.published_at) {
+        const d = new Date(a.published_at);
+        const tzoffset = d.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(d.getTime() - tzoffset)).toISOString().slice(0, 16);
+        setEditPublishedAt(localISOTime);
+      } else {
+        setEditPublishedAt("");
+      }
       setEditBreaking(!!a.is_breaking);
       setEditTop(!!a.is_top);
       setEditTrending(!!a.is_trending);
+      setEditEditorPick(!!(a as any).is_editor_pick);
     } catch (e) {
       toast({ title: "Failed to load article", variant: "destructive", description: String(e) });
       setEditOpen(false);
@@ -503,9 +519,11 @@ const EditorDashboard = () => {
         section: Number(editSectionId),
         district: editDistrictId ? Number(editDistrictId) : null,
         status: editStatus,
+        published_at: editPublishedAt ? new Date(editPublishedAt).toISOString() : undefined,
         is_breaking: editBreaking,
         is_top: editTop,
         is_trending: editTrending,
+        is_editor_pick: editEditorPick,
         tags: editSelectedTagIds,
       });
       if (editFeaturedImageFile) {
@@ -688,6 +706,9 @@ const EditorDashboard = () => {
     loadEpaperEditions();
   }, []);
 
+  // Get current local datetime for the max attribute
+  const currentLocalDateTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
   return (
     <PageLayout showTicker={false}>
       <div className="container mx-auto px-4 py-8 space-y-6">
@@ -799,21 +820,14 @@ const EditorDashboard = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contentType">Content type</Label>
-                    <select
-                      id="contentType"
-                      value={contentType}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setContentType(v === "REEL" || v === "VIDEO" || v === "YOUTUBE" ? v : "ARTICLE");
-                      }}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="ARTICLE">Article</option>
-                      <option value="REEL">Reel</option>
-                      <option value="VIDEO">Video</option>
-                      <option value="YOUTUBE">YouTube</option>
-                    </select>
+                    <Label htmlFor="publishedAt">Publish Date & Time (Optional)</Label>
+                    <Input
+                      id="publishedAt"
+                      type="datetime-local"
+                      value={publishedAt}
+                      max={currentLocalDateTime}
+                      onChange={(e) => setPublishedAt(e.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -945,16 +959,20 @@ const EditorDashboard = () => {
                     <Label>Flags</Label>
                     <div className="flex flex-col gap-2 text-xs">
                       <label className="flex items-center justify-between gap-2">
-                        <span>Is breaking</span>
+                        <span>Is Breaking</span>
                         <Switch checked={isBreaking} onCheckedChange={setIsBreaking} />
                       </label>
                       <label className="flex items-center justify-between gap-2">
-                        <span>Is top</span>
+                        <span>Is Top</span>
                         <Switch checked={isTop} onCheckedChange={setIsTop} />
                       </label>
                       <label className="flex items-center justify-between gap-2">
-                        <span>Is trending</span>
+                        <span>Is Trending</span>
                         <Switch checked={isTrending} onCheckedChange={setIsTrending} />
+                      </label>
+                      <label className="flex items-center justify-between gap-2">
+                        <span>Editor's Pick</span>
+                        <Switch checked={isEditorPick} onCheckedChange={setIsEditorPick} />
                       </label>
                     </div>
                   </div>
@@ -1434,6 +1452,15 @@ const EditorDashboard = () => {
                         <option value="ARCHIVED">Archived</option>
                       </select>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Publish Date & Time</Label>
+                      <Input
+                        type="datetime-local"
+                        value={editPublishedAt}
+                        max={currentLocalDateTime}
+                        onChange={(e) => setEditPublishedAt(e.target.value)}
+                      />
+                    </div>
                     <div className="flex items-center gap-2 pt-7">
                       <Switch checked={editBreaking} onCheckedChange={setEditBreaking} />
                       <span className="text-sm">Breaking</span>
@@ -1441,6 +1468,10 @@ const EditorDashboard = () => {
                     <div className="flex items-center gap-2 pt-7">
                       <Switch checked={editTop} onCheckedChange={setEditTop} />
                       <span className="text-sm">Top</span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-7">
+                      <Switch checked={editEditorPick} onCheckedChange={setEditEditorPick} />
+                      <span className="text-sm">⭐ Editor's Pick</span>
                     </div>
                   </div>
 

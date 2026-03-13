@@ -3,7 +3,7 @@ import { Play, ChevronLeft, ChevronRight, X, Share2, Heart, MessageCircle } from
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMediaUrl, type ReelContentItem, type CommentItem, toggleReelLike, getReelComments, postReelComment } from '@/lib/api';
-import { getReelUrl as getReelUrlUtil } from '@/lib/videoUtils';
+import { getReelUrl as getReelUrlUtil, isYouTubeUrl } from '@/lib/videoUtils';
 import { CommentModal } from '../shared/CommentModal';
 
 function getReelUrl(reel: ReelContentItem): string | null {
@@ -245,31 +245,46 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
 
       {/* Video Player */}
       <div className="relative w-full h-full flex items-center justify-center">
-        <video
-          ref={videoRef}
-          src={reelUrl}
-          autoPlay
-          playsInline
-          loop={false}
-          muted={false}
-          className="w-full h-full object-contain"
-          onEnded={goToNext}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-        />
+        {isYouTubeUrl(reelUrl) ? (
+          <div className="w-full h-full max-w-[100vh] aspect-[9/16] mx-auto pb-24 md:pb-16 pt-16">
+            <iframe
+              className="w-full h-full md:rounded-2xl"
+              src={`https://www.youtube.com/embed/${reelUrl.split('v=')[1] ?? reelUrl.split('/').pop()}?autoplay=1&rel=0&modestbranding=1`}
+              title={getTitle(currentReel, language)}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            src={reelUrl}
+            autoPlay
+            playsInline
+            loop={false}
+            muted={false}
+            className="w-full h-full object-contain"
+            onEnded={goToNext}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+          />
+        )}
 
         {/* Play/Pause Overlay */}
-        <button
-          onClick={togglePlayPause}
-          className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors z-40"
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          {!isPlaying && (
-            <div className="w-20 h-20 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full">
-              <Play className="w-10 h-10 text-white fill-white ml-1" />
-            </div>
-          )}
-        </button>
+        {!isYouTubeUrl(reelUrl) && (
+          <button
+            onClick={togglePlayPause}
+            className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors z-40"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {!isPlaying && (
+              <div className="w-20 h-20 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full">
+                <Play className="w-10 h-10 text-white fill-white ml-1" />
+              </div>
+            )}
+          </button>
+        )}
 
         {/* Bottom Gradient Overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-20 pb-8 px-6 z-50 pointer-events-none">

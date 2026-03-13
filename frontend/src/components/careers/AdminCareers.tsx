@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { careersAPI, JobPosting, JobApplication } from '@/lib/careersAPI';
-import { AlertCircle, CheckCircle, Loader, Plus, Edit2, Trash2, Eye, Download } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader, Plus, Edit2, Trash2, Eye, Download, Users } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const AdminComponent = () => {
@@ -11,6 +11,7 @@ const AdminComponent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedJobIdFilter, setSelectedJobIdFilter] = useState<number | null>(null);
 
   // Job form state
   const [showJobForm, setShowJobForm] = useState(false);
@@ -152,7 +153,10 @@ const AdminComponent = () => {
           {language === 'en' ? 'Job Postings' : 'નોકરી પોસ્ટિંગ'}
         </button>
         <button
-          onClick={() => setActiveTab('applications')}
+          onClick={() => {
+            setActiveTab('applications');
+            setSelectedJobIdFilter(null);
+          }}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'applications'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -360,6 +364,17 @@ const AdminComponent = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
+                        setSelectedJobIdFilter(job.id);
+                        setActiveTab('applications');
+                      }}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors text-blue-600 dark:text-blue-400 flex items-center gap-2 font-medium text-sm"
+                      title={language === 'en' ? 'View Applications' : 'અરજીઓ જુઓ'}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="hidden sm:inline">{language === 'en' ? 'Applications' : 'અરજીઓ'} ({job.application_count})</span>
+                    </button>
+                    <button
+                      onClick={() => {
                         setEditingJob(job);
                         setJobFormData({
                           title: job.title,
@@ -407,7 +422,20 @@ const AdminComponent = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {Array.isArray(applications) && applications.length > 0 ? applications.map(app => (
+              {selectedJobIdFilter && (
+                <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg border border-border">
+                  <span className="text-sm font-medium">
+                    {language === 'en' ? 'Showing applications for selected job only.' : 'ફક્ત પસંદવેલ નોકરી માટે અરજીઓ બતાવી રહ્યા છીએ.'}
+                  </span>
+                  <button 
+                    onClick={() => setSelectedJobIdFilter(null)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    {language === 'en' ? 'Clear Filter' : 'ફિલ્ટર સાફ કરો'}
+                  </button>
+                </div>
+              )}
+              {Array.isArray(applications) && applications.length > 0 ? applications.filter(app => !selectedJobIdFilter || app.job_posting === selectedJobIdFilter).map(app => (
                 <div key={app.id} className="bg-card rounded-lg border border-border p-4">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex-1">
@@ -431,70 +459,73 @@ const AdminComponent = () => {
                       <option value="REJECTED">{language === 'en' ? 'Rejected' : 'અસ્વીકૃત'}</option>
                       <option value="ACCEPTED">{language === 'en' ? 'Accepted' : 'સ્વીકૃત'}</option>
                     </select>
-                    {app.resume_url && (
-                      <a
-                        href={app.resume_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={language === 'en' ? 'Download Resume' : 'રેઝ્યુમે ડાઉનલોડ કરો'}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="text-xs hidden md:inline">Resume</span>
-                      </a>
-                    )}
+                    
+                    <div className="flex-1 flex flex-wrap gap-2 justify-end">
+                      {app.resume_url && (
+                        <a
+                          href={app.resume_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={language === 'en' ? 'View Resume' : 'રેઝ્યુમે જુઓ'}
+                          className="px-3 py-1.5 hover:bg-muted border border-border rounded-lg transition-colors text-primary flex items-center gap-1.5"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="text-xs font-medium">Resume</span>
+                        </a>
+                      )}
 
-                    {app.aadhar_card_url && (
-                      <a
-                        href={app.aadhar_card_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={language === 'en' ? 'Download Aadhaar' : 'આધાર ડાઉનલોડ કરો'}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="text-xs hidden md:inline">Aadhaar</span>
-                      </a>
-                    )}
+                      {app.aadhar_card_url && (
+                        <a
+                          href={app.aadhar_card_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={language === 'en' ? 'View Aadhaar' : 'આધાર જુઓ'}
+                          className="px-3 py-1.5 hover:bg-muted border border-border rounded-lg transition-colors text-primary flex items-center gap-1.5"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="text-xs font-medium">Aadhaar</span>
+                        </a>
+                      )}
 
-                    {app.pan_card_url && (
-                      <a
-                        href={app.pan_card_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={language === 'en' ? 'Download PAN Card' : 'પાન કાર્ડ ડાઉનલોડ કરો'}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="text-xs hidden md:inline">PAN</span>
-                      </a>
-                    )}
+                      {app.pan_card_url && (
+                        <a
+                          href={app.pan_card_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={language === 'en' ? 'View PAN Card' : 'પાન કાર્ડ જુઓ'}
+                          className="px-3 py-1.5 hover:bg-muted border border-border rounded-lg transition-colors text-primary flex items-center gap-1.5"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="text-xs font-medium">PAN</span>
+                        </a>
+                      )}
 
-                    {app.police_verification_url && (
-                      <a
-                        href={app.police_verification_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={language === 'en' ? 'Download Police Verification' : 'પોલીસ વેરિફિકેશન ડાઉનલોડ કરો'}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="text-xs hidden md:inline">Police Ver.</span>
-                      </a>
-                    )}
+                      {app.police_verification_url && (
+                        <a
+                          href={app.police_verification_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={language === 'en' ? 'View Police Verification' : 'પોલીસ વેરિફિકેશન જુઓ'}
+                          className="px-3 py-1.5 hover:bg-muted border border-border rounded-lg transition-colors text-primary flex items-center gap-1.5"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="text-xs font-medium">Police Ver.</span>
+                        </a>
+                      )}
 
-                    {app.photo_url && (
-                      <a
-                        href={app.photo_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={language === 'en' ? 'Download Photo' : 'ફોટો ડાઉનલોડ કરો'}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors text-primary flex items-center gap-1"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="text-xs hidden md:inline">Photo</span>
-                      </a>
-                    )}
+                      {app.photo_url && (
+                        <a
+                          href={app.photo_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={language === 'en' ? 'View Photo' : 'ફોટો જુઓ'}
+                          className="px-3 py-1.5 hover:bg-muted border border-border rounded-lg transition-colors text-primary flex items-center gap-1.5"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="text-xs font-medium">Photo</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               )) : (

@@ -74,7 +74,15 @@ export function Navbar() {
     return fallbackGujaratSubmenu;
   }, [gujaratDistricts]);
 
-  const navItems = useMemo(() => {
+  const navItems: Array<{
+    key: string;
+    href: string;
+    hasSubmenu: boolean;
+    submenu?: { key: string; label: string; labelEn: string; labelHi: string; href: string; }[];
+    labelEn?: string;
+    labelGu?: string;
+    labelHi?: string;
+  }> = useMemo(() => {
     const fromApi = sections
       .filter((s) => s.slug && s.is_active !== false)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -127,8 +135,9 @@ export function Navbar() {
     return location.pathname.startsWith(href);
   };
 
-  // Close mobile submenu on navigation
+  // Close menus on navigation
   useEffect(() => {
+    setActiveMenu(null);
     setMobileMenu(null);
   }, [location.pathname]);
 
@@ -162,6 +171,7 @@ export function Navbar() {
                     <Link
                       key={subItem.key}
                       to={subItem.href}
+                      onClick={() => setActiveMenu(null)}
                       className="block px-4 py-2.5 text-sm text-foreground hover:bg-secondary hover:text-primary transition-colors"
                     >
                       {getSubmenuLabel(subItem)}

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VideoCard } from '@/components/news/VideoCard';
 import { getVideos, getMediaUrl, type VideoContentItem } from '@/lib/api';
-import { getUploadedVideoUrl } from '@/lib/videoUtils';
+import { getUploadedVideoUrl, extractYouTubeVideoId } from '@/lib/videoUtils';
 import { ImmersiveVideoPlayer } from '@/components/videos/ImmersiveVideoPlayer';
 
 function formatViews(count?: number): string | undefined {
@@ -87,12 +87,21 @@ export function VideoSection() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {validVideos.slice(0, 4).map((video) => {
                   const videoUrl = getVideoUrl(video);
+                  
+                  let thumbnailUrl = getMediaUrl(video.thumbnail);
+                  if (video.youtube_url) {
+                    const videoId = extractYouTubeVideoId(video.youtube_url);
+                    if (videoId) {
+                      thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                    }
+                  }
+                  
                   return (
                     <VideoCard
                       key={video.id}
                       thumbnail={
-                        getMediaUrl(video.thumbnail) ||
-                        'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=600'
+                        thumbnailUrl ||
+                        '/logo.png'
                       }
                       title={getTitle(video)}
                       views={formatViews(video.view_count)}
