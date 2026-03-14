@@ -419,6 +419,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
             "related",
             "track_view",
             "toggle_like",
+            "editor_picks",
         }:
             return [AllowAny()]
 
