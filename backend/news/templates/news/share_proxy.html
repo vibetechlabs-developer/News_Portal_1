@@ -3,44 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Primary Meta Tags -->
     <title>{{ title }}</title>
-    <meta name="title" content="{{ title }}">
-    <meta name="description" content="{{ summary }}">
 
-    <!-- Open Graph / Facebook / WhatsApp -->
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="{{ share_url }}">
+    <!-- Open Graph / Facebook / WhatsApp (Must be high up) -->
     <meta property="og:title" content="{{ title }}">
     <meta property="og:description" content="{{ summary }}">
-    {% if image_url %}
-    <meta property="og:image" content="{{ image_url }}">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:type" content="image/jpeg">
-    {% endif %}
+    <meta property="og:url" content="{{ share_url }}">
+    <meta property="og:type" content="article">
     <meta property="og:site_name" content="Kanam Express">
     <meta property="og:locale" content="gu_IN">
+    
+    {% if image_url %}
+    <meta property="og:image" itemprop="image" content="{{ image_url }}">
+    <meta property="og:image:secure_url" content="{{ image_url }}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    {% endif %}
+
+    <!-- Standard Meta Tags -->
+    <meta name="title" content="{{ title }}">
+    <meta name="description" content="{{ summary }}">
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="{{ share_url }}">
     <meta name="twitter:title" content="{{ title }}">
     <meta name="twitter:description" content="{{ summary }}">
-    {% if image_url %}<meta name="twitter:image" content="{{ image_url }}">{% endif %}
+    {% if image_url %}
+    <meta name="twitter:image" content="{{ image_url }}">
+    {% endif %}
     <meta name="twitter:site" content="@kanamexpress">
 
-    <!--
-        NOTE: NO meta http-equiv="refresh" here on purpose!
-        Social media crawlers (WhatsApp, Facebook) follow meta redirects and land on
-        the React page which has only generic site-level OG tags (no article image/title).
-        Bots do NOT execute JavaScript — they stay here and read the OG tags above.
-        Human browsers DO execute JavaScript and get redirected to the actual article.
-    -->
+    <!-- Redirect Script -->
     <script>
-        // Redirect human browsers to the actual article page immediately
-        window.location.replace("{{ target_url|escapejs }}");
+        // Redirect completely on the client side
+        setTimeout(function() {
+            window.location.replace("{{ target_url|escapejs }}");
+        }, 100);
     </script>
 </head>
 <body style="font-family:sans-serif;text-align:center;padding:40px;background:#f5f5f5;">
