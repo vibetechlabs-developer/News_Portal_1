@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, BarChart3, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { PageLayout } from '@/components/layout/PageLayout';
@@ -11,39 +11,43 @@ import {
   getCategories,
   getSections,
   getMediaUrl,
-  getMarketIndices,
   type ArticleListItem,
   type CategoryItem,
   type SectionItem,
-  type MarketIndexItem,
 } from '@/lib/api';
 
 const Business = () => {
   const { language } = useLanguage();
+  const tickerRef = useRef<HTMLDivElement>(null);
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [sections, setSections] = useState<SectionItem[]>([]);
-  const [marketData, setMarketData] = useState<MarketIndexItem[]>([]);
-  const [marketLoading, setMarketLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
 
+  // Inject TradingView ticker tape widget (client-side, works on any server)
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setMarketLoading(true);
-        const res = await getMarketIndices();
-        if (!cancelled) setMarketData(res.indices ?? []);
-      } catch {
-        if (!cancelled) setMarketData([]);
-      } finally {
-        if (!cancelled) setMarketLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    const container = tickerRef.current;
+    if (!container || container.querySelector('script')) return;
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      symbols: [
+        { proName: 'BSE:SENSEX', title: 'SENSEX' },
+        { proName: 'NSE:NIFTY50', title: 'NIFTY 50' },
+        { proName: 'NSE:BANKNIFTY', title: 'BANK NIFTY' },
+        { proName: 'FX_IDC:USDINR', title: 'USD/INR' },
+        { proName: 'MCX:GOLD1!', title: 'GOLD' },
+        { proName: 'NSE:RELIANCE', title: 'RELIANCE' },
+      ],
+      showSymbolLogo: false,
+      colorTheme: 'light',
+      isTransparent: true,
+      displayMode: 'compact',
+      locale: 'en',
+    });
+    container.appendChild(script);
   }, []);
 
   useEffect(() => {
@@ -69,22 +73,8 @@ const Business = () => {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [selectedCategory]);
-
-  const refreshMarketData = async () => {
-    setMarketLoading(true);
-    try {
-      const res = await getMarketIndices();
-      setMarketData(res.indices ?? []);
-    } catch {
-      setMarketData([]);
-    } finally {
-      setMarketLoading(false);
-    }
-  };
 
   const getArticleTitle = (article: ArticleListItem) => {
     if (language === 'en') return article.title_en;
@@ -108,60 +98,13 @@ const Business = () => {
           </h1>
         </div>
 
-        <div className="bg-card rounded-xl p-4 mb-6 shadow-card overflow-x-auto">
-          <div className="flex items-center justify-between gap-4 mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              {language === 'en' ? 'Live Indices' : 'લાઇવ ઇન્ડેક્સ'}
-            </h2>
-            <button
-              type="button"
-              onClick={refreshMarketData}
-              disabled={marketLoading}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 rounded-full transition-colors disabled:opacity-60"
-              aria-label={language === 'en' ? 'Refresh market data' : 'માર્કેટ ડેટા રિફ્રેશ કરો'}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${marketLoading ? 'animate-spin' : ''}`} />
-              {language === 'en' ? 'Refresh' : 'રિફ્રેશ'}
-            </button>
-          </div>
-          <div className="flex gap-6 min-w-max flex-wrap">
-            {marketLoading && marketData.length === 0 ? (
-              <div className="flex items-center gap-2 py-2 text-muted-foreground text-sm">
-                {language === 'en' ? 'Loading live indices...' : 'લાઇવ ઇન્ડેક્સ લોડ થઈ રહ્યું છે...'}
-              </div>
-            ) : (
-              marketData.map((item, index) => (
-                <div
-                  key={item.symbol || index}
-                  className="flex items-center gap-3 px-4 py-2 border-r border-border last:border-r-0 last:sm:border-r-0"
-                >
-                  <span className="font-medium text-foreground">{item.name}</span>
-                  {item.error ? (
-                    <span className="text-sm text-muted-foreground">
-                      {language === 'en' ? '—' : '—'}
-                    </span>
-                  ) : (
-                    <>
-                      <span className="font-bold text-lg">{item.value ?? '—'}</span>
-                      {item.change != null && item.isUp != null && (
-                        <span
-                          className={`flex items-center gap-1 text-sm font-medium ${
-                            item.isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          {item.isUp ? (
-                            <TrendingUp className="w-4 h-4" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4" />
-                          )}
-                          {item.change}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-              ))
-            )}
+        {/* TradingView Ticker Tape Widget — loads client-side, works on any server */}
+        <div className="bg-card rounded-xl p-4 mb-6 shadow-card overflow-hidden">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+            {language === 'en' ? 'Live Indices' : 'લાઇવ ઇન્ડેક્સ'}
+          </h2>
+          <div className="tradingview-widget-container" ref={tickerRef}>
+            <div className="tradingview-widget-container__widget"></div>
           </div>
         </div>
 
