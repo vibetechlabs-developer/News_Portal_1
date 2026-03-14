@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,22 +24,42 @@ const Business = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
 
-  const tickerSrc = `https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.html?locale=en#${encodeURIComponent(JSON.stringify({
-    symbols: [
-      { proName: 'BSE:SENSEX', title: 'SENSEX' },
-      { proName: 'NSE:NIFTY50', title: 'NIFTY 50' },
-      { proName: 'NSE:BANKNIFTY', title: 'BANK NIFTY' },
-      { proName: 'FX_IDC:USDINR', title: 'USD/INR' },
-      { proName: 'MCX:GOLD1!', title: 'GOLD' },
-      { proName: 'NSE:RELIANCE', title: 'RELIANCE' },
-    ],
-    showSymbolLogo: false,
-    colorTheme: 'light',
-    isTransparent: true,
-    displayMode: 'compact',
-    locale: 'en',
-  }))}`;
+  const tickerRef = useRef<HTMLDivElement>(null);
 
+  // TradingView Ticker Tape — correct React pattern:
+  // 1. Set textContent (config JSON) BEFORE setting src
+  // 2. Clear container on unmount to prevent duplicates on re-mount
+  useEffect(() => {
+    const container = tickerRef.current;
+    if (!container) return;
+    // Clear any leftover children (React StrictMode runs effects twice in dev)
+    container.innerHTML = '';
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = 'tradingview-widget-container__widget';
+    container.appendChild(widgetDiv);
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.async = true;
+    // IMPORTANT: set textContent BEFORE src so TradingView can read config
+    script.textContent = JSON.stringify({
+      symbols: [
+        { proName: 'BSE:SENSEX', title: 'SENSEX' },
+        { proName: 'NSE:NIFTY50', title: 'NIFTY 50' },
+        { proName: 'NSE:BANKNIFTY', title: 'BANK NIFTY' },
+        { proName: 'FX_IDC:USDINR', title: 'USD/INR' },
+        { proName: 'MCX:GOLD1!', title: 'GOLD' },
+        { proName: 'NSE:RELIANCE', title: 'RELIANCE' },
+      ],
+      showSymbolLogo: false,
+      colorTheme: 'light',
+      isTransparent: true,
+      displayMode: 'compact',
+      locale: 'en',
+    });
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+    container.appendChild(script);
+    return () => { container.innerHTML = ''; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,15 +114,10 @@ const Business = () => {
           <h2 className="text-sm font-semibold text-muted-foreground mb-3">
             {language === 'en' ? 'Live Indices' : 'લાઇવ ઇન્ડેક્સ'}
           </h2>
-          <iframe
-            src={tickerSrc}
-            width="100%"
-            height="72"
-            frameBorder="0"
-            scrolling="no"
-            title="Market Indices"
-            allowTransparency={true}
-            style={{ display: 'block' }}
+          <div
+            ref={tickerRef}
+            className="tradingview-widget-container"
+            style={{ minHeight: 50 }}
           />
         </div>
 
