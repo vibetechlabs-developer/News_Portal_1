@@ -21,6 +21,7 @@ import {
   postComment,
   deleteComment,
   ApiError,
+  apiUrl,
   type ArticleListItem,
   type CommentItem,
 } from "@/lib/api";
@@ -137,7 +138,9 @@ export default function ArticleDetail() {
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    // We send WhatsApp & Facebook to the Django proxy endpoint so they get Open Graph tags.
+    // The django proxy will immediately HTTP 302 redirect actual human clicks to this React page.
+    const url = apiUrl(`/share/${slug}/`);
     const titleText = article ? getTitle(article, language) : document.title;
     if (navigator.share) {
       try {

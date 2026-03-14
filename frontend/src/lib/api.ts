@@ -16,6 +16,10 @@ export class ApiError extends Error {
     this.status = status;
     this.data = data;
   }
+
+  toString() {
+    return this.message;
+  }
 }
 
 /** Resolve base URL from Vite env; empty string → relative URLs for dev proxy. */
@@ -106,11 +110,34 @@ async function request<T>(input: RequestInfo | URL, options: RequestOptions = {}
   }
 
   if (!res.ok) {
-    throw new ApiError(
-      `API request failed: ${res.status} ${res.statusText}`,
-      res.status,
-      data
-    );
+    let errorMessage = `API request failed: ${res.status} ${res.statusText}`;
+    
+    // Attempt to extract detailed error messages from Django REST framework
+    if (data && typeof data === "object") {
+      const d = data as Record<string, any>;
+      if (typeof d.detail === "string") {
+        errorMessage = d.detail;
+      } else if (typeof d.error === "string") {
+        errorMessage = d.error;
+      } else if (typeof d.message === "string") {
+        errorMessage = d.message;
+      } else {
+        // Collect field-level array errors (e.g. {"name": ["A slot with this name already exists."]})
+        const fieldErrors: string[] = [];
+        for (const [key, val] of Object.entries(d)) {
+          if (Array.isArray(val) && val.length > 0 && typeof val[0] === "string") {
+            // Capitalize the field name for readability (e.g. "is_active" -> "Is Active")
+            const cleanKey = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            fieldErrors.push(`${cleanKey}: ${val[0]}`);
+          }
+        }
+        if (fieldErrors.length > 0) {
+          errorMessage = fieldErrors.join(" | ");
+        }
+      }
+    }
+
+    throw new ApiError(errorMessage, res.status, data);
   }
 
   return data as T;
@@ -368,6 +395,8 @@ export interface ArticleListItem {
   section: number;
   category: number | null;
   district: number | null;
+  district_name_en?: string | null;
+  district_name_gu?: string | null;
   tags: number[];
   featured_image?: string | null;
   media?: MediaItem[];
@@ -519,9 +548,11 @@ export async function getVideos(params?: {
   search?: string;
   /** Optional primary language filter: en, hi, gu */
   primary_language?: string;
+  is_live?: boolean;
 }): Promise<VideoContentResponse> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
+  if (params?.is_live !== undefined) search.set("is_live", String(params.is_live));
   if (params?.section) search.set("section", String(params.section));
   if (params?.category) search.set("category", String(params.category));
   if (params?.status) search.set("status", params.status);
@@ -540,9 +571,11 @@ export async function getReels(params?: {
   search?: string;
   /** Optional primary language filter: en, hi, gu */
   primary_language?: string;
+  is_live?: boolean;
 }): Promise<ReelContentResponse> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
+  if (params?.is_live !== undefined) search.set("is_live", String(params.is_live));
   if (params?.section) search.set("section", String(params.section));
   if (params?.category) search.set("category", String(params.category));
   if (params?.status) search.set("status", params.status);
@@ -567,6 +600,9 @@ export type VideoContentPayload = {
   tags?: number[];
   primary_language?: string;
   status?: string;
+  is_live?: boolean;
+  view_count?: number | "";
+  likes_count?: number | "";
   file?: File | null;
   youtube_url?: string;
   thumbnail?: File | null;
@@ -599,6 +635,9 @@ function clipPayloadToFormData(
   if (payload.tags?.length) payload.tags.forEach((t) => fd.append("tags", String(t)));
   fd.append("primary_language", payload.primary_language ?? "EN");
   fd.append("status", payload.status ?? "DRAFT");
+  if (payload.is_live !== undefined) fd.append("is_live", String(payload.is_live));
+  if (payload.view_count !== undefined && payload.view_count !== "") fd.append("view_count", String(payload.view_count));
+  if (payload.likes_count !== undefined && payload.likes_count !== "") fd.append("likes_count", String(payload.likes_count));
   if (payload.youtube_url?.trim()) fd.append("youtube_url", payload.youtube_url.trim());
   if (payload.file) fd.append("file", payload.file);
   if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);
@@ -623,6 +662,9 @@ export async function updateVideoContentAdmin(id: number, payload: Partial<Video
   if (payload.tags != null) payload.tags.forEach((t) => fd.append("tags", String(t)));
   if (payload.primary_language != null) fd.append("primary_language", payload.primary_language);
   if (payload.status != null) fd.append("status", payload.status);
+  if (payload.is_live !== undefined) fd.append("is_live", String(payload.is_live));
+  if (payload.view_count !== undefined && payload.view_count !== "") fd.append("view_count", String(payload.view_count));
+  if (payload.likes_count !== undefined && payload.likes_count !== "") fd.append("likes_count", String(payload.likes_count));
   if (payload.youtube_url != null) fd.append("youtube_url", payload.youtube_url);
   if (payload.file) fd.append("file", payload.file);
   if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);
@@ -765,6 +807,8 @@ export type ArticleUpsertPayload = Partial<
     | "is_trending"
     | "is_editor_pick"
     | "published_at"
+    | "view_count"
+    | "likes_count"
   >
 > & {
   slug?: string;

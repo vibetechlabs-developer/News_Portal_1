@@ -17,6 +17,8 @@ import Entertainment from "./pages/Entertainment";
 import Technology from "./pages/Technology";
 import Videos from "./pages/Videos";
 import Reels from "./pages/Reels";
+import YoutubeVideos from "./pages/YoutubeVideos";
+import LiveVideos from "./pages/LiveVideos";
 import LatestNews from "./pages/LatestNews";
 import Search from "./pages/Search";
 import Trending from "./pages/Trending";
@@ -64,6 +66,9 @@ const App = () => (
               <Route path="/technology" element={<Technology />} />
               <Route path="/videos" element={<Videos />} />
               <Route path="/reels" element={<Reels />} />
+              <Route path="/reels" element={<Reels />} />
+              <Route path="/youtube-videos" element={<YoutubeVideos />} />
+              <Route path="/live-videos" element={<LiveVideos />} />
               <Route path="/epaper" element={<Epaper />} />
               <Route path="/latest" element={<LatestNews />} />
               <Route path="/search" element={<Search />} />

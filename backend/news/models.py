@@ -329,6 +329,8 @@ class BaseClip(models.Model):
 
     primary_language = models.CharField(max_length=2, choices=Language.choices, default=Language.GU)
     status = models.CharField(max_length=12, choices=ContentStatus.choices, default=ContentStatus.DRAFT)
+    
+    is_live = models.BooleanField(default=False)
 
     view_count = models.PositiveIntegerField(default=0)
     likes_count = models.PositiveIntegerField(default=0)
@@ -359,6 +361,7 @@ class VideoContent(BaseClip):
         ordering = ["-published_at", "-created_at"]
         indexes = [
             models.Index(fields=["status", "published_at"]),
+            models.Index(fields=["is_live", "status", "published_at"]),
             models.Index(fields=["section", "status", "published_at"]),
             models.Index(fields=["category", "status", "published_at"]),
         ]

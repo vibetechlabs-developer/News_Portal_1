@@ -39,8 +39,9 @@ function articleToGridItem(
   language: 'en' | 'gu'
 ): GridNewsItem {
   const section = sections.find((s) => s.id === a.section);
-  const categoryEn = section?.name_en ?? 'News';
-  const categoryGu = (section?.name_gu || section?.name_en) ?? 'સમાચાર';
+  // Use district/state name if available, otherwise fall back to section name
+  const categoryEn = a.district_name_en || section?.name_en || 'News';
+  const categoryGu = a.district_name_gu || a.district_name_en || (section?.name_gu || section?.name_en) || 'સમાચાર';
   const headlineEn = a.title_en ?? '';
   const headlineGu = (a.title_gu || a.title_hi || a.title_en) ?? '';
   const date = a.published_at || a.created_at;
@@ -73,6 +74,11 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state for Latest News
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -80,7 +86,7 @@ const Index = () => {
         setLoading(true);
         setError(null);
         const [articlesSettled, sectionsSettled, breakingSettled, topSettled] = await Promise.allSettled([
-          getArticles({ page: 1, ordering: "-updated_at" }),
+          getArticles({ page: 1, page_size: 10, ordering: "-updated_at" }),
           getSections(),
           getBreakingNews(),
           getTopNews(),
@@ -104,9 +110,12 @@ const Index = () => {
 
         const articlesRes = articlesSettled.value;
         const results = Array.isArray(articlesRes?.results) ? articlesRes.results : [];
+
+        // Initial load stores exactly page 1
         setArticles(results);
         const lang = language === 'en' ? 'en' : 'gu';
         setGridNews(results.map((a) => articleToGridItem(a, sectionsData, lang)));
+        setHasMore(!!articlesRes?.next);
       } catch (err) {
         console.error('Failed to fetch articles:', err);
         if (!cancelled) {
@@ -124,6 +133,31 @@ const Index = () => {
       cancelled = true;
     };
   }, [language]);
+
+  const loadMoreArticles = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await getArticles({ page: nextPage, page_size: 10, ordering: "-updated_at" });
+      const newResults = Array.isArray(res?.results) ? res.results : [];
+
+      if (newResults.length > 0) {
+        const lang = language === 'en' ? 'en' : 'gu';
+        const newGridItems = newResults.map((a) => articleToGridItem(a, sections, lang));
+
+        setArticles(prev => [...prev, ...newResults]);
+        setGridNews(prev => [...prev, ...newGridItems]);
+        setPage(nextPage);
+      }
+
+      setHasMore(!!res?.next);
+    } catch (err) {
+      console.error('Failed to load more articles:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Basic SEO: set page title per language
   useEffect(() => {
@@ -162,37 +196,37 @@ const Index = () => {
             href={leadArticle.slug ? `/article/${leadArticle.slug}` : '/latest'}
             image={getMediaUrl(leadArticle.featured_image) || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1200'}
             category={
-                leadArticle.section
-                  ? (sections.find((s) => s.id === leadArticle.section)?.name_en ?? 'News')
-                  : language === 'en'
+              leadArticle.section
+                ? (sections.find((s) => s.id === leadArticle.section)?.name_en ?? 'News')
+                : language === 'en'
                   ? 'Breaking'
                   : 'બ્રેકિંગ'
-              }
+            }
             headline={
-                language === 'en'
-                  ? leadArticle.title_en ?? ''
-                  : (leadArticle.title_gu ||
-                      leadArticle.title_hi ||
-                      leadArticle.title_en ||
-                      '')
-              }
+              language === 'en'
+                ? leadArticle.title_en ?? ''
+                : (leadArticle.title_gu ||
+                  leadArticle.title_hi ||
+                  leadArticle.title_en ||
+                  '')
+            }
             excerpt={
-                language === 'en'
-                  ? leadArticle.summary_en || ''
-                  : leadArticle.summary_gu || leadArticle.summary_hi || leadArticle.summary_en || ''
-              }
+              language === 'en'
+                ? leadArticle.summary_en || ''
+                : leadArticle.summary_gu || leadArticle.summary_hi || leadArticle.summary_en || ''
+            }
             author={language === 'en' ? 'Kanam Express Bureau' : 'કાનમ એક્સપ્રેસ બ્યુરો'}
             time={
-                (() => {
-                  const date = leadArticle.published_at || leadArticle.created_at;
-                  if (!date) return language === 'en' ? 'Just now' : 'હમણાં જ';
-                  const d = new Date(date);
-                  return Number.isFinite(d.getTime())
-                    ? formatDistanceToNow(d, { addSuffix: true })
-                    : (language === 'en' ? 'Just now' : 'હમણાં જ');
-                })()
-              }
-            />
+              (() => {
+                const date = leadArticle.published_at || leadArticle.created_at;
+                if (!date) return language === 'en' ? 'Just now' : 'હમણાં જ';
+                const d = new Date(date);
+                return Number.isFinite(d.getTime())
+                  ? formatDistanceToNow(d, { addSuffix: true })
+                  : (language === 'en' ? 'Just now' : 'હમણાં જ');
+              })()
+            }
+          />
         ) : null}
 
         {/* Optional error message */}
@@ -207,13 +241,6 @@ const Index = () => {
           <h2 className="section-title">
             {language === 'en' ? 'Latest News' : 'નવીનતમ સમાચાર'}
           </h2>
-          <Link 
-            to="/latest" 
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            {language === 'en' ? 'View All' : 'બધા જુઓ'}
-            <ChevronRight className="w-4 h-4" />
-          </Link>
         </div>
 
         {/* Main Content Grid */}
@@ -254,25 +281,28 @@ const Index = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {gridNews.slice(0, 4).map((news, index) => (
-                        <NewsCard
-                          key={news.id ?? index}
-                          image={news.image}
-                          category={language === 'en' ? news.categoryEn : news.category}
-                          headline={language === 'en' ? news.headlineEn : news.headline}
-                          time={news.time}
-                          href={news.slug ? `/article/${news.slug}` : undefined}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Horizontal Cards */}
-                    {gridNews.length > 4 && (
-                      <div className="mt-6 space-y-4">
-                        {gridNews.slice(4).map((news, index) => (
+                    {/* 4 Big Vertical Cards - TOP */}
+                    {gridNews.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {gridNews.slice(0, 4).map((news, index) => (
                           <NewsCard
                             key={news.id ?? index}
+                            image={news.image}
+                            category={language === 'en' ? news.categoryEn : news.category}
+                            headline={language === 'en' ? news.headlineEn : news.headline}
+                            time={news.time}
+                            href={news.slug ? `/article/${news.slug}` : undefined}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 5 Horizontal Cards - BELOW */}
+                    {gridNews.length > 4 && (
+                      <div className="mt-6 space-y-4">
+                        {gridNews.slice(4, 9).map((news, index) => (
+                          <NewsCard
+                            key={`horizontal-${news.id ?? index}`}
                             image={news.image}
                             category={language === 'en' ? news.categoryEn : news.category}
                             headline={language === 'en' ? news.headlineEn : news.headline}
@@ -283,6 +313,17 @@ const Index = () => {
                         ))}
                       </div>
                     )}
+
+                    {/* View All Button */}
+                    <div className="mt-8 flex justify-center">
+                      <Link
+                        to="/latest"
+                        className="flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        {language === 'en' ? 'View All News' : 'તમામ સમાચાર જુઓ'}
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    </div>
 
                     {/* Editor's Pick */}
                     {gridNews.length > 0 && <EditorsPick />}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <!-- Primary Meta Tags -->
+    <title>{{ title }}</title>
+    <meta name="title" content="{{ title }}">
+    <meta name="description" content="{{ summary }}">
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="{{ target_url }}">
+    <meta property="og:title" content="{{ title }}">
+    <meta property="og:description" content="{{ summary }}">
+    <meta property="og:image" content="{{ image_url }}">
+    <meta property="og:site_name" content="Kanam Express">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ target_url }}">
+    <meta property="twitter:title" content="{{ title }}">
+    <meta property="twitter:description" content="{{ summary }}">
+    <meta property="twitter:image" content="{{ image_url }}">
+
+    <!-- Fallback Redirect for Humans -->
+    <meta http-equiv="refresh" content="0; url={{ target_url }}">
+    <script>
+        window.location.replace("{{ target_url|escapejs }}");
+    </script>
+</head>
+<body>
+    <p>Redirecting to <a href="{{ target_url }}">{{ title }}</a>...</p>
+</body>
+</html>

@@ -176,7 +176,11 @@ const Gujarat = () => {
                       key={article.id}
                       href={`/article/${article.slug}`}
                       image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
-                      category={getSectionName(article.section)}
+                      category={
+                          language === 'en'
+                            ? (article.district_name_en || getSectionName(article.section))
+                            : (article.district_name_gu || article.district_name_en || getSectionName(article.section))
+                        }
                       headline={getArticleTitle(article)}
                       time={article.published_at 
                         ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })

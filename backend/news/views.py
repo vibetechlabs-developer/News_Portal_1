@@ -375,6 +375,7 @@ class TagViewSet(viewsets.ModelViewSet):
 class NewsArticleViewSet(viewsets.ModelViewSet):
     serializer_class = NewsArticleSerializer
     lookup_field = "slug"
+    pagination_class = CustomPagination
 
     filterset_fields = [
         "section",
@@ -1055,119 +1056,131 @@ class EpaperEditionViewSet(viewsets.ModelViewSet):
 class CricketNewsProxyView(APIView):
     """
     Read-only proxy endpoint that fetches live cricket news (or scores) from an
-    external API such as RapidAPI, and exposes it under our own backend.
-
-    This keeps the RapidAPI key on the server and avoids CORS issues for the frontend.
+    external provider. Bypasses costly RapidAPI limits by scraping NDTV Sports.
     """
 
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        if not getattr(settings, "CRICKET_API_ENABLED", False):
-            return Response(
-                {"detail": "Cricket API is not configured."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        base_url = getattr(settings, "CRICKET_API_BASE_URL", "")
-        api_host = getattr(settings, "CRICKET_API_HOST", "")
-        api_key = getattr(settings, "CRICKET_API_KEY", "")
-
-        if not base_url or not api_host or not api_key:
-            return Response(
-                {"detail": "Cricket API settings are incomplete."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
+        from bs4 import BeautifulSoup
+        url = 'https://sports.ndtv.com/cricket/live-scores'
         try:
             resp = requests.get(
-                base_url,
-                headers={
-                    "x-rapidapi-key": api_key,
-                    "x-rapidapi-host": api_host,
-                },
-                params=request.query_params,
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"},
                 timeout=10,
             )
-        except requests.RequestException:
-            logger.exception("Error while calling external Cricket API")
-            return Response(
-                {"detail": "Failed to fetch data from cricket provider."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            
+            matches = []
+            match_lists = soup.find_all('div', class_='scr_mtc')
+            
+            for m in match_lists:
+                status_elem = m.find('div', class_='scr_mtc-stt')
+                status_text = status_elem.text.strip() if status_elem else 'Live'
+                
+                info_elem = m.find('div', class_='scr_mtcInfo')
+                match_info = info_elem.text.strip() if info_elem else 'Cricket Match'
 
-        content_type = resp.headers.get("content-type", "")
-        if "application/json" in content_type:
-            try:
-                data = resp.json()
-            except ValueError:
-                return Response(
-                    {"detail": "Invalid JSON from cricket provider."},
-                    status=status.HTTP_502_BAD_GATEWAY,
-                )
-            return Response(data, status=resp.status_code)
+                teams = m.find_all('div', class_='scr_tm-wrp')
+                team1_name = "TBD"
+                team1_score = ""
+                team2_name = "TBD"
+                team2_score = ""
+                
+                if len(teams) >= 2:
+                    t1_nm = teams[0].find('div', class_='scr_tm-nm')
+                    team1_name = t1_nm.text.strip() if t1_nm else "TBD"
+                    t1_sc = teams[0].find('span', class_='scr_tm-run')
+                    team1_score = t1_sc.text.strip() if t1_sc else ""
+                    
+                    t2_nm = teams[1].find('div', class_='scr_tm-nm')
+                    team2_name = t2_nm.text.strip() if t2_nm else "TBD"
+                    t2_sc = teams[1].find('span', class_='scr_tm-run')
+                    team2_score = t2_sc.text.strip() if t2_sc else ""
 
-        # Fallback: return raw text payload
-        return Response(
-            {"raw": resp.text},
-            status=resp.status_code,
-        )
+                # Format matches identically to what `normalizeCricketItems` in frontend expects
+                matches.append({
+                    "story": {
+                        "headline": match_info,
+                        "intro": f"{team1_name} {team1_score} vs {team2_name} {team2_score} ({status_text})",
+                    }
+                })
+                
+            return Response({"storyList": matches})
+            
+        except Exception as e:
+            logger.exception("NDTV Scraper failed")
+            return Response({"detail": "Failed to scrape live cricket news.", "error": str(e)}, status=502)
 
 
 class CricketMatchesProxyView(APIView):
     """
-    Read-only proxy endpoint that fetches live cricket matches/scores from an
-    external API such as RapidAPI (e.g. Cricbuzz matches/v1/live).
+    Read-only proxy endpoint that fetches live cricket matches/scores.
+    Bypasses costly RapidAPI limits by scraping NDTV Sports natively with BeautifulSoup.
     """
 
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        if not getattr(settings, "CRICKET_API_ENABLED", False):
-            return Response(
-                {"detail": "Cricket API is not configured."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        matches_url = getattr(settings, "CRICKET_MATCHES_API_URL", "")
-        api_host = getattr(settings, "CRICKET_API_HOST", "")
-        api_key = getattr(settings, "CRICKET_API_KEY", "")
-
-        if not matches_url or not api_host or not api_key:
-            return Response(
-                {"detail": "Cricket matches API settings are incomplete."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
+        from bs4 import BeautifulSoup
+        url = 'https://sports.ndtv.com/cricket/live-scores'
         try:
             resp = requests.get(
-                matches_url,
-                headers={
-                    "x-rapidapi-key": api_key,
-                    "x-rapidapi-host": api_host,
-                },
-                params=request.query_params,
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"},
                 timeout=10,
             )
-        except requests.RequestException:
-            logger.exception("Error while calling external Cricket matches API")
-            return Response(
-                {"detail": "Failed to fetch live matches from cricket provider."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            
+            matches = []
+            match_lists = soup.find_all('div', class_='scr_mtc')
+            
+            for m in match_lists:
+                status_elem = m.find('div', class_='scr_mtc-stt')
+                status_text = status_elem.text.strip() if status_elem else 'Live'
+                
+                info_elem = m.find('div', class_='scr_mtcInfo')
+                match_info = info_elem.text.strip() if info_elem else 'Cricket Match'
 
-        content_type = resp.headers.get("content-type", "")
-        if "application/json" in content_type:
-            try:
-                data = resp.json()
-            except ValueError:
-                return Response(
-                    {"detail": "Invalid JSON from cricket matches provider."},
-                    status=status.HTTP_502_BAD_GATEWAY,
-                )
-            return Response(data, status=resp.status_code)
+                teams = m.find_all('div', class_='scr_tm-wrp')
+                team1_name = "TBD"
+                team1_score = ""
+                team2_name = "TBD"
+                team2_score = ""
+                
+                if len(teams) >= 2:
+                    t1_nm = teams[0].find('div', class_='scr_tm-nm')
+                    team1_name = t1_nm.text.strip() if t1_nm else "TBD"
+                    t1_sc = teams[0].find('span', class_='scr_tm-run')
+                    team1_score = t1_sc.text.strip() if t1_sc else ""
+                    
+                    t2_nm = teams[1].find('div', class_='scr_tm-nm')
+                    team2_name = t2_nm.text.strip() if t2_nm else "TBD"
+                    t2_sc = teams[1].find('span', class_='scr_tm-run')
+                    team2_score = t2_sc.text.strip() if t2_sc else ""
 
-        return Response({"raw": resp.text}, status=resp.status_code)
+                # Format matches identically to what `normalizeCricketMatches` in frontend expects
+                matches.append({
+                    "matchInfo": {
+                        "status": status_text,
+                        "matchDesc": match_info,
+                        "team1": {"teamName": team1_name},
+                        "team2": {"teamName": team2_name}
+                    },
+                    "matchScore": {
+                        "team1Score": {"inngs1": {"runs": team1_score}},
+                        "team2Score": {"inngs1": {"runs": team2_score}}
+                    }
+                })
+                
+            return Response({"typeMatches": [{"seriesMatches": [{"seriesAdWrapper": {"matches": matches}}]}]})
+            
+        except Exception as e:
+            logger.exception("NDTV Scraper failed")
+            return Response({"detail": "Failed to scrape live matches.", "error": str(e)}, status=502)
 
 
 # Yahoo Finance symbols for Indian market indices (free, no API key)
@@ -1196,9 +1209,13 @@ class MarketIndicesProxyView(APIView):
             name = idx["name"]
             url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
             try:
+                # Use a real browser user agent to avoid Yahoo blocking datacenter IPs
                 resp = requests.get(
                     url,
-                    headers={"User-Agent": "Mozilla/5.0 (compatible; NewsPortal/1.0)"},
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                        "Accept": "*/*",
+                    },
                     timeout=8,
                 )
                 resp.raise_for_status()

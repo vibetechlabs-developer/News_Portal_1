@@ -187,7 +187,11 @@ const National = () => {
                         />
                       </div>
                       <div className="p-6">
-                        <span className="category-tag">{getSectionName(leadStory.section)}</span>
+                        <span className="category-tag">
+                          {language === 'en'
+                            ? (leadStory.district_name_en || getSectionName(leadStory.section))
+                            : (leadStory.district_name_gu || leadStory.district_name_en || getSectionName(leadStory.section))}
+                        </span>
                         <h2 className="headline-secondary mt-3">
                           {getArticleTitle(leadStory)}
                         </h2>
@@ -209,18 +213,22 @@ const National = () => {
 
                 {/* News Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {otherNews.map((article) => (
-                    <Link key={article.id} to={`/article/${article.slug}`}>
-                      <NewsCard
-                        image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
-                        category={getSectionName(article.section)}
-                        headline={getArticleTitle(article)}
-                        time={article.published_at 
-                          ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
-                          : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
-                      />
-                    </Link>
-                  ))}
+                    {otherNews.map((article) => (
+                      <Link key={article.id} to={`/article/${article.slug}`}>
+                        <NewsCard
+                          image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
+                          category={
+                            language === 'en'
+                              ? (article.district_name_en || getSectionName(article.section))
+                              : (article.district_name_gu || article.district_name_en || getSectionName(article.section))
+                          }
+                          headline={getArticleTitle(article)}
+                          time={article.published_at 
+                            ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
+                            : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
+                        />
+                      </Link>
+                    ))}
                 </div>
 
                 {articles.length === 0 && (

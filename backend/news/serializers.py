@@ -85,11 +85,24 @@ class NewsArticleSerializer(serializers.ModelSerializer):
 	slug = serializers.SlugField(required=False, allow_blank=True)
 	tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, required=False)
 	media = MediaSerializer(many=True, read_only=True)
+	district_name_en = serializers.SerializerMethodField()
+	district_name_gu = serializers.SerializerMethodField()
+
+	def get_district_name_en(self, obj):
+		if obj.district:
+			return obj.district.name_en
+		return None
+
+	def get_district_name_gu(self, obj):
+		if obj.district:
+			return obj.district.name_gu or obj.district.name_en
+		return None
 
 	class Meta:
 		model = NewsArticle
 		fields = "__all__"
-		read_only_fields = ("id", "view_count", "likes_count", "created_at", "updated_at")
+		read_only_fields = ("id", "created_at", "updated_at")
+
 
 
 class VideoContentSerializer(serializers.ModelSerializer):

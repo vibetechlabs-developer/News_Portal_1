@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Play } from 'lucide-react';
+import { Play, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VideoCard } from '@/components/news/VideoCard';
 import { getReels, getVideos, getMediaUrl, type ReelContentItem, type VideoContentItem } from '@/lib/api';
@@ -95,6 +96,13 @@ export function YouTubeSection() {
               </div>
               <h2 className="section-title">{language === 'gu' ? 'યુટ્યુબ વિડિયો' : 'YouTube Videos'}</h2>
             </div>
+            <Link 
+              to="/youtube-videos" 
+              className="text-primary text-sm font-medium flex items-center gap-1 hover:underline"
+            >
+              {language === 'gu' ? 'બધા યુટ્યુબ વિડિયો જુઓ' : 'View All YouTube Videos'}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           {loading ? (

@@ -80,7 +80,7 @@ export function Header() {
           <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
             {/* Live TV Button */}
             <Link
-              to="/videos"
+              to="/live-videos"
               className="flex flex-col items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-3 py-0 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group relative overflow-visible"
               title={t('live_tv')}
             >

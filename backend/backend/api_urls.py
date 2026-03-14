@@ -31,6 +31,7 @@ from news.views import (
     VideoContentViewSet,
     ReelContentViewSet,
 )
+from news.views_share import ArticleShareProxyView
 from reels.views import ReelViewSet, ReelCategoryViewSet, ReelTagViewSet
 from users.views import (
     MeView,
@@ -98,6 +99,7 @@ urlpatterns = [
     path("news/cricket-live/", CricketNewsProxyView.as_view(), name="cricket-live"),
     path("news/cricket-live-matches/", CricketMatchesProxyView.as_view(), name="cricket-live-matches"),
     path("market/indices/", MarketIndicesProxyView.as_view(), name="market-indices"),
+    path("share/<slug:slug>/", ArticleShareProxyView.as_view(), name="article-share"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("", include(router.urls)),

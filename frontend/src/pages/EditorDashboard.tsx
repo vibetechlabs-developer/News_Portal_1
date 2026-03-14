@@ -100,6 +100,9 @@ const EditorDashboard = () => {
   // Create-form featured image
   const [createFeaturedImageFile, setCreateFeaturedImageFile] = useState<File | null>(null);
 
+  const [createViewCount, setCreateViewCount] = useState<number | "">("");
+  const [createLikesCount, setCreateLikesCount] = useState<number | "">("");
+
   const [recentArticles, setRecentArticles] = useState<ArticleListItem[]>([]);
   const [manageStatus, setManageStatus] = useState<"ALL" | "DRAFT" | "PUBLISHED">("ALL");
   const [manageSearch, setManageSearch] = useState("");
@@ -127,6 +130,9 @@ const EditorDashboard = () => {
   const [editDistrictOptions, setEditDistrictOptions] = useState<DistrictItem[]>([]);
   const [editFeaturedImageFile, setEditFeaturedImageFile] = useState<File | null>(null);
 
+  const [editViewCount, setEditViewCount] = useState<number | "">("");
+  const [editLikesCount, setEditLikesCount] = useState<number | "">("");
+
 
 
   // E-paper upload
@@ -142,6 +148,7 @@ const EditorDashboard = () => {
   const [mediaTabTitle, setMediaTabTitle] = useState("");
   const [mediaTabFile, setMediaTabFile] = useState<File | null>(null);
   const [mediaTabYoutube, setMediaTabYoutube] = useState("");
+  const [mediaTabIsLive, setMediaTabIsLive] = useState(false);
   const [mediaTabUploading, setMediaTabUploading] = useState(false);
   const [mediaTabLoading, setMediaTabLoading] = useState(false);
   const [mediaTabItems, setMediaTabItems] = useState<Array<(VideoContentItem | ReelContentItem) & { _type: "VIDEO" | "REEL" }>>([]);
@@ -386,6 +393,8 @@ const EditorDashboard = () => {
         is_top: isTop,
         is_trending: isTrending,
         is_editor_pick: isEditorPick,
+        view_count: createViewCount === "" ? undefined : createViewCount,
+        likes_count: createLikesCount === "" ? undefined : createLikesCount,
       };
 
       const created = await createArticle(payload);
@@ -422,6 +431,8 @@ const EditorDashboard = () => {
       setIsTrending(false);
       setIsEditorPick(false);
       setCreateFeaturedImageFile(null);
+      setCreateViewCount("");
+      setCreateLikesCount("");
 
       // Reload manage list so the new article appears without manual refresh
       loadManage();
@@ -496,6 +507,8 @@ const EditorDashboard = () => {
       setEditTop(!!a.is_top);
       setEditTrending(!!a.is_trending);
       setEditEditorPick(!!(a as any).is_editor_pick);
+      setEditViewCount(a.view_count || "");
+      setEditLikesCount(a.likes_count || "");
     } catch (e) {
       toast({ title: "Failed to load article", variant: "destructive", description: String(e) });
       setEditOpen(false);
@@ -524,6 +537,8 @@ const EditorDashboard = () => {
         is_top: editTop,
         is_trending: editTrending,
         is_editor_pick: editEditorPick,
+        view_count: editViewCount === "" ? undefined : editViewCount,
+        likes_count: editLikesCount === "" ? undefined : editLikesCount,
         tags: editSelectedTagIds,
       });
       if (editFeaturedImageFile) {
@@ -670,6 +685,7 @@ const EditorDashboard = () => {
         file: mediaTabFile,
         youtube_url: mediaTabYoutube.trim() || undefined,
         status: "PUBLISHED",
+        is_live: mediaTabIsLive,
         primary_language: "GU",
       };
 
@@ -680,6 +696,7 @@ const EditorDashboard = () => {
       setMediaTabTitle("");
       setMediaTabFile(null);
       setMediaTabYoutube("");
+      setMediaTabIsLive(false);
       await loadMediaTabContent();
     } catch (err) {
       const errorMsg = err instanceof ApiError ? formatApiErrorDetails(err) : String(err);
@@ -852,14 +869,18 @@ const EditorDashboard = () => {
 
                   {districts.length > 0 && (
                     <div className="space-y-2">
-                      <Label htmlFor="district">District</Label>
+                      <Label htmlFor="district">
+                        {sections.find(s => s.id === Number(sectionId))?.slug === 'national' ? 'State / Region' : 'District'}
+                      </Label>
                       <select
                         id="district"
                         value={districtId}
                         onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : "")}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       >
-                        <option value="">No district</option>
+                        <option value="">
+                          {sections.find(s => s.id === Number(sectionId))?.slug === 'national' ? 'No state selected' : 'No district'}
+                        </option>
                         {districts.map((d) => (
                           <option key={d.id} value={d.id}>
                             {d.name_en}
@@ -978,11 +999,34 @@ const EditorDashboard = () => {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4 text-xs mt-4">
+                  <div className="space-y-2">
+                    <Label>View Count</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Optional"
+                      value={createViewCount}
+                      onChange={(e) => setCreateViewCount(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Likes Count</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Optional"
+                      value={createLikesCount}
+                      onChange={(e) => setCreateLikesCount(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                </div>
 
-
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? "Saving..." : "Save"}
-                </Button>
+                <div className="mt-4">
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Saving..." : "Save"}
+                  </Button>
+                </div>
               </form>
 
               <Card className="shadow-sm">
@@ -1257,6 +1301,11 @@ const EditorDashboard = () => {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-border">
+                  <Label htmlFor="media-tab-is-live">Is Live Broadcast?</Label>
+                  <Switch id="media-tab-is-live" checked={mediaTabIsLive} onCheckedChange={setMediaTabIsLive} />
+                </div>
+
                 <Button type="submit" disabled={mediaTabUploading || loadingSections} className="w-full mt-4">
                   {mediaTabUploading ? "Uploading..." : `Upload ${mediaTabType === "VIDEO" ? "Video" : "Reel"}`}
                 </Button>
@@ -1278,7 +1327,7 @@ const EditorDashboard = () => {
                           <div>
                             <p className="font-medium line-clamp-2">{item.title_en}</p>
                             <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                              {item._type} • Status: {item.status}
+                              {item._type} • Status: {item.status}{(item as any).is_live ? " • 🔴 LIVE" : ""}
                             </p>
                           </div>
                           <div className="flex gap-2">
@@ -1328,13 +1377,17 @@ const EditorDashboard = () => {
                   {/* District dropdown — shown when the selected section has districts */}
                   {editDistrictOptions.length > 0 && (
                     <div className="space-y-2">
-                      <Label>District</Label>
+                      <Label>
+                        {sectionOptions.find(s => s.id === Number(editSectionId))?.slug === 'national' ? 'State / Region' : 'District'}
+                      </Label>
                       <select
                         value={editDistrictId}
                         onChange={(e) => setEditDistrictId(e.target.value ? Number(e.target.value) : "")}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       >
-                        <option value="">No district</option>
+                        <option value="">
+                          {sectionOptions.find(s => s.id === Number(editSectionId))?.slug === 'national' ? 'No state selected' : 'No district'}
+                        </option>
                         {editDistrictOptions.map((d) => (
                           <option key={d.id} value={d.id}>{d.name_en}</option>
                         ))}
@@ -1475,7 +1528,55 @@ const EditorDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  
+                  {/* View / Likes count */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>View Count</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Optional"
+                        value={editViewCount}
+                        onChange={(e) => setEditViewCount(e.target.value ? Number(e.target.value) : "")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Likes Count</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Optional"
+                        value={editLikesCount}
+                        onChange={(e) => setEditLikesCount(e.target.value ? Number(e.target.value) : "")}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs mt-4">
+                    <div className="space-y-2">
+                      <Label>View Count</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Optional"
+                        value={editViewCount}
+                        onChange={(e) => setEditViewCount(e.target.value ? Number(e.target.value) : "")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Likes Count</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Optional"
+                        value={editLikesCount}
+                        onChange={(e) => setEditLikesCount(e.target.value ? Number(e.target.value) : "")}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end gap-2">
                     <Switch checked={editTrending} onCheckedChange={setEditTrending} />
                     <span className="text-sm">Trending</span>
                   </div>

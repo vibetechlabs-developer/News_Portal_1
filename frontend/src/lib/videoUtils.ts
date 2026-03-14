@@ -43,6 +43,10 @@ export function extractYouTubeVideoId(url: string): string | null {
   const mobileMatch = cleanUrl.match(/m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
   if (mobileMatch) return mobileMatch[1];
 
+  // Pattern 6: youtube.com/live/VIDEO_ID
+  const liveMatch = cleanUrl.match(/youtube\.com\/live\/([a-zA-Z0-9_-]{11})/);
+  if (liveMatch) return liveMatch[1];
+
   return null;
 }
 
