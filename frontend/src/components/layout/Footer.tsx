@@ -115,7 +115,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{siteSettings?.contact_address || "H.O. Gokul Lalani Khadki, Jawahar Bazaar, Jambusar, District: Bharuch, Gujarat-391150"}</span>
+                <span>{siteSettings?.contact_address || "H.O. Gokul Lalani Khadki, Jawahar Bazaar, Jambusar, District: Bharuch, Gujarat-392150"}</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-background/70">
                 <Phone className="w-4 h-4 flex-shrink-0" />
