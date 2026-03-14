@@ -560,8 +560,9 @@ const EditorDashboard = () => {
     if (!confirm(`Delete article "${slug}"?`)) return;
     try {
       await deleteArticle(slug);
+      // Immediately remove from UI state (don't re-fetch — server list cache may not have updated yet)
+      setManageResults((prev) => prev.filter((a) => a.slug !== slug));
       toast({ title: "Article deleted" });
-      loadManage();
     } catch (e) {
       toast({ title: "Delete failed", variant: "destructive", description: String(e) });
     }
