@@ -1194,10 +1194,11 @@ MARKET_INDICES = [
 ]
 
 
-@method_decorator(cache_page(60), name="get")
+@method_decorator(cache_page(300), name="get")  # cache 5 min (data changes slowly on weekends)
 class MarketIndicesProxyView(APIView):
     """
     Proxy that fetches Indian market indices from Stooq.com (free, no API key, VPS-friendly).
+    Uses the historical daily endpoint so data is available even on weekends/holidays.
     Returns normalized data for the Business page ticker.
     """
 
@@ -1212,20 +1213,23 @@ class MarketIndicesProxyView(APIView):
             symbol = idx["symbol"]
             name = idx["name"]
             is_currency = idx["is_currency"]
-            # Stooq CSV: Symbol,Date,Time,Open,High,Low,Close,Volume
-            url = f"https://stooq.com/q/l/?s={symbol}&f=sd2t2ohlcv&h&e=csv"
+            # Use historical daily endpoint — returns last available close even on weekends
+            # Returns: Date,Open,High,Low,Close,Volume  (newest row last)
+            url = f"https://stooq.com/q/d/l/?s={symbol}&i=d"
             try:
-                resp = requests.get(url, headers=headers, timeout=8)
+                resp = requests.get(url, headers=headers, timeout=10)
                 resp.raise_for_status()
-                lines = resp.text.strip().splitlines()
+                lines = [l for l in resp.text.strip().splitlines() if l.strip()]
                 if len(lines) < 2:
-                    raise ValueError("No data rows from Stooq")
-                row = lines[1].split(",")
-                # row: Symbol,Date,Time,Open,High,Low,Close,Volume
-                open_price = float(row[3])
-                close_price = float(row[6])
-                change_val = close_price - open_price
-                change_pct = (change_val / open_price * 100) if open_price != 0 else 0
+                    raise ValueError("No data rows from Stooq history")
+                # Last row = most recent trading day
+                last_row = lines[-1].split(",")
+                prev_row = lines[-2].split(",") if len(lines) >= 3 else last_row
+                # Format: Date,Open,High,Low,Close,Volume
+                close_price = float(last_row[4])
+                prev_close = float(prev_row[4])
+                change_val = close_price - prev_close
+                change_pct = (change_val / prev_close * 100) if prev_close != 0 else 0
                 is_up = change_val >= 0
 
                 if is_currency:
@@ -1244,6 +1248,7 @@ class MarketIndicesProxyView(APIView):
                     "change": change_str,
                     "changePercent": round(change_pct, 2),
                     "isUp": is_up,
+                    "date": last_row[0],  # trading date for display
                 })
             except Exception as e:
                 logger.warning("Stooq market fetch failed for %s: %s", symbol, e)
