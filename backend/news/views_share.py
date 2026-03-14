@@ -52,7 +52,18 @@ class ArticleShareProxyView(View):
         image_url = ""
         if article.featured_image:
             try:
-                image_url = request.build_absolute_uri(article.featured_image.url)
+                # request.build_absolute_uri() often returns http:// or the wrong host
+                # when Django is behind Nginx proxies unless SECURE_PROXY_SSL_HEADER is perfect.
+                # Since WhatsApp strictly requires valid https:// URLs, we manually construct it:
+                base_domain = getattr(settings, "FRONTEND_URL", "https://kanamexpress.com").rstrip("/")
+                image_path = article.featured_image.url
+                if image_path.startswith("http"):
+                    image_url = image_path
+                else:
+                    # ensure image_path starts with a slash
+                    if not image_path.startswith("/"):
+                        image_path = "/" + image_path
+                    image_url = f"{base_domain}{image_path}"
             except Exception:
                 pass
 
