@@ -61,6 +61,7 @@ class ArticleShareProxyView(View):
             "summary": summary,
             "target_url": target_url,
             "image_url": image_url,
+            "share_url": request.build_absolute_uri(),  # og:url = this share page
         }
 
         return render(request, "news/share_proxy.html", context)

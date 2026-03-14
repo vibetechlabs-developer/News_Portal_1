@@ -11,33 +11,46 @@
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="article">
-    <meta property="og:url" content="{{ target_url }}">
+    <meta property="og:url" content="{{ share_url }}">
     <meta property="og:title" content="{{ title }}">
     <meta property="og:description" content="{{ summary }}">
-    {% if image_url %}<meta property="og:image" content="{{ image_url }}">
+    {% if image_url %}
+    <meta property="og:image" content="{{ image_url }}">
     <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">{% endif %}
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/jpeg">
+    {% endif %}
     <meta property="og:site_name" content="Kanam Express">
     <meta property="og:locale" content="gu_IN">
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="{{ target_url }}">
+    <meta name="twitter:url" content="{{ share_url }}">
     <meta name="twitter:title" content="{{ title }}">
     <meta name="twitter:description" content="{{ summary }}">
     {% if image_url %}<meta name="twitter:image" content="{{ image_url }}">{% endif %}
     <meta name="twitter:site" content="@kanamexpress">
 
-    <!-- Redirect humans to the actual article page (delay=1s so crawlers read OG tags above first) -->
-    <meta http-equiv="refresh" content="1; url={{ target_url }}">
-    <script>setTimeout(function(){ window.location.replace("{{ target_url|escapejs }}"); }, 500);</script>
+    <!--
+        NOTE: NO meta http-equiv="refresh" here on purpose!
+        Social media crawlers (WhatsApp, Facebook) follow meta redirects and land on
+        the React page which has only generic site-level OG tags (no article image/title).
+        Bots do NOT execute JavaScript — they stay here and read the OG tags above.
+        Human browsers DO execute JavaScript and get redirected to the actual article.
+    -->
+    <script>
+        // Redirect human browsers to the actual article page immediately
+        window.location.replace("{{ target_url|escapejs }}");
+    </script>
 </head>
 <body style="font-family:sans-serif;text-align:center;padding:40px;background:#f5f5f5;">
     {% if image_url %}
-    <img src="{{ image_url }}" alt="{{ title }}" style="max-width:400px;border-radius:8px;margin-bottom:16px;">
+    <img src="{{ image_url }}" alt="{{ title }}" style="max-width:420px;border-radius:8px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.15);">
     {% endif %}
     <h1 style="font-size:1.2rem;color:#333;">{{ title }}</h1>
-    <p style="color:#666;">{{ summary }}</p>
-    <p><a href="{{ target_url }}" style="color:#c0392b;font-weight:bold;">સમાચાર વાંચો / Read Article</a></p>
+    <p style="color:#666;max-width:600px;margin:0 auto 16px;">{{ summary }}</p>
+    <a href="{{ target_url }}" style="display:inline-block;padding:10px 24px;background:#c0392b;color:#fff;border-radius:6px;font-weight:bold;text-decoration:none;">
+        સમાચાર વાંચો / Read Article →
+    </a>
 </body>
 </html>
