@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,37 +18,28 @@ import {
 
 const Business = () => {
   const { language } = useLanguage();
-  const tickerRef = useRef<HTMLDivElement>(null);
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
 
-  // Inject TradingView ticker tape widget (client-side, works on any server)
-  useEffect(() => {
-    const container = tickerRef.current;
-    if (!container || container.querySelector('script')) return;
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      symbols: [
-        { proName: 'BSE:SENSEX', title: 'SENSEX' },
-        { proName: 'NSE:NIFTY50', title: 'NIFTY 50' },
-        { proName: 'NSE:BANKNIFTY', title: 'BANK NIFTY' },
-        { proName: 'FX_IDC:USDINR', title: 'USD/INR' },
-        { proName: 'MCX:GOLD1!', title: 'GOLD' },
-        { proName: 'NSE:RELIANCE', title: 'RELIANCE' },
-      ],
-      showSymbolLogo: false,
-      colorTheme: 'light',
-      isTransparent: true,
-      displayMode: 'compact',
-      locale: 'en',
-    });
-    container.appendChild(script);
-  }, []);
+  const tickerSrc = `https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.html?locale=en#${encodeURIComponent(JSON.stringify({
+    symbols: [
+      { proName: 'BSE:SENSEX', title: 'SENSEX' },
+      { proName: 'NSE:NIFTY50', title: 'NIFTY 50' },
+      { proName: 'NSE:BANKNIFTY', title: 'BANK NIFTY' },
+      { proName: 'FX_IDC:USDINR', title: 'USD/INR' },
+      { proName: 'MCX:GOLD1!', title: 'GOLD' },
+      { proName: 'NSE:RELIANCE', title: 'RELIANCE' },
+    ],
+    showSymbolLogo: false,
+    colorTheme: 'light',
+    isTransparent: true,
+    displayMode: 'compact',
+    locale: 'en',
+  }))}`;
+
 
   useEffect(() => {
     let cancelled = false;
@@ -103,9 +94,16 @@ const Business = () => {
           <h2 className="text-sm font-semibold text-muted-foreground mb-3">
             {language === 'en' ? 'Live Indices' : 'લાઇવ ઇન્ડેક્સ'}
           </h2>
-          <div className="tradingview-widget-container" ref={tickerRef}>
-            <div className="tradingview-widget-container__widget"></div>
-          </div>
+          <iframe
+            src={tickerSrc}
+            width="100%"
+            height="72"
+            frameBorder="0"
+            scrolling="no"
+            title="Market Indices"
+            allowTransparency={true}
+            style={{ display: 'block' }}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
