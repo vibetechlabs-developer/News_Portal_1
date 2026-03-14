@@ -190,16 +190,16 @@ const LatestNews = () => {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {articles.map((article) => (
-                    <Link key={article.id} to={`/article/${article.slug}`}>
-                      <NewsCard
-                        image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
-                        category={getCategoryName(article.category)}
-                        headline={getArticleTitle(article)}
-                        time={article.published_at 
-                          ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
-                          : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
-                      />
-                    </Link>
+                    <NewsCard
+                      key={article.id}
+                      href={`/article/${article.slug}`}
+                      image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
+                      category={getCategoryName(article.category)}
+                      headline={getArticleTitle(article)}
+                      time={article.published_at 
+                        ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
+                        : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
+                    />
                   ))}
                 </div>
                 {articles.length === 0 && !searchQuery && selectedCategory === 'all' && (
