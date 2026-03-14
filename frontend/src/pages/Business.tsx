@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, BarChart3, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { PageLayout } from '@/components/layout/PageLayout';
@@ -11,9 +11,11 @@ import {
   getCategories,
   getSections,
   getMediaUrl,
+  getMarketIndices,
   type ArticleListItem,
   type CategoryItem,
   type SectionItem,
+  type MarketIndexItem,
 } from '@/lib/api';
 
 const Business = () => {
@@ -21,44 +23,25 @@ const Business = () => {
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [sections, setSections] = useState<SectionItem[]>([]);
+  const [marketData, setMarketData] = useState<MarketIndexItem[]>([]);
+  const [marketLoading, setMarketLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
 
-  const tickerRef = useRef<HTMLDivElement>(null);
+  const fetchMarket = async () => {
+    setMarketLoading(true);
+    try {
+      const res = await getMarketIndices();
+      setMarketData(res.indices ?? []);
+    } catch {
+      setMarketData([]);
+    } finally {
+      setMarketLoading(false);
+    }
+  };
 
-  // TradingView Ticker Tape — correct React pattern:
-  // 1. Set textContent (config JSON) BEFORE setting src
-  // 2. Clear container on unmount to prevent duplicates on re-mount
   useEffect(() => {
-    const container = tickerRef.current;
-    if (!container) return;
-    // Clear any leftover children (React StrictMode runs effects twice in dev)
-    container.innerHTML = '';
-    const widgetDiv = document.createElement('div');
-    widgetDiv.className = 'tradingview-widget-container__widget';
-    container.appendChild(widgetDiv);
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.async = true;
-    // IMPORTANT: set textContent BEFORE src so TradingView can read config
-    script.textContent = JSON.stringify({
-      symbols: [
-        { proName: 'BSE:SENSEX', title: 'SENSEX' },
-        { proName: 'NSE:NIFTY50', title: 'NIFTY 50' },
-        { proName: 'NSE:BANKNIFTY', title: 'BANK NIFTY' },
-        { proName: 'FX_IDC:USDINR', title: 'USD/INR' },
-        { proName: 'MCX:GOLD1!', title: 'GOLD' },
-        { proName: 'NSE:RELIANCE', title: 'RELIANCE' },
-      ],
-      showSymbolLogo: false,
-      colorTheme: 'light',
-      isTransparent: true,
-      displayMode: 'compact',
-      locale: 'en',
-    });
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-    container.appendChild(script);
-    return () => { container.innerHTML = ''; };
+    fetchMarket();
   }, []);
 
   useEffect(() => {
@@ -109,16 +92,59 @@ const Business = () => {
           </h1>
         </div>
 
-        {/* TradingView Ticker Tape Widget — loads client-side, works on any server */}
-        <div className="bg-card rounded-xl p-4 mb-6 shadow-card overflow-hidden">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3">
-            {language === 'en' ? 'Live Indices' : 'લાઇવ ઇન્ડેક્સ'}
-          </h2>
-          <div
-            ref={tickerRef}
-            className="tradingview-widget-container"
-            style={{ minHeight: 50 }}
-          />
+        {/* Live Market Indices - powered by Stooq.com via backend proxy */}
+        <div className="bg-card rounded-xl p-4 mb-6 shadow-card overflow-x-auto">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              {language === 'en' ? 'Live Indices' : 'લાઇવ ઇન્ડેક્સ'}
+            </h2>
+            <button
+              type="button"
+              onClick={fetchMarket}
+              disabled={marketLoading}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 rounded-full transition-colors disabled:opacity-60"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${marketLoading ? 'animate-spin' : ''}`} />
+              {language === 'en' ? 'Refresh' : 'રિફ્રેશ'}
+            </button>
+          </div>
+          <div className="flex gap-6 min-w-max flex-wrap">
+            {marketLoading && marketData.length === 0 ? (
+              <div className="flex items-center gap-2 py-2 text-muted-foreground text-sm">
+                {language === 'en' ? 'Loading live indices...' : 'લાઇવ ઇન્ડેક્સ લોડ થઈ રહ્યું છે...'}
+              </div>
+            ) : marketData.length === 0 ? (
+              <div className="py-2 text-muted-foreground text-sm">
+                {language === 'en' ? 'Market data unavailable' : 'માર્કેટ ડેટા ઉપલબ્ધ નથી'}
+              </div>
+            ) : (
+              marketData.map((item, index) => (
+                <div
+                  key={item.symbol || index}
+                  className="flex items-center gap-3 px-4 py-2 border-r border-border last:border-r-0"
+                >
+                  <span className="font-medium text-foreground text-sm">{item.name}</span>
+                  {item.error ? (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  ) : (
+                    <>
+                      <span className="font-bold">{item.value ?? '—'}</span>
+                      {item.change != null && item.isUp != null && (
+                        <span
+                          className={`flex items-center gap-1 text-sm font-medium ${
+                            item.isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          {item.isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                          {item.change}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -146,34 +172,33 @@ const Business = () => {
             </div>
 
             {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : articles.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                {language === 'en' ? 'Loading...' : 'લોડ થઈ રહ્યું છે...'}
+                {language === 'en' ? 'No business news found.' : 'કોઈ બિઝનેસ સમાચાર મળ્યા નથી.'}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-6">
                 {articles.map((article) => (
                   <Link key={article.id} to={`/article/${article.slug}`}>
                     <NewsCard
-                      image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
-                      category={getCategoryName(article.category)}
-                      headline={getArticleTitle(article)}
-                      time={
-                        article.published_at
-                          ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
-                          : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })
-                      }
+                      variant="horizontal"
+                      image={getMediaUrl(article.featured_image) || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600'}
+                      category={language === 'en' ? 'Business' : getCategoryName(article.category ?? null)}
+                      headline={getArticleTitle(article) || ''}
+                      time={article.published_at
+                        ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
+                        : ''}
                     />
                   </Link>
                 ))}
-                {articles.length === 0 && (
-                  <p className="col-span-2 text-center py-8 text-muted-foreground">
-                    {language === 'en' ? 'No business news found.' : 'કોઈ બિઝનેસ સમાચાર મળ્યા નથી.'}
-                  </p>
-                )}
               </div>
             )}
           </div>
-          <div className="lg:col-span-1">
+
+          <div>
             <TrendingSidebar />
           </div>
         </div>

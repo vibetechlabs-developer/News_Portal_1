@@ -1183,105 +1183,72 @@ class CricketMatchesProxyView(APIView):
             return Response({"detail": "Failed to scrape live matches.", "error": str(e)}, status=502)
 
 
-# Yahoo Finance symbols for Indian market indices (free, no API key)
+# Stooq.com symbols for Indian market indices (free, no API key, works from VPS)
 MARKET_INDICES = [
-    {"symbol": "^NSEI", "name": "NIFTY 50", "exchange": "NSE"},
-    {"symbol": "^BSESN", "name": "SENSEX", "exchange": "BSE"},
-    {"symbol": "^NSEBANK", "name": "BANK NIFTY", "exchange": "NSE"},
-    {"symbol": "INR=X", "name": "USD/INR", "exchange": "FX"},
-    {"symbol": "GOLDBEES.NS", "name": "GOLD", "exchange": "NSE"},  # Indian Gold ETF in ₹
+    {"symbol": "^nsei",   "name": "NIFTY 50",   "is_currency": False},
+    {"symbol": "^bsesn",  "name": "SENSEX",      "is_currency": False},
+    {"symbol": "^nsebank","name": "BANK NIFTY",  "is_currency": False},
+    {"symbol": "usdinr",  "name": "USD/INR",     "is_currency": True},
+    {"symbol": "xauusd",  "name": "GOLD",        "is_currency": True},
 ]
 
 
 @method_decorator(cache_page(60), name="get")
 class MarketIndicesProxyView(APIView):
     """
-    Read-only proxy that fetches live Nifty, Sensex, and other Indian market indices
-    from Yahoo Finance (free, no API key). Returns normalized data for the Business page.
+    Proxy that fetches Indian market indices from Stooq.com (free, no API key, VPS-friendly).
+    Returns normalized data for the Business page ticker.
     """
 
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         results = []
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
         for idx in MARKET_INDICES:
             symbol = idx["symbol"]
             name = idx["name"]
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
+            is_currency = idx["is_currency"]
+            # Stooq CSV: Symbol,Date,Time,Open,High,Low,Close,Volume
+            url = f"https://stooq.com/q/l/?s={symbol}&f=sd2t2ohlcv&h&e=csv"
             try:
-                # Use a real browser user agent to avoid Yahoo blocking datacenter IPs
-                resp = requests.get(
-                    url,
-                    headers={
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                        "Accept": "*/*",
-                    },
-                    timeout=8,
-                )
+                resp = requests.get(url, headers=headers, timeout=8)
                 resp.raise_for_status()
-                data = resp.json()
-            except (requests.RequestException, ValueError) as e:
-                logger.warning("Market index fetch failed for %s: %s", symbol, e)
-                results.append({
-                    "name": name,
-                    "symbol": symbol,
-                    "value": None,
-                    "change": None,
-                    "changePercent": None,
-                    "isUp": None,
-                    "error": True,
-                })
-                continue
-
-            try:
-                chart = data.get("chart", {})
-                result_list = chart.get("result") or []
-                if not result_list:
-                    raise ValueError("No result in chart")
-                meta = result_list[0].get("meta", {})
-                regular_price = meta.get("regularMarketPrice")
-                prev_close = meta.get("previousClose") or meta.get("chartPreviousClose")
-                if regular_price is None:
-                    # Fallback: last close from indicators
-                    indicators = result_list[0].get("indicators", {})
-                    quotes = indicators.get("quote", [{}])[0]
-                    closes = quotes.get("close") or []
-                    regular_price = next((c for c in reversed(closes) if c is not None), None)
-                    if prev_close is None and closes:
-                        prev_close = closes[0] if len(closes) > 1 else closes[0]
-
-                if regular_price is None:
-                    raise ValueError("Could not extract price")
-
-                value = float(regular_price)
-                prev = float(prev_close) if prev_close is not None else value
-                change_val = value - prev
-                change_pct = (change_val / prev * 100) if prev != 0 else 0
+                lines = resp.text.strip().splitlines()
+                if len(lines) < 2:
+                    raise ValueError("No data rows from Stooq")
+                row = lines[1].split(",")
+                # row: Symbol,Date,Time,Open,High,Low,Close,Volume
+                open_price = float(row[3])
+                close_price = float(row[6])
+                change_val = close_price - open_price
+                change_pct = (change_val / open_price * 100) if open_price != 0 else 0
                 is_up = change_val >= 0
 
-                # Format value based on index type
-                if name == "USD/INR":
-                    value_str = f"{value:.2f}"
+                if is_currency:
+                    value_str = f"{close_price:.4f}"
                 elif name == "GOLD":
-                    value_str = f"₹{value:,.2f}"
+                    value_str = f"${close_price:,.2f}"
                 else:
-                    value_str = f"{value:,.2f}"
+                    value_str = f"{close_price:,.2f}"
 
                 change_str = f"{'+' if change_val >= 0 else ''}{change_pct:.2f}%"
 
                 results.append({
                     "name": name,
-                    "symbol": symbol,
+                    "symbol": symbol.upper(),
                     "value": value_str,
                     "change": change_str,
                     "changePercent": round(change_pct, 2),
                     "isUp": is_up,
                 })
-            except (KeyError, TypeError, ValueError) as e:
-                logger.warning("Market index parse failed for %s: %s", symbol, e)
+            except Exception as e:
+                logger.warning("Stooq market fetch failed for %s: %s", symbol, e)
                 results.append({
                     "name": name,
-                    "symbol": symbol,
+                    "symbol": symbol.upper(),
                     "value": None,
                     "change": None,
                     "changePercent": None,
