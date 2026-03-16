@@ -273,6 +273,25 @@ class NewsArticle(models.Model):
                 # just pass and save S3/Disk the original file as a fallback.
                 pass
                 
+        # Auto-generate unique slug if not provided or title changed significantly
+        if not self.slug:
+            from django.utils.text import slugify
+            import uuid
+            
+            # Try to use English title first, then others
+            base_slug_text = self.title_en or self.title_gu or self.title_hi
+            base_slug = slugify(base_slug_text)
+            
+            if not base_slug:
+                base_slug = "article"
+                
+            unique_slug = base_slug
+            # Keep appending random strings until unique
+            while NewsArticle.objects.filter(slug=unique_slug).exclude(pk=self.pk).exists():
+                unique_slug = f"{base_slug}-{uuid.uuid4().hex[:6]}"
+                
+            self.slug = unique_slug
+
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
