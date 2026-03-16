@@ -140,7 +140,7 @@ export default function ArticleDetail() {
   const handleShare = async () => {
     // We send WhatsApp & Facebook to the Django proxy endpoint so they get Open Graph tags.
     // The django proxy will immediately HTTP 302 redirect actual human clicks to this React page.
-    const url = apiUrl(`/share/${slug}/`);
+    const url = apiUrl(`/share/${article?.id ? `${article.id}-share` : slug}/`);
     const titleText = article ? getTitle(article, language) : document.title;
     if (navigator.share) {
       try {
