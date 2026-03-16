@@ -1077,9 +1077,9 @@ class CricketNewsProxyView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        from bs4 import BeautifulSoup
-        url = 'https://sports.ndtv.com/cricket/live-scores'
         try:
+            from bs4 import BeautifulSoup
+            url = 'https://sports.ndtv.com/cricket/live-scores'
             resp = requests.get(
                 url,
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"},
@@ -1126,8 +1126,8 @@ class CricketNewsProxyView(APIView):
             return Response({"storyList": matches})
             
         except Exception as e:
-            logger.exception("NDTV Scraper failed")
-            return Response({"detail": "Failed to scrape live cricket news.", "error": str(e)}, status=502)
+            logger.warning(f"NDTV Scraper failed: {e}")
+            return Response({"storyList": []})
 
 
 class CricketMatchesProxyView(APIView):
@@ -1139,9 +1139,9 @@ class CricketMatchesProxyView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        from bs4 import BeautifulSoup
-        url = 'https://sports.ndtv.com/cricket/live-scores'
         try:
+            from bs4 import BeautifulSoup
+            url = 'https://sports.ndtv.com/cricket/live-scores'
             resp = requests.get(
                 url,
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"},
