@@ -376,15 +376,6 @@ const EditorDashboard = () => {
     try {
       const payload = {
         title_en: title,
-        slug: (() => {
-          const base = title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "")
-            .slice(0, 60);
-          // If title is Gujarati/Hindi, base will be empty — use timestamp slug
-          return base || `article-${Date.now()}`;
-        })(),
         summary_en: summary,
         content_en: content,
         section: Number(sectionId),

@@ -72,11 +72,6 @@ const ReporterDashboard = () => {
     try {
       const payload = {
         title_en: title,
-        slug: title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-          .slice(0, 60),
         summary_en: summary,
         content_en: content,
         section: Number(sectionId),
