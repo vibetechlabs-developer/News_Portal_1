@@ -232,6 +232,49 @@ class NewsArticle(models.Model):
         if not self.published_at:
             self.published_at = timezone.now()
 
+    def save(self, *args, **kwargs):
+        # Auto-compress featured_image to an optimized JPEG on new upload
+        if self.featured_image and not getattr(self.featured_image, '_committed', True):
+            try:
+                from io import BytesIO
+                import sys
+                from PIL import Image
+                from django.core.files.uploadedfile import InMemoryUploadedFile
+
+                img = Image.open(self.featured_image)
+                # Convert to RGB (removes alpha channel from PNG, prevents errors in JPEG format)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Resize if it's too large (WhatsApp prefers 1200x630 max anyway)
+                img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+
+                output = BytesIO()
+                img.save(output, format='JPEG', quality=85)
+                output.seek(0)
+
+                # Change file extension to .jpg
+                filename = self.featured_image.name
+                if '.' in filename:
+                    filename = filename.rsplit('.', 1)[0] + '.jpg'
+                else:
+                    filename += '.jpg'
+
+                self.featured_image = InMemoryUploadedFile(
+                    output,
+                    'ImageField',
+                    filename,
+                    'image/jpeg',
+                    sys.getsizeof(output),
+                    None
+                )
+            except Exception:
+                # If Pillow fails (e.g., unsupported format like HEIC without pillow-heif),
+                # just pass and save S3/Disk the original file as a fallback.
+                pass
+                
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return self.title_en
 

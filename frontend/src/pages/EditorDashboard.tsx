@@ -802,7 +802,7 @@ const EditorDashboard = () => {
                   <Input
                     id="featured-image"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg, image/png, image/webp"
                     onChange={(e) => setCreateFeaturedImageFile(e.target.files?.[0] ?? null)}
                   />
                   <p className="text-[11px] text-muted-foreground">
@@ -1593,7 +1593,7 @@ const EditorDashboard = () => {
                     ) : (
                       <p className="text-xs text-muted-foreground">No featured image.</p>
                     )}
-                    <Input type="file" accept="image/*" onChange={(e) => setEditFeaturedImageFile(e.target.files?.[0] ?? null)} />
+                    <Input type="file" accept="image/jpeg, image/png, image/webp" onChange={(e) => setEditFeaturedImageFile(e.target.files?.[0] ?? null)} />
                   </div>
 
 

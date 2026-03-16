@@ -2301,7 +2301,7 @@ const AdminDashboard = () => {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="ad-image">Image file</Label>
-                  <Input id="ad-image" type="file" accept="image/*" onChange={(e) => setAdImageFile(e.target.files?.[0] ?? null)} />
+                  <Input id="ad-image" type="file" accept="image/jpeg, image/png, image/webp" onChange={(e) => setAdImageFile(e.target.files?.[0] ?? null)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ad-video">Video file</Label>
