@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageCircle, Share2, Send, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, Send, Trash2, Eye } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/PageLayout";
 import { NewsCard } from "@/components/news/NewsCard";
@@ -279,6 +279,14 @@ export default function ArticleDetail() {
                   <span>{likesCount}</span>
                 </button>
 
+                {/* View count indicator */}
+                <div
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-border text-muted-foreground"
+                  title={language === "en" ? "Views" : "વ્યુઝ"}
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>{article?.view_count || 0}</span>
+                </div>
                 {/* Comment count indicator */}
                 <button
                   onClick={() => document.getElementById("comments-section")?.scrollIntoView({ behavior: "smooth" })}

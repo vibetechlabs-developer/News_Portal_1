@@ -48,8 +48,10 @@ class ArticleShareProxyView(View):
         frontend_base_url = getattr(settings, "FRONTEND_URL", "https://kanamexpress.com")
         target_url = f"{frontend_base_url.rstrip('/')}/article/{article.slug}"
 
-        # Build the full absolute image URL
+        # Build the full absolute image URL and determine its MIME type
         image_url = ""
+        image_type = "image/jpeg"  # default
+        
         if article.featured_image:
             try:
                 # request.build_absolute_uri() often returns http:// or the wrong host
@@ -57,6 +59,18 @@ class ArticleShareProxyView(View):
                 # Since WhatsApp strictly requires valid https:// URLs, we manually construct it:
                 base_domain = getattr(settings, "FRONTEND_URL", "https://kanamexpress.com").rstrip("/")
                 image_path = article.featured_image.url
+                
+                # Determine MIME type from extension
+                lower_path = image_path.lower()
+                if lower_path.endswith(".png"):
+                    image_type = "image/png"
+                elif lower_path.endswith(".webp"):
+                    image_type = "image/webp"
+                elif lower_path.endswith(".gif"):
+                    image_type = "image/gif"
+                elif lower_path.endswith(".heic") or lower_path.endswith(".heif"):
+                    image_type = "image/heic"
+                
                 if image_path.startswith("http"):
                     image_url = image_path
                 else:
@@ -72,6 +86,7 @@ class ArticleShareProxyView(View):
             "summary": summary,
             "target_url": target_url,
             "image_url": image_url,
+            "image_type": image_type,
             "share_url": request.build_absolute_uri(),  # og:url = this share page
         }
 
