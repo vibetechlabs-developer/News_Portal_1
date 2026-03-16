@@ -184,7 +184,8 @@ const Business = () => {
                 {articles.map((article) => (
                   <Link key={article.id} to={`/article/${article.slug}`}>
                     <NewsCard
-                      variant="horizontal"
+  views={article.view_count}
+  variant="horizontal"
                       image={getMediaUrl(article.featured_image) || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600'}
                       category={language === 'en' ? 'Business' : getCategoryName(article.category ?? null)}
                       headline={getArticleTitle(article) || ''}

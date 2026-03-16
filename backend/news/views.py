@@ -439,16 +439,19 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
             and getattr(user, "role", None) in CONTENT_MANAGER_ROLES
         )
 
-        # Privileged users (editors/admins) can query non-published articles
-        # ONLY when they explicitly pass a status filter (e.g. editor dashboard).
-        # Public pages never pass a status filter, so they always get PUBLISHED only.
-        # This prevents draft/pending articles from leaking to the public site
-        # even when an admin is browsing while logged in.
+        # Privileged users (editors/admins) can query non-published articles.
+        # However, to prevent draft content from leaking into the public site
+        # when an admin is simply browsing the homepage, we enforce:
+        # 1. If hitting a detail endpoint (retrieve/edit/delete), return everything.
+        # 2. If hitting the list endpoint, ONLY return non-published if ?status= is explicitly passed.
         if is_privileged:
+            if self.action in {"retrieve", "update", "partial_update", "destroy"}:
+                return qs
+
             status_filter = self.request.query_params.get("status")
             if status_filter and status_filter.upper() != ContentStatus.PUBLISHED:
                 return qs.filter(status=status_filter.upper())
-            # No explicit non-published filter → public view, return published only
+            # No explicit non-published filter on a list view → return published only
             return qs.filter(status=ContentStatus.PUBLISHED)
 
         return qs.filter(status=ContentStatus.PUBLISHED)

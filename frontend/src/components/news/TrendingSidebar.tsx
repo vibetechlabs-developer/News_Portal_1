@@ -219,7 +219,8 @@ export function TrendingSidebar() {
           ) : (
             latestNews.map((article) => (
               <NewsCard
-                key={article.id}
+  views={article.view_count}
+  key={article.id}
                 image={
                   getMediaUrl(article.featured_image) ||
                   'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400'

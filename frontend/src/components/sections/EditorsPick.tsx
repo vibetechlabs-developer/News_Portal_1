@@ -65,7 +65,8 @@ export function EditorsPick() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {articles.map((article) => (
             <NewsCard
-              key={article.id}
+  views={article.view_count}
+  key={article.id}
               image={
                 getMediaUrl(article.featured_image) ||
                 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=600'

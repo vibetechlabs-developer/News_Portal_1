@@ -216,7 +216,8 @@ const National = () => {
                     {otherNews.map((article) => (
                       <Link key={article.id} to={`/article/${article.slug}`}>
                         <NewsCard
-                          image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
+  views={article.view_count}
+  image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
                           category={
                             language === 'en'
                               ? (article.district_name_en || getSectionName(article.section))

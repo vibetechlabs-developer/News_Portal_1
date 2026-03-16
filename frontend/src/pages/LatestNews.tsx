@@ -191,7 +191,8 @@ const LatestNews = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {articles.map((article) => (
                     <NewsCard
-                      key={article.id}
+  views={article.view_count}
+  key={article.id}
                       href={`/article/${article.slug}`}
                       image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
                       category={getCategoryName(article.category)}

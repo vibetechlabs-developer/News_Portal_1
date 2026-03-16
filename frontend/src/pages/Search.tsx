@@ -230,7 +230,8 @@ const Search = () => {
                     return (
                       <Link key={article.id} to={`/article/${article.slug}`}>
                         <NewsCard
-                          image={image}
+  views={article.view_count}
+  image={image}
                           category={category}
                           headline={title}
                           time={time}

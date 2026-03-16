@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { Clock, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface NewsCardProps {
@@ -7,6 +7,7 @@ interface NewsCardProps {
   headline: string;
   excerpt?: string;
   time: string;
+  views?: number;
   variant?: 'default' | 'horizontal' | 'compact';
   href?: string;
 }
@@ -17,6 +18,7 @@ export function NewsCard({
   headline, 
   excerpt, 
   time, 
+  views,
   variant = 'default',
   href = '/latest'
 }: NewsCardProps) {
@@ -38,10 +40,16 @@ export function NewsCard({
             <h3 className="headline-card text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">
               {headline}
             </h3>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              {time}
-            </span>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {time}
+              </span>
+              <span className="flex items-center gap-1" title="Views">
+                <Eye className="w-3 h-3" />
+                {views || 0}
+              </span>
+            </div>
           </div>
         </article>
       </Link>
@@ -63,7 +71,13 @@ export function NewsCard({
             <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
               {headline}
             </h4>
-            <span className="text-xs text-muted-foreground mt-1 block">{time}</span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">{time}</span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground" title="Views">
+                <Eye className="w-3 h-3" />
+                {views || 0}
+              </span>
+            </div>
           </div>
         </article>
       </Link>
@@ -90,10 +104,16 @@ export function NewsCard({
           {excerpt && (
             <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{excerpt}</p>
           )}
-          <span className="flex items-center gap-1 text-xs text-muted-foreground mt-3">
-            <Clock className="w-3 h-3" />
-            {time}
-          </span>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-3">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {time}
+            </span>
+            <span className="flex items-center gap-1" title="Views">
+              <Eye className="w-3 h-3" />
+              {views || 0}
+            </span>
+          </div>
         </div>
       </article>
     </Link>

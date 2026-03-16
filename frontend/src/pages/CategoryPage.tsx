@@ -128,7 +128,8 @@ const CategoryPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {rest.map((article) => (
                   <NewsCard
-                    key={article.id}
+  views={article.view_count}
+  key={article.id}
                     image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
                     category={getSectionName(article.section)}
                     headline={getArticleTitle(article)}

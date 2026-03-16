@@ -439,7 +439,8 @@ export default function ArticleDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {relatedQuery.data.slice(0, 6).map((a) => (
                     <NewsCard
-                      key={a.id}
+  views={article.view_count}
+  key={a.id}
                       image={
                         getMediaUrl(a.featured_image) ||
                         "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=600"

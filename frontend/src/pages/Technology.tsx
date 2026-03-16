@@ -128,7 +128,8 @@ const Technology = () => {
                 {articles.map((article) => (
                   <Link key={article.id} to={`/article/${article.slug}`}>
                     <NewsCard
-                      image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
+  views={article.view_count}
+  image={getMediaUrl(article.featured_image) || 'https://via.placeholder.com/600x400'}
                       category={getCategoryName(article.category)}
                       headline={getArticleTitle(article)}
                       time={

@@ -28,7 +28,8 @@ export function CategoryNews({ categoryKey, articles }: CategoryNewsProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {articles.map((article, index) => (
           <NewsCard
-            key={index}
+  views={article.view_count}
+  key={index}
             image={article.image}
             category={t(categoryKey)}
             headline={language === 'en' ? article.headlineEn : article.headline}
