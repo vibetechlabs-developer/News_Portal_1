@@ -286,7 +286,7 @@ const Index = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {gridNews.slice(0, 4).map((news, index) => (
                           <NewsCard
-  views={article.view_count}
+  views={news.view_count}
   key={news.id ?? index}
                             image={news.image}
                             category={language === 'en' ? news.categoryEn : news.category}
@@ -303,7 +303,7 @@ const Index = () => {
                       <div className="mt-6 space-y-4">
                         {gridNews.slice(4, 9).map((news, index) => (
                           <NewsCard
-  views={article.view_count}
+  views={news.view_count}
   key={`horizontal-${news.id ?? index}`}
                             image={news.image}
                             category={language === 'en' ? news.categoryEn : news.category}

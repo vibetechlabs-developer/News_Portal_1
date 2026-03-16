@@ -439,7 +439,7 @@ export default function ArticleDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {relatedQuery.data.slice(0, 6).map((a) => (
                     <NewsCard
-  views={article.view_count}
+  views={a.view_count}
   key={a.id}
                       image={
                         getMediaUrl(a.featured_image) ||
