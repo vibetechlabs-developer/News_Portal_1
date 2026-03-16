@@ -280,7 +280,7 @@ class NewsArticle(models.Model):
             
             # Try to use English title first, then others
             base_slug_text = self.title_en or self.title_gu or self.title_hi
-            base_slug = slugify(base_slug_text)
+            base_slug = slugify(base_slug_text, allow_unicode=True)
             
             if not base_slug:
                 base_slug = "article"
