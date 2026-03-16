@@ -280,9 +280,14 @@ class NewsArticle(models.Model):
             
             # Try to use English title first, then others
             base_slug_text = self.title_en or self.title_gu or self.title_hi
-            base_slug = slugify(base_slug_text, allow_unicode=True)
             
-            if not base_slug:
+            import re
+            # Only keep alphanumeric characters (including unicode) and spaces/hyphens
+            cleaned_text = re.sub(r'[^\w\s-]', '', base_slug_text).strip()
+            # Replace spaces with hyphens
+            base_slug = re.sub(r'[-\s]+', '-', cleaned_text).lower()
+            
+            if not base_slug or base_slug == '-':
                 base_slug = "article"
                 
             unique_slug = base_slug
