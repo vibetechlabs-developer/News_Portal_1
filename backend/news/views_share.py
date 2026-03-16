@@ -21,6 +21,8 @@ class ArticleShareProxyView(View):
 
     def get(self, request, slug, *args, **kwargs):
         article = None
+        import urllib.parse
+        slug = urllib.parse.unquote(slug)
 
         # First, try slug lookup
         try:
