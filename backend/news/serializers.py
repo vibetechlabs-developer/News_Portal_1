@@ -16,6 +16,8 @@ from .models import (
     ReelLike,
     VideoComment,
     ReelComment,
+    Poll,
+    PollOption,
 )
 
 
@@ -87,6 +89,12 @@ class NewsArticleSerializer(serializers.ModelSerializer):
 	media = MediaSerializer(many=True, read_only=True)
 	district_name_en = serializers.SerializerMethodField()
 	district_name_gu = serializers.SerializerMethodField()
+	poll = serializers.SerializerMethodField()
+
+	def get_poll(self, obj):
+		if hasattr(obj, 'poll'):
+			return PollSerializer(obj.poll).data
+		return None
 
 	def get_district_name_en(self, obj):
 		if obj.district:
@@ -165,3 +173,20 @@ class ReelCommentSerializer(serializers.ModelSerializer):
 		model = ReelComment
 		fields = "__all__"
 		read_only_fields = ("id", "created_at", "updated_at")
+
+
+class PollOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PollOption
+        fields = ("id", "text", "votes")
+        read_only_fields = ("id", "votes")
+
+
+class PollSerializer(serializers.ModelSerializer):
+    options = PollOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Poll
+        fields = ("id", "question", "is_active", "options", "created_at")
+        read_only_fields = ("id", "created_at")
+

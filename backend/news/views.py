@@ -32,6 +32,8 @@ from .models import (
     VideoComment,
     ReelComment,
     ContentStatus,
+    Poll,
+    PollOption,
 )
 from .serializers import (
     CategorySerializer,
@@ -49,6 +51,7 @@ from .serializers import (
     VideoCommentSerializer,
     ReelLikeSerializer,
     ReelCommentSerializer,
+    PollSerializer,
 )
 
 import logging
@@ -1275,5 +1278,71 @@ class MarketIndicesProxyView(APIView):
                     "isUp": None,
                     "error": True,
                 })
-
         return Response({"indices": results})
+
+class PollViewSet(viewsets.ModelViewSet):
+    serializer_class = PollSerializer
+    queryset = Poll.objects.all()
+
+    def get_permissions(self):
+        if self.action in ("retrieve", "vote"):
+            return [AllowAny()]
+        return [IsEditorOrSuperAdmin()]
+
+    def create(self, request, *args, **kwargs):
+        # Accept both 'article' and 'article_id' field names
+        article_id = request.data.get("article") or request.data.get("article_id")
+        question = request.data.get("question")
+        options_data = request.data.get("options", [])
+
+        if not article_id or not question or len(options_data) < 2:
+            return Response({"detail": "article, question, and at least 2 options are required."}, status=400)
+
+        poll, created = Poll.objects.get_or_create(article_id=article_id, defaults={"question": question})
+        if not created:
+            poll.question = question
+            poll.save()
+            poll.options.all().delete()
+
+        for opt in options_data:
+            # Accept both plain strings and {text: "..."} objects
+            opt_text = opt if isinstance(opt, str) else opt.get("text", "")
+            if opt_text.strip():
+                PollOption.objects.create(poll=poll, text=opt_text.strip())
+
+        serializer = self.get_serializer(poll)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        poll = self.get_object()
+        question = request.data.get("question", poll.question)
+        poll.question = question
+        poll.save()
+
+        options_data = request.data.get("options", [])
+        if options_data:
+            poll.options.all().delete()
+            for opt in options_data:
+                opt_text = opt if isinstance(opt, str) else opt.get("text", "")
+                if opt_text.strip():
+                    PollOption.objects.create(poll=poll, text=opt_text.strip())
+
+        serializer = self.get_serializer(poll)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[AllowAny])
+    def vote(self, request, pk=None):
+        poll = self.get_object()
+        option_id = request.data.get("option_id")
+
+        try:
+            option = poll.options.get(id=option_id)
+            option.votes = F("votes") + 1
+            option.save()
+            option.refresh_from_db()
+            
+            # Serialize the updated poll so the frontend gets the latest data instantly
+            serializer = self.get_serializer(poll)
+            return Response({"success": True, "poll": serializer.data})
+        except PollOption.DoesNotExist:
+            return Response({"detail": "Invalid option"}, status=400)

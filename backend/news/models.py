@@ -601,3 +601,28 @@ class ReelComment(models.Model):
 
     def __str__(self) -> str:
         return f"ReelComment({self.reel_id})"
+
+
+class Poll(models.Model):
+    article = models.OneToOneField(NewsArticle, on_delete=models.CASCADE, related_name="poll")
+    question = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Poll for {self.article_id}: {self.question}"
+
+
+class PollOption(models.Model):
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="options")
+    text = models.CharField(max_length=255)
+    votes = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self) -> str:
+        return f"Option: {self.text} ({self.votes} votes)"

@@ -103,6 +103,10 @@ const EditorDashboard = () => {
   const [createViewCount, setCreateViewCount] = useState<number | "">("");
   const [createLikesCount, setCreateLikesCount] = useState<number | "">("");
 
+  // Create-form Poll fields
+  const [createPollQuestion, setCreatePollQuestion] = useState("");
+  const [createPollOptions, setCreatePollOptions] = useState<string[]>(["", ""]);
+
   const [recentArticles, setRecentArticles] = useState<ArticleListItem[]>([]);
   const [manageStatus, setManageStatus] = useState<"ALL" | "DRAFT" | "PUBLISHED">("ALL");
   const [manageSearch, setManageSearch] = useState("");
@@ -132,6 +136,10 @@ const EditorDashboard = () => {
 
   const [editViewCount, setEditViewCount] = useState<number | "">("");
   const [editLikesCount, setEditLikesCount] = useState<number | "">("");
+
+  // Edit Poll fields
+  const [editPollQuestion, setEditPollQuestion] = useState("");
+  const [editPollOptions, setEditPollOptions] = useState<string[]>(["", ""]);
 
 
 
@@ -393,6 +401,31 @@ const EditorDashboard = () => {
       };
 
       const created = await createArticle(payload);
+      
+      // Optional: create poll
+      if (createPollQuestion.trim()) {
+        try {
+          const validOptions = createPollOptions.filter(opt => opt.trim() !== "");
+          if (validOptions.length >= 2) {
+            import('@/lib/api').then(({ createPoll }) => {
+              createPoll({
+                article: created.id,
+                question: createPollQuestion.trim(),
+                options: validOptions.map(text => ({ text: text.trim() })),
+              }).catch(err => {
+                toast({
+                  title: "Article saved, but poll creation failed",
+                  description: err instanceof Error ? err.message : "You can try adding it from the Edit dialog.",
+                  variant: "destructive",
+                });
+              });
+            });
+          }
+        } catch (err) {
+            // Failed silently to not block article creation success state
+        }
+      }
+
       setRecentArticles((prev) => [created, ...prev].slice(0, 5));
 
       // Optional: upload featured image (like Django admin "featured image" field)
@@ -428,6 +461,8 @@ const EditorDashboard = () => {
       setCreateFeaturedImageFile(null);
       setCreateViewCount("");
       setCreateLikesCount("");
+      setCreatePollQuestion("");
+      setCreatePollOptions(["", ""]);
 
       // Reload manage list so the new article appears without manual refresh
       loadManage();
@@ -504,6 +539,14 @@ const EditorDashboard = () => {
       setEditEditorPick(!!(a as any).is_editor_pick);
       setEditViewCount(a.view_count || "");
       setEditLikesCount(a.likes_count || "");
+
+      if (a.poll) {
+        setEditPollQuestion(a.poll.question);
+        setEditPollOptions(a.poll.options.map(opt => opt.text));
+      } else {
+        setEditPollQuestion("");
+        setEditPollOptions(["", ""]);
+      }
     } catch (e) {
       toast({ title: "Failed to load article", variant: "destructive", description: String(e) });
       setEditOpen(false);
@@ -539,6 +582,29 @@ const EditorDashboard = () => {
       if (editFeaturedImageFile) {
         await updateArticleFeaturedImage(editSlug, editFeaturedImageFile);
       }
+
+      // Handle Poll Updates
+      if (editPollQuestion.trim()) {
+        const validOptions = editPollOptions.filter(opt => opt.trim() !== "");
+        if (validOptions.length >= 2) {
+          const apiModule = await import('@/lib/api');
+          const pollPayload = {
+            article: updated.id,
+            question: editPollQuestion.trim(),
+            options: validOptions.map(text => ({ text: text.trim() })),
+          };
+          if (editArticle?.poll?.id) {
+            await apiModule.updatePoll(editArticle.poll.id, pollPayload).catch(() => {});
+          } else {
+            await apiModule.createPoll(pollPayload).catch(() => {});
+          }
+        }
+      } else if (editArticle?.poll?.id && !editPollQuestion.trim()) {
+         // User cleared the poll question, delete the poll
+         const apiModule = await import('@/lib/api');
+         await apiModule.deletePoll(editArticle.poll.id).catch(() => {});
+      }
+
       const refetched = await getArticleBySlug(updated.slug);
       setEditArticle(refetched);
       toast({ title: "Article updated" });
@@ -1015,6 +1081,56 @@ const EditorDashboard = () => {
                       value={createLikesCount}
                       onChange={(e) => setCreateLikesCount(e.target.value ? Number(e.target.value) : "")}
                     />
+                  </div>
+                </div>
+
+                {/* Poll Creation Section */}
+                <div className="mt-6 border-t pt-4 space-y-4">
+                  <h3 className="text-sm font-semibold">Attach Poll (Optional)</h3>
+                  <div className="space-y-2">
+                    <Label>Question</Label>
+                    <Input
+                      placeholder="e.g. Who will win the 2024 elections?"
+                      value={createPollQuestion}
+                      onChange={(e) => setCreatePollQuestion(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Options</Label>
+                    {createPollOptions.map((opt, idx) => (
+                      <div key={idx} className="flex gap-2 items-center mb-2">
+                        <Input
+                          placeholder={`Option ${idx + 1}`}
+                          value={opt}
+                          onChange={(e) => {
+                            const newOpts = [...createPollOptions];
+                            newOpts[idx] = e.target.value;
+                            setCreatePollOptions(newOpts);
+                          }}
+                        />
+                        {createPollOptions.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              const newOpts = createPollOptions.filter((_, i) => i !== idx);
+                              setCreatePollOptions(newOpts);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCreatePollOptions([...createPollOptions, ""])}
+                    >
+                      Add Option
+                    </Button>
                   </div>
                 </div>
 
@@ -1585,6 +1701,61 @@ const EditorDashboard = () => {
                       <p className="text-xs text-muted-foreground">No featured image.</p>
                     )}
                     <Input type="file" accept="image/jpeg, image/png, image/webp" onChange={(e) => setEditFeaturedImageFile(e.target.files?.[0] ?? null)} />
+                  </div>
+
+                  {/* Poll Editing Section */}
+                  <div className="mt-6 border-t pt-4 space-y-4">
+                    <h3 className="text-sm font-semibold">Attach/Edit Poll (Optional)</h3>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Leave the question blank to remove an existing poll. Note: changing questions or options will reset all votes.
+                    </p>
+                    <div className="space-y-2">
+                      <Label>Question</Label>
+                      <Input
+                        placeholder="e.g. Who will win the 2024 elections?"
+                        value={editPollQuestion}
+                        onChange={(e) => setEditPollQuestion(e.target.value)}
+                      />
+                    </div>
+                    {editPollQuestion.trim() !== "" && (
+                      <div className="space-y-2">
+                        <Label>Options</Label>
+                        {editPollOptions.map((opt, idx) => (
+                          <div key={idx} className="flex gap-2 items-center mb-2">
+                            <Input
+                              placeholder={`Option ${idx + 1}`}
+                              value={opt}
+                              onChange={(e) => {
+                                const newOpts = [...editPollOptions];
+                                newOpts[idx] = e.target.value;
+                                setEditPollOptions(newOpts);
+                              }}
+                            />
+                            {editPollOptions.length > 2 && (
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  const newOpts = editPollOptions.filter((_, i) => i !== idx);
+                                  setEditPollOptions(newOpts);
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditPollOptions([...editPollOptions, ""])}
+                        >
+                          Add Option
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
 

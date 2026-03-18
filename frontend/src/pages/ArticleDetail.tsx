@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Heart, MessageCircle, Share2, Send, Trash2, Eye } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/PageLayout";
+import { PollWidget } from "@/components/polls/PollWidget";
 import { NewsCard } from "@/components/news/NewsCard";
 import { VideoPlayer } from "@/components/news/VideoPlayer";
 import { ContentProtection } from "@/components/ContentProtection";
@@ -305,6 +306,13 @@ export default function ArticleDetail() {
                   <span>{shareCopied ? (language === "en" ? "Copied!" : "કૉપી!") : (language === "en" ? "Share" : "શેર")}</span>
                 </button>
               </div>
+
+              {/* ─── Poll Widget ─────────────────────── */}
+              {article.poll && (
+                <div className="mt-8">
+                  <PollWidget poll={article.poll} language={language as "en" | "gu" | "hi"} />
+                </div>
+              )}
 
               {/* ─── Comments Section ────────────────── */}
               <section id="comments-section" className="mt-10">

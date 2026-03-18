@@ -397,6 +397,7 @@ export interface ArticleListItem {
   district: number | null;
   district_name_en?: string | null;
   district_name_gu?: string | null;
+  poll?: PollData;
   tags: number[];
   featured_image?: string | null;
   media?: MediaItem[];
@@ -584,6 +585,38 @@ export async function getReels(params?: {
   const qs = search.toString();
   const url = apiUrl("/reels/" + (qs ? `?${qs}` : ""));
   return fetchJson(url);
+}
+
+// ---------- Poll Admin ----------
+
+export interface PollPayload {
+  article: number;
+  question: string;
+  is_active?: boolean;
+  options: { text: string }[];
+}
+
+export async function createPoll(payload: PollPayload): Promise<PollData> {
+  return request<PollData>(apiUrl("/news/polls/"), {
+    method: "POST",
+    auth: true,
+    json: payload as unknown as Record<string, unknown>,
+  });
+}
+
+export async function updatePoll(id: number, payload: Partial<PollPayload>): Promise<PollData> {
+  return request<PollData>(apiUrl(`/news/polls/${id}/`), {
+    method: "PATCH",
+    auth: true,
+    json: payload as unknown as Record<string, unknown>,
+  });
+}
+
+export async function deletePoll(id: number): Promise<void> {
+  await request(apiUrl(`/news/polls/${id}/`), {
+    method: "DELETE",
+    auth: true,
+  });
 }
 
 // ---------- Video/Reel Admin (create with file OR link) ----------
@@ -1698,3 +1731,18 @@ export async function deleteEpaperEdition(id: number): Promise<void> {
   const url = apiUrl(`/epaper/editions/${id}/`);
   return request<void>(url, { method: "DELETE", auth: true });
 }
+
+export interface PollOption {
+  id: number;
+  text: string;
+  votes: number;
+}
+
+export interface PollData {
+  id: number;
+  question: string;
+  is_active: boolean;
+  options: PollOption[];
+  created_at: string;
+}
+

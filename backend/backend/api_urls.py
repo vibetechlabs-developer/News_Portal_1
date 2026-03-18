@@ -30,6 +30,7 @@ from news.views import (
     TagViewSet,
     VideoContentViewSet,
     ReelContentViewSet,
+    PollViewSet,
 )
 from news.views_share import ArticleShareProxyView
 from reels.views import ReelViewSet, ReelCategoryViewSet, ReelTagViewSet
@@ -56,6 +57,7 @@ router.register(r"news/articles", NewsArticleViewSet, basename="news-articles")
 router.register(r"news/media", MediaViewSet, basename="news-media")
 router.register(r"news/comments", CommentViewSet, basename="news-comments")
 router.register(r"news/likes", LikeViewSet, basename="news-likes")
+router.register(r"news/polls", PollViewSet, basename="news-polls")
 
 # Dedicated video/reel tables
 router.register(r"videos", VideoContentViewSet, basename="videos")
