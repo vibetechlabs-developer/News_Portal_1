@@ -152,7 +152,7 @@ export function Footer() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-background/50">
-              © 2024 Kanam Express. {language === 'gu' ? 'બધા હક્કો આરક્ષિત.' : language === 'hi' ? 'सर्वाधिकार सुरक्षित।' : 'All rights reserved.'}
+              © 2026 Vibe Tech Labs. {language === 'gu' ? 'બધા હક્કો આરક્ષિત.' : language === 'hi' ? 'सर्वाधिकार सुरक्षित।' : 'All rights reserved.'}
             </p>
             <div className="flex gap-4">
               {footerLinks.legal.map((item) => (

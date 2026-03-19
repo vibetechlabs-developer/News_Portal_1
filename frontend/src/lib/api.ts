@@ -947,15 +947,17 @@ export async function getArticleBySlug(slug: string): Promise<ArticleListItem | 
 export interface SectionItem {
   id: number;
   name_en: string;
-  name_hi?: string;
-  name_gu?: string;
+  name_hi: string;
+  name_gu: string;
   slug: string;
+  image: string | null;
+  parent: number | null;
   order: number;
   is_active: boolean;
-  parent: number | null;
   is_approved: boolean;
-  approved_by?: number | null;
-  approved_at?: string | null;
+  approved_by: number | null;
+  approved_at: string | null;
+  children?: SectionItem[];
 }
 
 export async function getSections(): Promise<SectionItem[]> {
@@ -1164,16 +1166,41 @@ export async function getTagsAdmin(): Promise<TagItem[]> {
   return Array.isArray(data) ? data : (data?.results ?? []);
 }
 
-export type SectionPayload = Partial<Omit<SectionItem, "id">> & { name_en: string };
+export type SectionPayload = Partial<Omit<SectionItem, "id" | "image">> & { name_en: string; image?: File | string | null };
 export type CategoryPayload = Partial<Omit<CategoryItem, "id">> & { name_en: string };
 export type TagPayload = Partial<Omit<TagItem, "id">> & { name: string };
 
 export async function createSection(payload: SectionPayload): Promise<SectionItem> {
-  return request(apiUrl("/news/sections/"), { method: "POST", auth: true, json: payload as Record<string, unknown> });
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (key === "image" && typeof value === "string" && (value.startsWith("http") || value.startsWith("/media"))) {
+        // Skip current image URL if it's already a string from the backend
+        return;
+      }
+      formData.append(key, value instanceof File ? value : String(value));
+    }
+  });
+  return request(apiUrl("/news/sections/"), { method: "POST", auth: true, json: formData as any });
 }
 
 export async function updateSection(slug: string, payload: Partial<SectionPayload>): Promise<SectionItem> {
-  return request(apiUrl(`/news/sections/${slug}/`), { method: "PATCH", auth: true, json: payload as Record<string, unknown> });
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined) {
+      if (key === "image" && typeof value === "string" && (value.startsWith("http") || value.startsWith("/media"))) {
+        // Skip current image URL if it's already a string from the backend
+        return;
+      }
+      if (value === null) {
+        // Handle explicit null for clearing image
+        formData.append(key, "");
+      } else {
+        formData.append(key, value instanceof File ? value : String(value));
+      }
+    }
+  });
+  return request(apiUrl(`/news/sections/${slug}/`), { method: "PATCH", auth: true, json: formData as any });
 }
 
 export async function deleteSection(slug: string): Promise<void> {

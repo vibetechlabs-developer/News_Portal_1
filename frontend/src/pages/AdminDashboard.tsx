@@ -322,6 +322,7 @@ const AdminDashboard = () => {
     order: 0,
     is_active: true,
     parent: null,
+    image: null,
   });
   const [sectionSaving, setSectionSaving] = useState(false);
   const [sectionDeleteSlug, setSectionDeleteSlug] = useState<string | null>(null);
@@ -336,6 +337,7 @@ const AdminDashboard = () => {
       order: 0,
       is_active: true,
       parent: null,
+      image: null,
     });
     setSectionDialogOpen(true);
   };
@@ -350,6 +352,7 @@ const AdminDashboard = () => {
       order: s.order,
       is_active: s.is_active,
       parent: s.parent,
+      image: s.image,
     });
     setSectionDialogOpen(true);
   };
@@ -369,10 +372,10 @@ const AdminDashboard = () => {
         name_gu: sectionForm.name_gu?.trim() || undefined,
       };
       if (sectionEditing) {
-        await updateSection(sectionEditing.slug, payload);
+        await updateSection(sectionEditing.slug, payload as SectionPayload);
         toast({ title: "Section updated" });
       } else {
-        await createSection(payload);
+        await createSection(payload as SectionPayload);
         toast({ title: "Section created" });
       }
       setSectionDialogOpen(false);
@@ -1912,16 +1915,32 @@ const AdminDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Name (EN)</TableHead>
-                          <TableHead>Slug</TableHead>
-                          <TableHead>Status</TableHead>
+                    <TableHead>Image</TableHead>
+                    <TableHead>Name (EN)</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Status</TableHead>
                           <TableHead className="w-[200px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {pendingSections.map((s) => (
                           <TableRow key={s.id}>
-                            <TableCell className="font-medium">{s.name_en}</TableCell>
+                            <TableCell>
+                      {s.image ? (
+                        <div className="w-10 h-10 rounded border overflow-hidden">
+                          <img 
+                            src={s.image.startsWith('http') ? s.image : `${getBaseUrl()}${s.image}`} 
+                            alt={s.name_en} 
+                            className="w-full h-full object-cover" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground uppercase">
+                          No Img
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{s.name_en}</TableCell>
                             <TableCell>
                               <span className="text-xs px-2 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100">
                                 Pending
@@ -1962,10 +1981,11 @@ const AdminDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Name (EN)</TableHead>
-                          <TableHead>Order</TableHead>
-                          <TableHead>Active</TableHead>
-                          <TableHead>Approved</TableHead>
+                  <TableHead>Image</TableHead>
+                  <TableHead>Name (EN)</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Active</TableHead>
+                  <TableHead>Approved</TableHead>
                           <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1979,6 +1999,21 @@ const AdminDashboard = () => {
                         ) : (
                           sections.map((s) => (
                             <TableRow key={s.id} className={!s.is_approved ? "bg-muted/50" : ""}>
+                              <TableCell>
+                                {s.image ? (
+                                  <div className="w-10 h-10 rounded border overflow-hidden">
+                                    <img 
+                                      src={s.image.startsWith('http') ? s.image : `${getBaseUrl()}${s.image}`} 
+                                      alt={s.name_en} 
+                                      className="w-full h-full object-cover" 
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground uppercase">
+                                    No Img
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell>{s.name_en}</TableCell>
                               <TableCell>{s.order}</TableCell>
                               <TableCell>{s.is_active ? "Yes" : "No"}</TableCell>

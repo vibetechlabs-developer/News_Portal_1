@@ -40,6 +40,10 @@ def epaper_upload_to(instance: "EpaperEdition", filename: str) -> str:
     return f"epaper/{timezone.now():%Y/%m}/{filename}"
 
 
+def section_image_upload_to(instance: "Section", filename: str) -> str:
+    return f"sections/{timezone.now():%Y/%m}/{filename}"
+
+
 class Section(models.Model):
     """
     Navbar sections:
@@ -51,6 +55,12 @@ class Section(models.Model):
     name_hi = models.CharField(max_length=120, blank=True)
     name_gu = models.CharField(max_length=120, blank=True)
     slug = models.SlugField(max_length=140, unique=True)
+    image = models.ImageField(
+        upload_to=section_image_upload_to,
+        null=True,
+        blank=True,
+        validators=[validate_file_size, validate_image_size]
+    )
 
     parent = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="children"
