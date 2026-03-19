@@ -2539,6 +2539,24 @@ const AdminDashboard = () => {
                 />
                 <Label htmlFor="section-active">Active (visible on site)</Label>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="section-image">Image {sectionEditing && "(leave blank to keep current)"}</Label>
+                {sectionForm.image && typeof sectionForm.image === 'string' && (
+                  <div className="mb-2">
+                    <img 
+                      src={sectionForm.image.startsWith('http') ? sectionForm.image : `${getBaseUrl()}${sectionForm.image}`} 
+                      alt="Current" 
+                      className="w-20 h-20 object-cover rounded border" 
+                    />
+                  </div>
+                )}
+                <Input
+                  id="section-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setSectionForm(f => ({ ...f, image: e.target.files?.[0] ?? null }))}
+                />
+              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setSectionDialogOpen(false)}>
                   Cancel
