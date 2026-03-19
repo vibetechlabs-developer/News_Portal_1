@@ -78,6 +78,66 @@ class SiteSettings(models.Model):
     working_hours_hi = models.TextField(blank=True)
     google_maps_embed_url = models.URLField(blank=True, default="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3691.5!2d72.95!3d21.9!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sJambusar%2C%20Gujarat!5e0!3m2!1sen!2sin!4v1234567890")
     
+    # Advertise page fields
+    advertise_title_en = models.CharField(max_length=120, default="Advertise With Us", blank=True)
+    advertise_title_gu = models.CharField(max_length=120, blank=True)
+    advertise_title_hi = models.CharField(max_length=120, blank=True)
+    advertise_desc_en = models.TextField(default="Reach millions of engaged readers across Gujarat through print, digital, and broadcast media.", blank=True)
+    advertise_desc_gu = models.TextField(blank=True)
+    advertise_desc_hi = models.TextField(blank=True)
+    
+    # Advertise: Stats
+    adv_stat1_value = models.CharField(max_length=50, default="50M+", blank=True)
+    adv_stat1_label_en = models.CharField(max_length=100, default="Monthly Readers", blank=True)
+    adv_stat1_label_gu = models.CharField(max_length=100, blank=True)
+    adv_stat1_label_hi = models.CharField(max_length=100, blank=True)
+    
+    adv_stat2_value = models.CharField(max_length=50, default="100M+", blank=True)
+    adv_stat2_label_en = models.CharField(max_length=100, default="Page Views", blank=True)
+    adv_stat2_label_gu = models.CharField(max_length=100, blank=True)
+    adv_stat2_label_hi = models.CharField(max_length=100, blank=True)
+    
+    adv_stat3_value = models.CharField(max_length=50, default="15+", blank=True)
+    adv_stat3_label_en = models.CharField(max_length=100, default="Print Editions", blank=True)
+    adv_stat3_label_gu = models.CharField(max_length=100, blank=True)
+    adv_stat3_label_hi = models.CharField(max_length=100, blank=True)
+    
+    adv_stat4_value = models.CharField(max_length=50, default="#1", blank=True)
+    adv_stat4_label_en = models.CharField(max_length=100, default="In Gujarat", blank=True)
+    adv_stat4_label_gu = models.CharField(max_length=100, blank=True)
+    adv_stat4_label_hi = models.CharField(max_length=100, blank=True)
+    
+    # Advertise: Ad Formats
+    adv_format1_title_en = models.CharField(max_length=100, default="Print Advertising", blank=True)
+    adv_format1_title_gu = models.CharField(max_length=100, blank=True)
+    adv_format1_title_hi = models.CharField(max_length=100, blank=True)
+    adv_format1_desc_en = models.TextField(default="Reach millions through our daily newspaper editions across Gujarat.", blank=True)
+    adv_format1_desc_gu = models.TextField(blank=True)
+    adv_format1_desc_hi = models.TextField(blank=True)
+    adv_format1_tags_en = models.CharField(max_length=200, default="Full Page, Half Page, Quarter Page, Classified", blank=True)
+    adv_format1_tags_gu = models.CharField(max_length=200, blank=True)
+    adv_format1_tags_hi = models.CharField(max_length=200, blank=True)
+
+    adv_format2_title_en = models.CharField(max_length=100, default="Digital Advertising", blank=True)
+    adv_format2_title_gu = models.CharField(max_length=100, blank=True)
+    adv_format2_title_hi = models.CharField(max_length=100, blank=True)
+    adv_format2_desc_en = models.TextField(default="Target your audience with precision on our website and mobile app.", blank=True)
+    adv_format2_desc_gu = models.TextField(blank=True)
+    adv_format2_desc_hi = models.TextField(blank=True)
+    adv_format2_tags_en = models.CharField(max_length=200, default="Banner Ads, Native Ads, Video Ads, Sponsored Content", blank=True)
+    adv_format2_tags_gu = models.CharField(max_length=200, blank=True)
+    adv_format2_tags_hi = models.CharField(max_length=200, blank=True)
+
+    adv_format3_title_en = models.CharField(max_length=100, default="TV Advertising", blank=True)
+    adv_format3_title_gu = models.CharField(max_length=100, blank=True)
+    adv_format3_title_hi = models.CharField(max_length=100, blank=True)
+    adv_format3_desc_en = models.TextField(default="Advertise on Sandesh News channel and reach viewers across India.", blank=True)
+    adv_format3_desc_gu = models.TextField(blank=True)
+    adv_format3_desc_hi = models.TextField(blank=True)
+    adv_format3_tags_en = models.CharField(max_length=200, default="Spot Ads, Aston Bands, L-Bands, Sponsorships", blank=True)
+    adv_format3_tags_gu = models.CharField(max_length=200, blank=True)
+    adv_format3_tags_hi = models.CharField(max_length=200, blank=True)
+    
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

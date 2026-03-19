@@ -1027,7 +1027,7 @@ const AdminDashboard = () => {
               loadAds();
               loadAdRequests();
             }
-            if (v === "site") {
+            if (v === "site" || v === "advertise") {
               loadSiteSettings();
             }
             if (v === "analytics") {
@@ -1045,6 +1045,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="site">Site</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="users" disabled={!isSuperAdmin}>Users</TabsTrigger>
+              <TabsTrigger value="advertise">Advertise Page</TabsTrigger>
             </TabsList>
           </div>
 
@@ -2015,6 +2016,138 @@ const AdminDashboard = () => {
                       </TableBody>
                     </Table>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="advertise" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advertise Page Settings</CardTitle>
+                <CardDescription>Manage content, stats, and ad formats on the Advertise page.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!siteSettings ? (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
+                ) : (
+                  <form onSubmit={saveSiteSettings} className="space-y-6">
+                    {/* Hero Section */}
+                    <div className="space-y-4 border-b pb-4">
+                      <h3 className="text-lg font-semibold">Hero Section</h3>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="advertise_title_en">Title (EN)</Label>
+                          <Input id="advertise_title_en" value={siteSettings.advertise_title_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, advertise_title_en: e.target.value }) : s)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="advertise_title_gu">Title (GU)</Label>
+                          <Input id="advertise_title_gu" value={siteSettings.advertise_title_gu ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, advertise_title_gu: e.target.value }) : s)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="advertise_title_hi">Title (HI)</Label>
+                          <Input id="advertise_title_hi" value={siteSettings.advertise_title_hi ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, advertise_title_hi: e.target.value }) : s)} />
+                        </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="advertise_desc_en">Description (EN)</Label>
+                          <textarea id="advertise_desc_en" value={siteSettings.advertise_desc_en ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, advertise_desc_en: e.target.value }) : s)} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="advertise_desc_gu">Description (GU)</Label>
+                          <textarea id="advertise_desc_gu" value={siteSettings.advertise_desc_gu ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, advertise_desc_gu: e.target.value }) : s)} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="advertise_desc_hi">Description (HI)</Label>
+                          <textarea id="advertise_desc_hi" value={siteSettings.advertise_desc_hi ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, advertise_desc_hi: e.target.value }) : s)} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats Section */}
+                    <div className="space-y-4 border-b pb-4">
+                      <h3 className="text-lg font-semibold">Stats</h3>
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="grid gap-3 md:grid-cols-4 p-4 border rounded-lg">
+                          <div className="space-y-2">
+                            <Label htmlFor={`adv_stat${i}_value`}>Stat {i} Value</Label>
+                            <Input id={`adv_stat${i}_value`} value={(siteSettings as any)[`adv_stat${i}_value`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_stat${i}_value`]: e.target.value }) : s)} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`adv_stat${i}_label_en`}>Label (EN)</Label>
+                            <Input id={`adv_stat${i}_label_en`} value={(siteSettings as any)[`adv_stat${i}_label_en`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_stat${i}_label_en`]: e.target.value }) : s)} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`adv_stat${i}_label_gu`}>Label (GU)</Label>
+                            <Input id={`adv_stat${i}_label_gu`} value={(siteSettings as any)[`adv_stat${i}_label_gu`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_stat${i}_label_gu`]: e.target.value }) : s)} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`adv_stat${i}_label_hi`}>Label (HI)</Label>
+                            <Input id={`adv_stat${i}_label_hi`} value={(siteSettings as any)[`adv_stat${i}_label_hi`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_stat${i}_label_hi`]: e.target.value }) : s)} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Ad Formats Section */}
+                    <div className="space-y-4 border-b pb-4">
+                      <h3 className="text-lg font-semibold">Ad Formats</h3>
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="space-y-3 p-4 border rounded-lg">
+                          <h4 className="font-medium">Format {i}</h4>
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_title_en`}>Title (EN)</Label>
+                              <Input id={`adv_format${i}_title_en`} value={(siteSettings as any)[`adv_format${i}_title_en`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_title_en`]: e.target.value }) : s)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_title_gu`}>Title (GU)</Label>
+                              <Input id={`adv_format${i}_title_gu`} value={(siteSettings as any)[`adv_format${i}_title_gu`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_title_gu`]: e.target.value }) : s)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_title_hi`}>Title (HI)</Label>
+                              <Input id={`adv_format${i}_title_hi`} value={(siteSettings as any)[`adv_format${i}_title_hi`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_title_hi`]: e.target.value }) : s)} />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_desc_en`}>Description (EN)</Label>
+                              <textarea id={`adv_format${i}_desc_en`} value={(siteSettings as any)[`adv_format${i}_desc_en`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_desc_en`]: e.target.value }) : s)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_desc_gu`}>Description (GU)</Label>
+                              <textarea id={`adv_format${i}_desc_gu`} value={(siteSettings as any)[`adv_format${i}_desc_gu`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_desc_gu`]: e.target.value }) : s)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_desc_hi`}>Description (HI)</Label>
+                              <textarea id={`adv_format${i}_desc_hi`} value={(siteSettings as any)[`adv_format${i}_desc_hi`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_desc_hi`]: e.target.value }) : s)} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_tags_en`}>Tags (EN) - Comma separated</Label>
+                              <Input id={`adv_format${i}_tags_en`} value={(siteSettings as any)[`adv_format${i}_tags_en`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_tags_en`]: e.target.value }) : s)} placeholder="Format 1, Format 2" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_tags_gu`}>Tags (GU) - Comma separated</Label>
+                              <Input id={`adv_format${i}_tags_gu`} value={(siteSettings as any)[`adv_format${i}_tags_gu`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_tags_gu`]: e.target.value }) : s)} placeholder="ફોર્મેટ 1, ફોર્મેટ 2" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`adv_format${i}_tags_hi`}>Tags (HI) - Comma separated</Label>
+                              <Input id={`adv_format${i}_tags_hi`} value={(siteSettings as any)[`adv_format${i}_tags_hi`] ?? ""} onChange={(e) => setSiteSettings((s) => s ? ({ ...s, [`adv_format${i}_tags_hi`]: e.target.value }) : s)} />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit" disabled={siteSaving}>
+                        {siteSaving ? "Saving…" : "Save Advertise Settings"}
+                      </Button>
+                    </div>
+                  </form>
                 )}
               </CardContent>
             </Card>

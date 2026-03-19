@@ -259,6 +259,61 @@ export interface SiteSettingsData {
   working_hours_gu?: string;
   working_hours_hi?: string;
   google_maps_embed_url?: string;
+
+  // Advertise Page Fields
+  advertise_title_en?: string;
+  advertise_title_gu?: string;
+  advertise_title_hi?: string;
+  advertise_desc_en?: string;
+  advertise_desc_gu?: string;
+  advertise_desc_hi?: string;
+
+  adv_stat1_value?: string;
+  adv_stat1_label_en?: string;
+  adv_stat1_label_gu?: string;
+  adv_stat1_label_hi?: string;
+  adv_stat2_value?: string;
+  adv_stat2_label_en?: string;
+  adv_stat2_label_gu?: string;
+  adv_stat2_label_hi?: string;
+  adv_stat3_value?: string;
+  adv_stat3_label_en?: string;
+  adv_stat3_label_gu?: string;
+  adv_stat3_label_hi?: string;
+  adv_stat4_value?: string;
+  adv_stat4_label_en?: string;
+  adv_stat4_label_gu?: string;
+  adv_stat4_label_hi?: string;
+
+  adv_format1_title_en?: string;
+  adv_format1_title_gu?: string;
+  adv_format1_title_hi?: string;
+  adv_format1_desc_en?: string;
+  adv_format1_desc_gu?: string;
+  adv_format1_desc_hi?: string;
+  adv_format1_tags_en?: string;
+  adv_format1_tags_gu?: string;
+  adv_format1_tags_hi?: string;
+
+  adv_format2_title_en?: string;
+  adv_format2_title_gu?: string;
+  adv_format2_title_hi?: string;
+  adv_format2_desc_en?: string;
+  adv_format2_desc_gu?: string;
+  adv_format2_desc_hi?: string;
+  adv_format2_tags_en?: string;
+  adv_format2_tags_gu?: string;
+  adv_format2_tags_hi?: string;
+
+  adv_format3_title_en?: string;
+  adv_format3_title_gu?: string;
+  adv_format3_title_hi?: string;
+  adv_format3_desc_en?: string;
+  adv_format3_desc_gu?: string;
+  adv_format3_desc_hi?: string;
+  adv_format3_tags_en?: string;
+  adv_format3_tags_gu?: string;
+  adv_format3_tags_hi?: string;
 }
 
 export async function getSiteSettings(): Promise<SiteSettingsData> {
