@@ -1318,11 +1318,11 @@ export async function trackArticleView(slug: string): Promise<void> {
 }
 
 export async function trackReelView(id: number): Promise<void> {
-  await request(apiUrl(`/news/reels/${id}/track_view/`), { method: "POST", auth: false });
+  await request(apiUrl(`/reels/${id}/track_view/`), { method: "POST", auth: false });
 }
 
 export async function trackVideoView(id: number): Promise<void> {
-  await request(apiUrl(`/news/videos/${id}/track_view/`), { method: "POST", auth: false });
+  await request(apiUrl(`/videos/${id}/track_view/`), { method: "POST", auth: false });
 }
 
 export async function toggleArticleLike(slug: string): Promise<{ liked: boolean }> {
