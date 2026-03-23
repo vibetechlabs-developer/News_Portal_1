@@ -14,7 +14,7 @@ interface VideoCardProps {
 export function VideoCard({
   thumbnail,
   title,
-  duration = '0:00',
+  duration,
   views,
   category,
   href,
@@ -37,10 +37,12 @@ export function VideoCard({
           </div>
         </div>
 
-        {/* Duration Badge */}
-        <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/80 backdrop-blur-sm text-white text-xs font-medium rounded">
-          {duration}
-        </div>
+        {/* Duration Badge - only shown when real duration is available */}
+        {duration && duration !== '0:00' && (
+          <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/80 backdrop-blur-sm text-white text-xs font-medium rounded">
+            {duration}
+          </div>
+        )}
 
         {/* Category Badge */}
         {category && (

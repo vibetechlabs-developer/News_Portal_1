@@ -117,14 +117,30 @@ export function ReelsSection() {
                       className="flex-shrink-0 w-48 md:w-auto group cursor-pointer"
                     >
                     <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-secondary">
-                      <img
-                        src={
-                          thumbnailUrl ||
-                          '/logo.png'
-                        }
-                        alt={getTitle(reel)}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={getTitle(reel)}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : reelUrl ? (
+                        /* No thumbnail but has a video file - show video first frame */
+                        <video
+                          src={reelUrl}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onLoadedMetadata={(e) => {
+                            const v = e.currentTarget;
+                            v.currentTime = 0.1;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-secondary flex items-center justify-center">
+                          <Play className="w-12 h-12 text-muted-foreground" />
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       
                       {/* Play Button Overlay */}
