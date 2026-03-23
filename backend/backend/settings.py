@@ -218,6 +218,10 @@ else:
         "http://127.0.0.1:8080",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://kanamexpress.com",
+        "https://www.kanamexpress.com",
+        "https://api.kanamexpress.com",
+        "https://vibetechlabs.vercel.app",
     ]
 
 MEDIA_URL = '/media/'

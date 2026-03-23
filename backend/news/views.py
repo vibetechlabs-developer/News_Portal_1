@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 from django.views.decorators.cache import cache_page
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -517,6 +518,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+    @method_decorator(csrf_exempt)
     @action(detail=True, methods=["post"], permission_classes=[AllowAny])
     def track_view(self, request, slug=None):
         """
@@ -815,6 +817,7 @@ class VideoContentViewSet(viewsets.ModelViewSet):
                 return response
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @method_decorator(csrf_exempt)
     @action(detail=True, methods=["post"], permission_classes=[AllowAny])
     def track_view(self, request, pk=None):
         video = self.get_object()
@@ -959,6 +962,7 @@ class ReelContentViewSet(viewsets.ModelViewSet):
                 return response
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @method_decorator(csrf_exempt)
     @action(detail=True, methods=["post"], permission_classes=[AllowAny])
     def track_view(self, request, pk=None):
         reel = self.get_object()
