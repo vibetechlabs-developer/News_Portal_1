@@ -691,7 +691,7 @@ class VideoContentViewSet(viewsets.ModelViewSet):
     ordering_fields = ["published_at", "created_at", "updated_at", "view_count", "likes_count"]
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "like", "comment"):
             return [AllowAny()]
         return [IsEditorOrSuperAdmin()]
 
@@ -829,7 +829,7 @@ class ReelContentViewSet(viewsets.ModelViewSet):
     ordering_fields = ["published_at", "created_at", "updated_at", "view_count", "likes_count"]
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "like", "comment"):
             return [AllowAny()]
         return [IsEditorOrSuperAdmin()]
 

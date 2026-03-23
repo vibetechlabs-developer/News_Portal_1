@@ -31,6 +31,7 @@ interface GridNewsItem {
   headlineEn: string;
   time: string;
   slug?: string;
+  view_count?: number;
 }
 
 function articleToGridItem(
@@ -61,6 +62,7 @@ function articleToGridItem(
     headlineEn,
     time,
     slug: a.slug,
+    view_count: a.view_count,
   };
 }
 
