@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Play, Pause, ChevronLeft, ChevronRight, X, Share2, Heart, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMediaUrl, type VideoContentItem, toggleVideoLike, getVideoComments, postVideoComment, type CommentItem } from '@/lib/api';
+import { getMediaUrl, type VideoContentItem, toggleVideoLike, getVideoComments, postVideoComment, type CommentItem, trackVideoView } from '@/lib/api';
 import { getUploadedVideoUrl, isYouTubeUrl, getVideoUrl as getVideoUrlUtil } from '@/lib/videoUtils';
 import { CommentModal } from '../shared/CommentModal';
 
@@ -67,6 +67,15 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
   const isYouTube = videoUrl ? isYouTubeUrl(videoUrl) : false;
 
   console.log('ImmersiveVideoPlayer - Current video:', currentVideo, 'URL:', videoUrl, 'isYouTube:', isYouTube);
+
+  // Track video views
+  const trackedVideosRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (currentVideo && !trackedVideosRef.current.has(currentVideo.id)) {
+      trackedVideosRef.current.add(currentVideo.id);
+      trackVideoView(currentVideo.id).catch(() => {});
+    }
+  }, [currentVideo]);
 
   // Handle video play/pause
   useEffect(() => {

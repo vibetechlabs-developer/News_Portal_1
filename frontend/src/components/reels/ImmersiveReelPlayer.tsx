@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Play, ChevronLeft, ChevronRight, X, Share2, Heart, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMediaUrl, type ReelContentItem, type CommentItem, toggleReelLike, getReelComments, postReelComment } from '@/lib/api';
+import { getMediaUrl, type ReelContentItem, type CommentItem, toggleReelLike, getReelComments, postReelComment, trackReelView } from '@/lib/api';
 import { getReelUrl as getReelUrlUtil, isYouTubeUrl } from '@/lib/videoUtils';
 import { CommentModal } from '../shared/CommentModal';
 
@@ -61,6 +61,15 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
       }
     }
   }, [isPlaying, currentIndex]);
+
+  // Track reel views
+  const trackedReelsRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (currentReel && !trackedReelsRef.current.has(currentReel.id)) {
+      trackedReelsRef.current.add(currentReel.id);
+      trackReelView(currentReel.id).catch(() => {});
+    }
+  }, [currentReel]);
 
   // Auto-play when reel changes
   useEffect(() => {

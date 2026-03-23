@@ -1317,6 +1317,14 @@ export async function trackArticleView(slug: string): Promise<void> {
   if (!res.ok) throw new Error(`View tracking failed: ${res.status}`);
 }
 
+export async function trackReelView(id: number): Promise<void> {
+  await request(apiUrl(`/news/reels/${id}/track_view/`), { method: "POST", auth: false });
+}
+
+export async function trackVideoView(id: number): Promise<void> {
+  await request(apiUrl(`/news/videos/${id}/track_view/`), { method: "POST", auth: false });
+}
+
 export async function toggleArticleLike(slug: string): Promise<{ liked: boolean }> {
   return request<{ liked: boolean }>(apiUrl(`/news/articles/${slug}/toggle_like/`), {
     method: "POST",

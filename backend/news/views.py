@@ -816,6 +816,12 @@ class VideoContentViewSet(viewsets.ModelViewSet):
                 return response
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=["post"], permission_classes=[AllowAny])
+    def track_view(self, request, pk=None):
+        video = self.get_object()
+        VideoContent.objects.filter(pk=video.pk).update(view_count=F("view_count") + 1)
+        return Response({"ok": True}, status=status.HTTP_200_OK)
+
 
 class ReelContentViewSet(viewsets.ModelViewSet):
     """
@@ -953,6 +959,12 @@ class ReelContentViewSet(viewsets.ModelViewSet):
                     response.set_cookie("device_id", session_id, max_age=10*365*24*60*60, samesite='Lax')
                 return response
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"], permission_classes=[AllowAny])
+    def track_view(self, request, pk=None):
+        reel = self.get_object()
+        ReelContent.objects.filter(pk=reel.pk).update(view_count=F("view_count") + 1)
+        return Response({"ok": True}, status=status.HTTP_200_OK)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
