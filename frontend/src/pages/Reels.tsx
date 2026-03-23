@@ -169,6 +169,9 @@ const Reels = () => {
           reels={validReels}
           initialIndex={activeReelIndex}
           onClose={() => setActiveReelIndex(null)}
+          onViewTracked={(id) => {
+            setReels(prev => prev.map(r => r.id === id ? { ...r, view_count: (r.view_count || 0) + 1 } : r));
+          }}
         />
       )}
     </PageLayout>

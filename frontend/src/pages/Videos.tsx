@@ -241,6 +241,9 @@ const Videos = () => {
           videos={validVideos}
           initialIndex={activeVideoIndex}
           onClose={() => setActiveVideoIndex(null)}
+          onViewTracked={(id) => {
+            setVideos(prev => prev.map(v => v.id === id ? { ...v, view_count: (v.view_count || 0) + 1 } : v));
+          }}
         />
       )}
     </PageLayout>

@@ -14,6 +14,7 @@ interface ImmersiveReelPlayerProps {
   reels: ReelContentItem[];
   initialIndex: number;
   onClose: () => void;
+  onViewTracked?: (id: number) => void;
 }
 
 function formatCount(count?: number): string {
@@ -27,7 +28,7 @@ function getTitle(reel: ReelContentItem, lang: string): string {
   return lang === 'en' ? reel.title_en : (reel.title_gu || reel.title_hi || reel.title_en);
 }
 
-export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveReelPlayerProps) {
+export function ImmersiveReelPlayer({ reels, initialIndex, onClose, onViewTracked }: ImmersiveReelPlayerProps) {
   const { language } = useLanguage();
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -68,8 +69,11 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose }: ImmersiveR
     if (currentReel && !trackedReelsRef.current.has(currentReel.id)) {
       trackedReelsRef.current.add(currentReel.id);
       trackReelView(currentReel.id).catch(() => {});
+      if (onViewTracked) {
+        onViewTracked(currentReel.id);
+      }
     }
-  }, [currentReel]);
+  }, [currentReel, onViewTracked]);
 
   // Auto-play when reel changes
   useEffect(() => {

@@ -374,7 +374,6 @@ class TagViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-@method_decorator(cache_page(60), name="list")
 class NewsArticleViewSet(viewsets.ModelViewSet):
     serializer_class = NewsArticleSerializer
     lookup_field = "slug"

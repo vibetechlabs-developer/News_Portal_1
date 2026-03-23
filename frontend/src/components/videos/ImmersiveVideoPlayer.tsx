@@ -10,6 +10,7 @@ interface ImmersiveVideoPlayerProps {
   videos: VideoContentItem[];
   initialIndex: number;
   onClose: () => void;
+  onViewTracked?: (id: number) => void;
 }
 
 function formatCount(count?: number): string {
@@ -44,7 +45,7 @@ function getVideoUrl(video: VideoContentItem): string | null {
   return null;
 }
 
-export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: ImmersiveVideoPlayerProps) {
+export function ImmersiveVideoPlayer({ videos, initialIndex, onClose, onViewTracked }: ImmersiveVideoPlayerProps) {
   const { language } = useLanguage();
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -74,8 +75,11 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose }: Immersiv
     if (currentVideo && !trackedVideosRef.current.has(currentVideo.id)) {
       trackedVideosRef.current.add(currentVideo.id);
       trackVideoView(currentVideo.id).catch(() => {});
+      if (onViewTracked) {
+        onViewTracked(currentVideo.id);
+      }
     }
-  }, [currentVideo]);
+  }, [currentVideo, onViewTracked]);
 
   // Handle video play/pause
   useEffect(() => {
