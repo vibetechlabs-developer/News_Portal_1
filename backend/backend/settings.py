@@ -268,7 +268,10 @@ REST_FRAMEWORK = {
     ),
     # Throttling: disabled when DEBUG (development); enabled when DEBUG=False (deploy).
     'DEFAULT_THROTTLE_CLASSES': (),
-    'DEFAULT_THROTTLE_RATES': {},
+    'DEFAULT_THROTTLE_RATES': {
+        'contact': '10/hour',
+        'ads_requests': '10/hour',
+    },
 }
 
 SIMPLE_JWT = {
