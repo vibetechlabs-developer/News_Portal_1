@@ -166,7 +166,7 @@ const Index = () => {
     if (language === 'en') {
       document.title = 'Kanam Express - Latest Gujarat & National News';
     } else {
-      document.title = 'કણમ એક્સપ્રેસ - તાજા સમાચાર';
+      document.title = 'કાનમ એક્સપ્રેસ - તાજા સમાચાર';
     }
   }, [language]);
 
