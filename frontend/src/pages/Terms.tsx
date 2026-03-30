@@ -8,80 +8,171 @@ const Terms = () => {
     <PageLayout showTicker={false}>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="headline-display text-foreground mb-8">
-            {language === 'en' ? 'Terms of Use' : 'ઉપયોગની શરતો'}
+          <h1 className="headline-display text-foreground mb-4">
+            {language === 'en' ? 'Terms & Conditions' : 'નિયમો અને શરતો'}
           </h1>
+          <p className="text-sm text-muted-foreground mb-8">
+            {language === 'en' ? 'Last updated: March 2026' : 'છેલ્લે અપડેટ: માર્ચ 2026'}
+          </p>
 
-          <div className="prose prose-lg text-muted-foreground space-y-6">
+          <div className="prose prose-lg text-muted-foreground space-y-8">
+
             <section>
-              <h2 className="headline-secondary text-foreground mb-4">
-                {language === 'en' ? 'Acceptance of Terms' : 'શરતોની સ્વીકૃતિ'}
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '1. Acceptance of Terms' : '1. શરતોની સ્વીકૃતિ'}
               </h2>
               <p>
                 {language === 'en'
-                  ? 'By accessing and using this website, you accept and agree to be bound by these Terms of Use. If you do not agree to these terms, please do not use our services.'
-                  : 'આ વેબસાઇટને ઍક્સેસ કરીને અને ઉપયોગ કરીને, તમે આ ઉપયોગની શરતોથી બંધાયેલા રહેવા માટે સ્વીકારો છો અને સંમત થાઓ છો. જો તમે આ શરતો સાથે સંમત ન હોવ, તો કૃપા કરીને અમારી સેવાઓનો ઉપયોગ કરશો નહીં.'}
+                  ? 'By using this website you agree to terms.'
+                  : 'Kanam Express વેબસાઇટનો ઉપયોગ કરીને તમે આ તમામ નિયમો અને શરતોને સ્વીકારો છો. જો તમે આ શરતો સાથે સહમત નથી, તો વેબસાઇટનો ઉપયોગ ન કરો.'}
+              </p>
+              <p className="mt-3">
+                {language === 'en'
+                  ? 'Applies to all users.'
+                  : 'આ શરતો તમામ મુલાકાતીઓ, વપરાશકર્તાઓ અને સેવાઓનો ઉપયોગ કરનારાઓ પર લાગુ પડે છે.'}
               </p>
             </section>
 
             <section>
-              <h2 className="headline-secondary text-foreground mb-4">
-                {language === 'en' ? 'Intellectual Property' : 'બૌદ્ધિક સંપત્તિ'}
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '2. Use of Website' : '2. વેબસાઇટનો ઉપયોગ'}
               </h2>
+
               <p>
                 {language === 'en'
-                  ? 'All content on this website, including text, graphics, logos, images, and software, is the property of Sandesh and is protected by copyright and other intellectual property laws.'
-                  : 'આ વેબસાઇટ પરની તમામ સામગ્રી, જેમાં ટેક્સ્ટ, ગ્રાફિક્સ, લોગો, છબીઓ અને સોફ્ટવેરનો સમાવેશ થાય છે, તે સંદેશની મિલકત છે અને કૉપિરાઇટ અને અન્ય બૌદ્ધિક સંપત્તિ કાયદાઓ દ્વારા સુરક્ષિત છે.'}
+                  ? 'Lawful use only.'
+                  : 'તમે વેબસાઇટનો ઉપયોગ ફક્ત કાનૂની હેતુઓ માટે જ કરશો અને અન્ય લોકોના અધિકારોનું ઉલ્લંઘન નહીં કરો.'}
+              </p>
+
+              <ul className="mt-3 list-disc list-inside space-y-2">
+                <li>ગેરકાનૂની, અપમાનજનક અથવા નુકસાનકારક સામગ્રી પોસ્ટ ન કરવી</li>
+                <li>સિસ્ટમમાં અનધિકૃત પ્રવેશ કરવાનો પ્રયત્ન ન કરવો</li>
+                <li>બોટ્સ અથવા સ્ક્રેપર્સથી ડેટા એકત્રિત ન કરવો</li>
+                <li>વેબસાઇટની કામગીરીમાં અવરોધ ન લાવવો</li>
+                <li>પરવાનગી વગર સામગ્રીનો વ્યાપારી ઉપયોગ ન કરવો</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '3. Intellectual Property' : '3. બૌદ્ધિક સંપત્તિ'}
+              </h2>
+
+              <p>
+                {language === 'en'
+                  ? 'Content owned by us.'
+                  : 'વેબસાઇટ પરની તમામ સામગ્રી (લેખો, ફોટા, વિડિઓ, ડિઝાઇન) Kanam Express અથવા તેના માલિકોની બૌદ્ધિક સંપત્તિ છે.'}
+              </p>
+
+              <p className="mt-3">
+                {language === 'en'
+                  ? 'No reuse.'
+                  : 'લખિત પરવાનગી વગર કોઈપણ સામગ્રીનું પુનઃપ્રકાશન, નકલ અથવા વિતરણ મનાઈ છે.'}
               </p>
             </section>
 
             <section>
-              <h2 className="headline-secondary text-foreground mb-4">
-                {language === 'en' ? 'User Conduct' : 'વપરાશકર્તા આચરણ'}
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '4. User Content' : '4. વપરાશકર્તા સામગ્રી'}
               </h2>
+
               <p>
                 {language === 'en'
-                  ? 'You agree to use our services only for lawful purposes and in accordance with these Terms. You may not use our services in any way that could damage, disable, or impair our services.'
-                  : 'તમે અમારી સેવાઓનો ઉપયોગ ફક્ત કાયદેસર હેતુઓ માટે અને આ શરતો અનુસાર કરવા સંમત થાઓ છો. તમે અમારી સેવાઓનો ઉપયોગ એવી કોઈ રીતે કરી શકતા નથી જે અમારી સેવાઓને નુકસાન, અક્ષમ અથવા નબળી બનાવી શકે.'}
+                  ? 'User responsibility.'
+                  : 'તમે જે સામગ્રી પોસ્ટ કરો છો તેના માટે તમે સંપૂર્ણ જવાબદાર છો.'}
+              </p>
+
+              <p className="mt-3">
+                {language === 'en'
+                  ? 'We can use it.'
+                  : 'તમે આપેલી સામગ્રીનો ઉપયોગ, ફેરફાર અને પ્રકાશન કરવાનો અધિકાર અમને મળે છે.'}
               </p>
             </section>
 
             <section>
-              <h2 className="headline-secondary text-foreground mb-4">
-                {language === 'en' ? 'Disclaimer' : 'અસ્વીકૃતિ'}
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '5. External Links' : '5. બાહ્ય લિંક્સ'}
               </h2>
+
               <p>
                 {language === 'en'
-                  ? 'The information provided on this website is for general informational purposes only. We make no warranties about the accuracy, reliability, or completeness of this information.'
-                  : 'આ વેબસાઇટ પર આપેલી માહિતી ફક્ત સામાન્ય માહિતીના હેતુઓ માટે છે. અમે આ માહિતીની ચોકસાઈ, વિશ્વસનીયતા અથવા સંપૂર્ણતા વિશે કોઈ વોરંટી આપતા નથી.'}
+                  ? 'Not responsible.'
+                  : 'બાહ્ય વેબસાઇટ્સની સામગ્રી અથવા નીતિ માટે અમે જવાબદાર નથી.'}
               </p>
             </section>
 
             <section>
-              <h2 className="headline-secondary text-foreground mb-4">
-                {language === 'en' ? 'Limitation of Liability' : 'જવાબદારીની મર્યાદા'}
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '6. Advertising & Monetization' : '6. જાહેરાત અને કમાણી'}
               </h2>
+
               <p>
                 {language === 'en'
-                  ? 'Sandesh shall not be liable for any direct, indirect, incidental, special, or consequential damages resulting from your use of or inability to use our services.'
-                  : 'તમારા ઉપયોગ અથવા અમારી સેવાઓનો ઉપયોગ કરવામાં અસમર્થતાના પરિણામે કોઈપણ પ્રત્યક્ષ, પરોક્ષ, આકસ્મિક, વિશેષ અથવા પરિણામી નુકસાન માટે સંદેશ જવાબદાર રહેશે નહીં.'}
+                  ? 'Ads displayed.'
+                  : 'આ વેબસાઇટ પર Google AdSense અને અન્ય જાહેરાતો દર્શાવવામાં આવે છે.'}
+              </p>
+
+              <p className="mt-3">
+                {language === 'en'
+                  ? 'No endorsement.'
+                  : 'જાહેરાત દર્શાવવાનો અર્થ એ નથી કે અમે તે પ્રોડક્ટ અથવા સેવાઓને સમર્થન આપીએ છીએ.'}
+              </p>
+
+              <p className="mt-3">
+                {language === 'en'
+                  ? 'Affiliate disclosure.'
+                  : 'કેટલાક લિંક્સ એફિલિએટ હોઈ શકે છે, જેના દ્વારા અમને કમિશન મળી શકે છે.'}
               </p>
             </section>
 
             <section>
-              <h2 className="headline-secondary text-foreground mb-4">
-                {language === 'en' ? 'Changes to Terms' : 'શરતોમાં ફેરફારો'}
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '7. Limitation of Liability' : '7. જવાબદારી મર્યાદા'}
               </h2>
+
               <p>
                 {language === 'en'
-                  ? 'We reserve the right to modify these Terms at any time. Your continued use of our services after any changes indicates your acceptance of the new Terms.'
-                  : 'અમે કોઈપણ સમયે આ શરતોમાં ફેરફાર કરવાનો અધિકાર અનામત રાખીએ છીએ. કોઈપણ ફેરફારો પછી અમારી સેવાઓનો તમારો સતત ઉપયોગ નવી શરતોની તમારી સ્વીકૃતિ સૂચવે છે.'}
+                  ? 'No liability.'
+                  : 'વેબસાઇટના ઉપયોગથી થતા કોઈપણ સીધા કે આડકતરા નુકસાન માટે Kanam Express જવાબદાર નહીં હોય.'}
               </p>
             </section>
 
-            <p className="text-sm text-muted-foreground mt-8">
-              {language === 'en' ? 'Last updated: February 2024' : 'છેલ્લે અપડેટ: ફેબ્રુઆરી ૨૦૨૪'}
-            </p>
+            <section>
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '8. Governing Law' : '8. લાગુ કાયદો'}
+              </h2>
+
+              <p>
+                {language === 'en'
+                  ? 'Indian law applies.'
+                  : 'આ શરતો ભારતના કાયદા મુજબ શાસિત છે અને કોઈપણ વિવાદ માટે ગુજરાતના કોર્ટ લાગુ પડશે.'}
+              </p>
+            </section>
+
+            <section>
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '9. Changes to Terms' : '9. શરતોમાં ફેરફાર'}
+              </h2>
+
+              <p>
+                {language === 'en'
+                  ? 'We may update.'
+                  : 'અમે આ શરતો કોઈપણ સમયે બદલી શકીએ છીએ. નવી શરતો પોસ્ટ થયા પછી તરત જ લાગુ થશે.'}
+              </p>
+            </section>
+
+            <section>
+              <h2 className="headline-secondary mb-3">
+                {language === 'en' ? '10. Contact Us' : '10. સંપર્ક કરો'}
+              </h2>
+
+              <ul className="list-disc list-inside">
+                <li>Email: kanamexpress@gmail.com</li>
+                <li>{language === 'en' ? 'Phone: +91 98247 49413' : 'ફોન: +91 98247 49413'}</li>
+                <li>{language === 'en' ? 'Address: Gujarat, India' : 'સરનામું: ગુજરાત, ભારત'}</li>
+              </ul>
+            </section>
+
           </div>
         </div>
       </div>
@@ -89,4 +180,4 @@ const Terms = () => {
   );
 };
 
-export default Terms;
+export default Terms; 

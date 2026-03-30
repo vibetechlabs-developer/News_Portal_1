@@ -28,6 +28,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Disclaimer from "./pages/Disclaimer";
 import Careers from "./pages/Careers";
 import Advertise from "./pages/Advertise";
 import NotFound from "./pages/NotFound";
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/disclaimer" element={<Disclaimer />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/advertise" element={<Advertise />} />
 

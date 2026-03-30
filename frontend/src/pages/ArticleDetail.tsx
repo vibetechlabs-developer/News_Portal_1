@@ -12,6 +12,7 @@ import { ContentProtection } from "@/components/ContentProtection";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteSettings } from "@/hooks/useNewsApi";
 import {
   getArticleBySlug,
   getRelatedArticles,
@@ -58,6 +59,7 @@ export default function ArticleDetail() {
   const { language } = useLanguage();
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
+  const { data: siteSettings } = useSiteSettings();
   const trackedRef = useRef<string | null>(null);
   const autoplay = searchParams.get("autoplay") === "1";
 
@@ -207,10 +209,23 @@ export default function ArticleDetail() {
             ← {language === "en" ? "Back to Home" : "હોમ પર પાછા"}
           </Link>
           {article && (
-            <div className="text-xs text-muted-foreground">
-              {article.published_at
-                ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
-                : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
+            <div className="flex flex-col items-end gap-0.5">
+              <div className="text-xs text-muted-foreground">
+                {article.published_at
+                  ? new Date(article.published_at).toLocaleDateString(
+                      language === 'gu' ? 'gu-IN' : 'en-IN',
+                      { year: 'numeric', month: 'long', day: 'numeric' }
+                    )
+                  : new Date(article.created_at).toLocaleDateString(
+                      language === 'gu' ? 'gu-IN' : 'en-IN',
+                      { year: 'numeric', month: 'long', day: 'numeric' }
+                    )}
+              </div>
+              <div className="text-xs text-muted-foreground/70">
+                {article.published_at
+                  ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
+                  : formatDistanceToNow(new Date(article.created_at), { addSuffix: true })}
+              </div>
             </div>
           )}
         </div>
@@ -235,6 +250,24 @@ export default function ArticleDetail() {
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
                   {title}
                 </h1>
+
+                {/* Author byline + date */}
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground border-b border-border pb-4">
+                  <span className="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span className="font-medium">
+                      {siteSettings?.editor_name || 'Kanam Express'}
+                    </span>
+                  </span>
+                  <span className="text-muted-foreground/50">·</span>
+                  <time dateTime={article.published_at || article.created_at} className="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    {new Date(article.published_at || article.created_at).toLocaleDateString(
+                      language === 'gu' ? 'gu-IN' : 'en-IN',
+                      { year: 'numeric', month: 'long', day: 'numeric' }
+                    )}
+                  </time>
+                </div>
 
                 {summary ? (
                   <p className="mt-4 text-lg text-muted-foreground">

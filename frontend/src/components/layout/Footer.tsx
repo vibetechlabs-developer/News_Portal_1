@@ -27,8 +27,9 @@ export function Footer() {
       { key: 'advertise', label: 'Advertise', labelGu: 'જાહેરાત', labelHi: 'विज्ञापन', href: '/advertise' },
     ],
     legal: [
-      { key: 'privacy', label: 'Privacy Policy', labelGu: 'ગોપનીયતા નીતિ', labelHi: 'गोपनीयता नीति', href: '/privacy' },
+      { key: 'privacy', label: 'Privacy Policy', labelGu: 'ગોપનીયત૾ નીતિ', labelHi: 'गोपनीयता नीति', href: '/privacy' },
       { key: 'terms', label: 'Terms of Use', labelGu: 'ઉપયોગની શરતો', labelHi: 'उपयोग की शर्तें', href: '/terms' },
+      { key: 'disclaimer', label: 'Disclaimer', labelGu: 'અસ્વીકૃતિ', labelHi: 'अस्वीकृति', href: '/disclaimer' },
     ],
   };
 
