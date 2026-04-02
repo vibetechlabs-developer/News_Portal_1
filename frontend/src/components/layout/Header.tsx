@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, X, User, LogOut, Newspaper, Radio } from 'lucide-react';
+import { Search, X, User, LogOut, Newspaper, Radio, Smartphone } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -78,6 +78,22 @@ export function Header() {
 
           {/* Right: Live TV + Login/Signup */}
           <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+            {/* App Download Button */}
+            <a
+              href="/kanam-app.apk"
+              download="Kanam-Express.apk"
+              className="flex flex-col items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-3 py-0 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group relative overflow-visible"
+              title={language === 'gu' ? 'એપ ડાઉનલોડ કરો' : 'Download App'}
+            >
+              <div className="relative">
+                <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
+              </div>
+              <div className="hidden sm:flex items-center gap-1 relative">
+                <span className="text-[9px] sm:text-[10px] font-extrabold text-primary uppercase tracking-wider bg-primary/10 dark:bg-primary/20 px-1.5 py-0.5 rounded">
+                  {language === 'gu' ? 'એપ' : 'App'}
+                </span>
+              </div>
+            </a>
             {/* Live TV Button */}
             <Link
               to="/live-videos"
