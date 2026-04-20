@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.utils import timezone
+from django.core.mail import send_mail
 from .models import JobPosting, JobApplication, ApplicationReview, Notification
 from .serializers import (
     JobPostingSerializer, JobApplicationSerializer,
@@ -142,8 +143,46 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        old_status = application.status
         application.status = new_status
         application.save()
+        
+        if old_status != 'ACCEPTED' and new_status == 'ACCEPTED':
+            job = application.job_posting
+            subject = f"Job Application Accepted: {job.title} at Kanam Express"
+            body = (
+                f"Dear {application.full_name},\n\n"
+                f"Congratulations! You have been accepted for the job role: {job.title}.\n\n"
+                f"Job Details:\n"
+                f"- Category: {job.get_category_display()}\n"
+                f"- Location: {job.location}\n"
+                f"- Job Type: {job.get_job_type_display()}\n"
+            )
+            
+            if job.salary_range_min and job.salary_range_max:
+                body += f"- Salary Range: {job.salary_range_min} to {job.salary_range_max}\n"
+            
+            if application.admin_notes:
+                body += f"\nNote from team:\n{application.admin_notes}\n"
+                
+            body += (
+                f"\nWelcome to the team!\n\n"
+                f"Best Regards,\n"
+                f"Kanam Express Team\n"
+                f"kanamexpress.com"
+            )
+            
+            try:
+                send_mail(
+                    subject=subject,
+                    message=body,
+                    from_email="kanamexpress@gmail.com",
+                    recipient_list=[application.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Error sending acceptance email: {e}")
+                
         serializer = self.get_serializer(application)
         return Response(serializer.data)
     
