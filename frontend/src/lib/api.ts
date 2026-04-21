@@ -615,7 +615,7 @@ export async function getVideos(params?: {
   if (params?.search) search.set("search", params.search);
   if (params?.primary_language) search.set("primary_language", params.primary_language);
   const qs = search.toString();
-  const url = apiUrl("/videos/" + (qs ? `?${qs}` : ""));
+  const url = apiUrl("/news/videos/" + (qs ? `?${qs}` : ""));
   return fetchJson(url);
 }
 
@@ -638,7 +638,7 @@ export async function getReels(params?: {
   if (params?.search) search.set("search", params.search);
   if (params?.primary_language) search.set("primary_language", params.primary_language);
   const qs = search.toString();
-  const url = apiUrl("/reels/" + (qs ? `?${qs}` : ""));
+  const url = apiUrl("/news/reels/" + (qs ? `?${qs}` : ""));
   return fetchJson(url);
 }
 
@@ -734,7 +734,7 @@ function clipPayloadToFormData(
 
 export async function createVideoContentAdmin(payload: VideoContentPayload): Promise<VideoContentItem> {
   const fd = clipPayloadToFormData(payload, "video");
-  return request<VideoContentItem>(apiUrl("/videos/"), { method: "POST", auth: true, json: fd });
+  return request<VideoContentItem>(apiUrl("/news/videos/"), { method: "POST", auth: true, json: fd });
 }
 
 export async function updateVideoContentAdmin(id: number, payload: Partial<VideoContentPayload>): Promise<VideoContentItem> {
@@ -756,11 +756,11 @@ export async function updateVideoContentAdmin(id: number, payload: Partial<Video
   if (payload.youtube_url != null) fd.append("youtube_url", payload.youtube_url);
   if (payload.file) fd.append("file", payload.file);
   if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);
-  return request<VideoContentItem>(apiUrl(`/videos/${id}/`), { method: "PATCH", auth: true, json: fd });
+  return request<VideoContentItem>(apiUrl(`/news/videos/${id}/`), { method: "PATCH", auth: true, json: fd });
 }
 
 export async function deleteVideoContentAdmin(id: number): Promise<void> {
-  await request(apiUrl(`/videos/${id}/`), { method: "DELETE", auth: true });
+  await request(apiUrl(`/news/videos/${id}/`), { method: "DELETE", auth: true });
 }
 
 export interface VideoContentResponse {
@@ -775,13 +775,13 @@ export async function getVideosAdmin(pageOpts?: { page?: number; limit?: number;
   if (pageOpts?.page) qs.set("page", String(pageOpts.page));
   if (pageOpts?.limit) qs.set("page_size", String(pageOpts.limit));
   if (pageOpts?.status) qs.set("status", pageOpts.status);
-  return request<VideoContentResponse>(apiUrl(`/videos/?${qs.toString()}`), { method: "GET", auth: true });
+  return request<VideoContentResponse>(apiUrl(`/news/videos/?${qs.toString()}`), { method: "GET", auth: true });
 }
 
 // ---------- Video Engagement (Likes/Comments) ----------
 
 export async function toggleVideoLike(videoId: number, isLike: boolean): Promise<void> {
-  await request(apiUrl(`/videos/${videoId}/like/`), {
+  await request(apiUrl(`/news/videos/${videoId}/like/`), {
     method: isLike ? "POST" : "DELETE",
     auth: true,
   });
@@ -789,13 +789,13 @@ export async function toggleVideoLike(videoId: number, isLike: boolean): Promise
 
 export async function getVideoComments(videoId: number): Promise<CommentItem[]> {
   return request<CommentItem[]>(
-    apiUrl(`/videos/${videoId}/comment/`),
+    apiUrl(`/news/videos/${videoId}/comment/`),
     { method: "GET" }
   );
 }
 
 export async function postVideoComment(videoId: number, content: string, parentId?: number): Promise<CommentItem> {
-  return request<CommentItem>(apiUrl(`/videos/${videoId}/comment/`), {
+  return request<CommentItem>(apiUrl(`/news/videos/${videoId}/comment/`), {
     method: "POST",
     auth: true,
     json: { content, parent: parentId || null },
@@ -804,7 +804,7 @@ export async function postVideoComment(videoId: number, content: string, parentI
 
 export async function createReelContentAdmin(payload: ReelContentPayload): Promise<ReelContentItem> {
   const fd = clipPayloadToFormData(payload, "reel");
-  return request<ReelContentItem>(apiUrl("/reels/"), { method: "POST", auth: true, json: fd });
+  return request<ReelContentItem>(apiUrl("/news/reels/"), { method: "POST", auth: true, json: fd });
 }
 
 export async function updateReelContentAdmin(id: number, payload: Partial<ReelContentPayload>): Promise<ReelContentItem> {
@@ -823,11 +823,11 @@ export async function updateReelContentAdmin(id: number, payload: Partial<ReelCo
   if (payload.youtube_url != null) fd.append("youtube_url", payload.youtube_url);
   if (payload.file) fd.append("file", payload.file);
   if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);
-  return request<ReelContentItem>(apiUrl(`/reels/${id}/`), { method: "PATCH", auth: true, json: fd });
+  return request<ReelContentItem>(apiUrl(`/news/reels/${id}/`), { method: "PATCH", auth: true, json: fd });
 }
 
 export async function deleteReelContentAdmin(id: number): Promise<void> {
-  await request(apiUrl(`/reels/${id}/`), { method: "DELETE", auth: true });
+  await request(apiUrl(`/news/reels/${id}/`), { method: "DELETE", auth: true });
 }
 
 export interface ReelContentResponse {
@@ -842,13 +842,13 @@ export async function getReelsAdmin(pageOpts?: { page?: number; limit?: number; 
   if (pageOpts?.page) qs.set("page", String(pageOpts.page));
   if (pageOpts?.limit) qs.set("page_size", String(pageOpts.limit));
   if (pageOpts?.status) qs.set("status", pageOpts.status);
-  return request<ReelContentResponse>(apiUrl(`/reels/?${qs.toString()}`), { method: "GET", auth: true });
+  return request<ReelContentResponse>(apiUrl(`/news/reels/?${qs.toString()}`), { method: "GET", auth: true });
 }
 
 // ---------- Reel Engagement (Likes/Comments) ----------
 
 export async function toggleReelLike(reelId: number, isLike: boolean): Promise<void> {
-  await request(apiUrl(`/reels/${reelId}/like/`), {
+  await request(apiUrl(`/news/reels/${reelId}/like/`), {
     method: isLike ? "POST" : "DELETE",
     auth: true,
   });
@@ -856,13 +856,13 @@ export async function toggleReelLike(reelId: number, isLike: boolean): Promise<v
 
 export async function getReelComments(reelId: number): Promise<CommentItem[]> {
   return request<CommentItem[]>(
-    apiUrl(`/reels/${reelId}/comment/`),
+    apiUrl(`/news/reels/${reelId}/comment/`),
     { method: "GET" }
   );
 }
 
 export async function postReelComment(reelId: number, content: string, parentId?: number): Promise<CommentItem> {
-  return request<CommentItem>(apiUrl(`/reels/${reelId}/comment/`), {
+  return request<CommentItem>(apiUrl(`/news/reels/${reelId}/comment/`), {
     method: "POST",
     auth: true,
     json: { content, parent: parentId || null },
@@ -1319,7 +1319,7 @@ export async function trackArticleView(slug: string): Promise<void> {
 
 export async function trackReelView(id: number): Promise<void> {
   try {
-    await fetch(apiUrl(`/reels/${id}/track_view/`), { method: "POST" });
+    await fetch(apiUrl(`/news/reels/${id}/track_view/`), { method: "POST" });
   } catch {
     // Non-critical: ignore tracking errors
   }
@@ -1327,7 +1327,7 @@ export async function trackReelView(id: number): Promise<void> {
 
 export async function trackVideoView(id: number): Promise<void> {
   try {
-    await fetch(apiUrl(`/videos/${id}/track_view/`), { method: "POST" });
+    await fetch(apiUrl(`/news/videos/${id}/track_view/`), { method: "POST" });
   } catch {
     // Non-critical: ignore tracking errors
   }

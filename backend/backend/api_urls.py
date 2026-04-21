@@ -60,8 +60,8 @@ router.register(r"news/likes", LikeViewSet, basename="news-likes")
 router.register(r"news/polls", PollViewSet, basename="news-polls")
 
 # Dedicated video/reel tables
-router.register(r"videos", VideoContentViewSet, basename="videos")
-router.register(r"reels", ReelContentViewSet, basename="reels")
+router.register(r"news/videos", VideoContentViewSet, basename="news-videos")
+router.register(r"news/reels", ReelContentViewSet, basename="news-reels")
 
 # Reels app (new)
 router.register(r"reels-new/reels", ReelViewSet, basename="reels-new")
