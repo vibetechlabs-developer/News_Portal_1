@@ -47,10 +47,24 @@ else:
     ]
 
 # Application definition
+# Cache configuration:
+# - DEBUG=True: use local in-memory cache to avoid DB cache-table dependency.
+# - DEBUG=False: default to DB cache for shared cache across workers.
+_default_cache_backend = (
+    "django.core.cache.backends.locmem.LocMemCache"
+    if DEBUG
+    else "django.core.cache.backends.db.DatabaseCache"
+)
+_cache_backend = config("CACHE_BACKEND", default=_default_cache_backend)
+_cache_location = config(
+    "CACHE_LOCATION",
+    default="news_cache_table" if "DatabaseCache" in _cache_backend else "news-portal-cache",
+)
+
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "news_cache_table",
+        "BACKEND": _cache_backend,
+        "LOCATION": _cache_location,
     }
 }
 
@@ -392,3 +406,8 @@ CRICKET_API_BASE_URL = config("CRICKET_API_BASE_URL", default="")
 CRICKET_API_HOST = config("CRICKET_API_HOST", default="")
 CRICKET_API_KEY = config("CRICKET_API_KEY", default="")
 CRICKET_MATCHES_API_URL = config("CRICKET_MATCHES_API_URL", default="")
+
+# Web Push (browser notifications)
+WEB_PUSH_PUBLIC_KEY = config("WEB_PUSH_PUBLIC_KEY", default="")
+WEB_PUSH_PRIVATE_KEY = config("WEB_PUSH_PRIVATE_KEY", default="")
+WEB_PUSH_SUBJECT = config("WEB_PUSH_SUBJECT", default="mailto:admin@newsportal.local")

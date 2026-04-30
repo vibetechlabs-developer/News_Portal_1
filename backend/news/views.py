@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from django.conf import settings
 from django.db.models import F, Q, Count
 from django.utils import timezone
@@ -35,6 +37,7 @@ from .models import (
     ContentStatus,
     Poll,
     PollOption,
+    PushSubscription,
 )
 from .serializers import (
     CategorySerializer,
@@ -59,6 +62,78 @@ import logging
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+def _create_news_notification(article):
+    """Create an admin notification for newly published news."""
+    try:
+        from careers.models import Notification  # local import to avoid hard coupling
+
+        title = (
+            article.title_en
+            or article.title_hi
+            or article.title_gu
+            or f"Article #{article.pk}"
+        )
+        Notification.objects.create(
+            notification_type="NEWS_ARTICLE",
+            title=f"New News Published: {title}",
+            message=f'A new article "{title}" has been published.',
+            related_object_type="NewsArticle",
+            related_object_id=article.pk,
+        )
+    except Exception:
+        # Notifications are non-critical; publishing should not fail if this errors.
+        logger.exception("Failed to create notification for article %s", article.pk)
+
+
+def _send_web_push_for_article(article):
+    public_key = getattr(settings, "WEB_PUSH_PUBLIC_KEY", "")
+    private_key = getattr(settings, "WEB_PUSH_PRIVATE_KEY", "")
+    subject = getattr(settings, "WEB_PUSH_SUBJECT", "")
+    if not public_key or not private_key or not subject:
+        return
+
+    try:
+        from pywebpush import WebPushException, webpush
+    except Exception:
+        logger.warning("pywebpush is not installed; skipping browser push notifications.")
+        return
+
+    title = article.title_en or article.title_hi or article.title_gu or f"Article #{article.pk}"
+    payload = json.dumps(
+        {
+            "title": "Kanam Express",
+            "body": f"New article: {title}",
+            "url": f"/article/{article.slug}",
+        }
+    )
+
+    for sub in PushSubscription.objects.filter(is_active=True).iterator():
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+                },
+                data=payload,
+                vapid_private_key=private_key,
+                vapid_claims={"sub": subject},
+            )
+        except WebPushException as exc:
+            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            if status_code in (404, 410):
+                sub.is_active = False
+                sub.save(update_fields=["is_active", "updated_at"])
+            else:
+                logger.warning("Web push failed for subscription %s: %s", sub.pk, exc)
+        except Exception as exc:
+            logger.warning("Web push failed for subscription %s: %s", sub.pk, exc)
+
+
+def _notify_new_article(article):
+    _create_news_notification(article)
+    _send_web_push_for_article(article)
 
 
 def _is_content_manager(user):
@@ -472,10 +547,13 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
         if status_value == ContentStatus.PUBLISHED and not published_at:
             published_at = timezone.now()
 
-        serializer.save(author=self.request.user, published_at=published_at)
+        article = serializer.save(author=self.request.user, published_at=published_at)
+        if article.status == ContentStatus.PUBLISHED:
+            _notify_new_article(article)
 
     def perform_update(self, serializer):
         instance = serializer.instance
+        was_published = instance.status == ContentStatus.PUBLISHED
         next_status = serializer.validated_data.get("status", instance.status)
         next_published_at = serializer.validated_data.get("published_at", instance.published_at)
 
@@ -491,7 +569,9 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
         if next_status == ContentStatus.PUBLISHED and not next_published_at:
             next_published_at = timezone.now()
 
-        serializer.save(published_at=next_published_at)
+        article = serializer.save(published_at=next_published_at)
+        if not was_published and article.status == ContentStatus.PUBLISHED:
+            _notify_new_article(article)
 
     @action(detail=False, methods=["get"], url_path="breaking", permission_classes=[AllowAny])
     @method_decorator(cache_page(60))
@@ -654,6 +734,42 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
         qs = qs.filter(filters).distinct().order_by("-published_at", "-created_at")[:10]
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
+
+class PushSubscriptionView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        public_key = getattr(settings, "WEB_PUSH_PUBLIC_KEY", "")
+        return Response({"enabled": bool(public_key), "public_key": public_key})
+
+    def post(self, request, *args, **kwargs):
+        data = request.data or {}
+        endpoint = data.get("endpoint")
+        keys = data.get("keys") or {}
+        p256dh = keys.get("p256dh")
+        auth = keys.get("auth")
+        if not endpoint or not p256dh or not auth:
+            return Response(
+                {"detail": "Invalid subscription payload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={"p256dh": p256dh, "auth": auth, "is_active": True},
+        )
+        return Response({"ok": True}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, *args, **kwargs):
+        endpoint = (request.data or {}).get("endpoint")
+        if not endpoint:
+            return Response(
+                {"detail": "endpoint is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        PushSubscription.objects.filter(endpoint=endpoint).update(is_active=False)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MediaViewSet(viewsets.ModelViewSet):

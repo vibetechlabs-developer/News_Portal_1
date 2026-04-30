@@ -8,6 +8,7 @@ psycopg2-binary==2.9.9
 python-decouple==3.8
 Pillow==10.4.0
 requests==2.32.3
+pywebpush==2.0.3
 
 # Optional/extra packages (install as needed, often in development):
 # django-modeltranslation==0.18.12

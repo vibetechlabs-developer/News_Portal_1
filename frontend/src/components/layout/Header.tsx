@@ -1,16 +1,19 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, X, User, LogOut, Newspaper, Radio, Smartphone } from 'lucide-react';
+import { Search, X, User, LogOut, Newspaper, Radio, Smartphone, Bell } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { getTrendingTags, type TagItem } from '@/lib/api';
+import { subscribeBrowserPush } from '@/lib/webPush';
+import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/logo.png';
 
 export function Header() {
   const { t, language } = useLanguage();
   const { isAuthenticated, user, logout } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,6 +61,23 @@ export function Header() {
     }
   };
 
+  const handleEnableNotifications = async () => {
+    try {
+      const result = await subscribeBrowserPush();
+      toast({
+        title: result.ok ? (language === 'gu' ? 'સફળ' : 'Success') : (language === 'gu' ? 'નોટિફિકેશન સેટ થયું નહીં' : 'Unable to enable notifications'),
+        description: result.message,
+        variant: result.ok ? 'default' : 'destructive',
+      });
+    } catch (error) {
+      toast({
+        title: language === 'gu' ? 'નોટિફિકેશન સેટ થયું નહીં' : 'Unable to enable notifications',
+        description: String(error),
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <header className="bg-card border-b border-border py-5 md:py-6 lg:py-8">
       <div className="container mx-auto px-2 sm:px-4">
@@ -94,6 +114,21 @@ export function Header() {
                 </span>
               </div>
             </a>
+            <button
+              type="button"
+              onClick={handleEnableNotifications}
+              className="flex flex-col items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-3 py-0 sm:py-2 rounded-lg bg-card border border-border hover:bg-accent hover:border-primary transition-all group relative overflow-visible"
+              title={language === 'gu' ? 'બ્રાઉઝર નોટિફિકેશન ચાલુ કરો' : 'Enable browser notifications'}
+            >
+              <div className="relative">
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors" />
+              </div>
+              <div className="hidden sm:flex items-center gap-1 relative">
+                <span className="text-[9px] sm:text-[10px] font-extrabold text-primary uppercase tracking-wider bg-primary/10 dark:bg-primary/20 px-1.5 py-0.5 rounded">
+                  {language === 'gu' ? 'ALERT' : 'ALERT'}
+                </span>
+              </div>
+            </button>
             {/* Live TV Button */}
             <Link
               to="/live-videos"

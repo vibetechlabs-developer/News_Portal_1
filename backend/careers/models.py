@@ -210,6 +210,7 @@ class Notification(models.Model):
     NOTIFICATION_TYPES = [
         ("CAREER_APPLICATION", "Career Application"),
         ("CONTACT_MESSAGE", "Contact Message"),
+        ("NEWS_ARTICLE", "News Article"),
         ("OTHER", "Other"),
     ]
 

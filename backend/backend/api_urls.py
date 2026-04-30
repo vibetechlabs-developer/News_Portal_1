@@ -31,6 +31,7 @@ from news.views import (
     VideoContentViewSet,
     ReelContentViewSet,
     PollViewSet,
+    PushSubscriptionView,
 )
 from news.views_share import ArticleShareProxyView
 from reels.views import ReelViewSet, ReelCategoryViewSet, ReelTagViewSet
@@ -100,6 +101,7 @@ urlpatterns = [
     path("auth/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
     path("news/cricket-live/", CricketNewsProxyView.as_view(), name="cricket-live"),
     path("news/cricket-live-matches/", CricketMatchesProxyView.as_view(), name="cricket-live-matches"),
+    path("push/subscriptions/", PushSubscriptionView.as_view(), name="push-subscriptions"),
     path("market/indices/", MarketIndicesProxyView.as_view(), name="market-indices"),
     path("share/<str:slug>/", ArticleShareProxyView.as_view(), name="article-share"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),

@@ -636,3 +636,25 @@ class PollOption(models.Model):
 
     def __str__(self) -> str:
         return f"Option: {self.text} ({self.votes} votes)"
+
+
+class PushSubscription(models.Model):
+    """
+    Stores browser push subscriptions for Web Push notifications.
+    """
+
+    endpoint = models.URLField(unique=True)
+    p256dh = models.TextField()
+    auth = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["is_active", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"PushSubscription({self.endpoint[:60]})"
