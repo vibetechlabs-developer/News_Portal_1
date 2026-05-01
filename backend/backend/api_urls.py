@@ -51,6 +51,7 @@ router = DefaultRouter()
 # Users / Auth
 router.register(r"users", UserAdminViewSet, basename="users")
 router.register(r"users/customers", UserAppProfileAdminViewSet, basename="users-customers")
+router.register(r"customers", UserAppProfileAdminViewSet, basename="customers")
 
 # News
 router.register(r"news/sections", SectionViewSet, basename="news-sections")
