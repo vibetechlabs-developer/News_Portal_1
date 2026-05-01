@@ -37,6 +37,7 @@ from news.views_share import ArticleShareProxyView
 from reels.views import ReelViewSet, ReelCategoryViewSet, ReelTagViewSet
 from users.views import (
     MeView,
+    CustomerProfilesAdminListView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     RegisterView,
@@ -104,6 +105,9 @@ urlpatterns = [
     path("auth/logout/", TokenBlacklistView.as_view(), name="token-blacklist"),
     path("auth/password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),
     path("auth/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
+    # Stable explicit list endpoint for customers (avoid router nesting edge cases)
+    path("users/customers/", CustomerProfilesAdminListView.as_view(), name="users-customers-list"),
+    path("customers/", CustomerProfilesAdminListView.as_view(), name="customers-list"),
     path("news/cricket-live/", CricketNewsProxyView.as_view(), name="cricket-live"),
     path("news/cricket-live-matches/", CricketMatchesProxyView.as_view(), name="cricket-live-matches"),
     path("push/subscriptions/", PushSubscriptionView.as_view(), name="push-subscriptions"),

@@ -159,3 +159,13 @@ class UserAppProfileAdminViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsSuperAdmin]
     serializer_class = UserAppProfileAdminSerializer
     queryset = UserAppProfile.objects.select_related("user").order_by("-updated_at")
+
+
+class CustomerProfilesAdminListView(generics.ListAPIView):
+    """
+    Stable, explicit endpoint (no router nesting) for customer profiles.
+    """
+
+    permission_classes = [IsSuperAdmin]
+    serializer_class = UserAppProfileAdminSerializer
+    queryset = UserAppProfile.objects.select_related("user").order_by("-updated_at")
