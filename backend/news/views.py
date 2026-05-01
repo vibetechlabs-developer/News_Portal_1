@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import F, Q, Count
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -106,6 +107,7 @@ def _send_web_push_for_article(article):
             "title": "Kanam Express",
             "body": f"New article: {title}",
             "url": f"/article/{article.slug}",
+            "tag": f"kanam-news-{article.pk}",
         }
     )
 
@@ -119,6 +121,7 @@ def _send_web_push_for_article(article):
                 data=payload,
                 vapid_private_key=private_key,
                 vapid_claims={"sub": subject},
+                ttl=86400,
             )
         except WebPushException as exc:
             status_code = getattr(getattr(exc, "response", None), "status_code", None)
@@ -134,6 +137,15 @@ def _send_web_push_for_article(article):
 def _notify_new_article(article):
     _create_news_notification(article)
     _send_web_push_for_article(article)
+
+
+def _notify_new_article_from_id(article_id: int):
+    """Runs after DB commit so push payloads see the persisted row reliably."""
+    try:
+        article = NewsArticle.objects.get(pk=article_id)
+    except NewsArticle.DoesNotExist:
+        return
+    _notify_new_article(article)
 
 
 def _is_content_manager(user):
@@ -549,7 +561,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
 
         article = serializer.save(author=self.request.user, published_at=published_at)
         if article.status == ContentStatus.PUBLISHED:
-            _notify_new_article(article)
+            transaction.on_commit(lambda a_id=article.pk: _notify_new_article_from_id(a_id))
 
     def perform_update(self, serializer):
         instance = serializer.instance
@@ -571,7 +583,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
 
         article = serializer.save(published_at=next_published_at)
         if not was_published and article.status == ContentStatus.PUBLISHED:
-            _notify_new_article(article)
+            transaction.on_commit(lambda a_id=article.pk: _notify_new_article_from_id(a_id))
 
     @action(detail=False, methods=["get"], url_path="breaking", permission_classes=[AllowAny])
     @method_decorator(cache_page(60))
