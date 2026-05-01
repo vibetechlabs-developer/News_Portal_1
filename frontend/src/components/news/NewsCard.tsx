@@ -20,11 +20,14 @@ export function NewsCard({
   time, 
   views,
   variant = 'default',
-  href = '/latest'
+  href
 }: NewsCardProps) {
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    href ? <Link to={href}>{children}</Link> : <>{children}</>;
+
   if (variant === 'horizontal') {
     return (
-      <Link to={href}>
+      <Wrapper>
         <article className="news-card flex gap-4 p-4 group cursor-pointer">
           <div className="w-32 h-24 flex-shrink-0 overflow-hidden rounded-lg">
             <img
@@ -52,13 +55,13 @@ export function NewsCard({
             </div>
           </div>
         </article>
-      </Link>
+      </Wrapper>
     );
   }
 
   if (variant === 'compact') {
     return (
-      <Link to={href}>
+      <Wrapper>
         <article className="flex gap-3 py-3 border-b border-border last:border-0 group cursor-pointer">
           <div className="w-20 h-16 flex-shrink-0 overflow-hidden rounded">
             <img
@@ -80,12 +83,12 @@ export function NewsCard({
             </div>
           </div>
         </article>
-      </Link>
+      </Wrapper>
     );
   }
 
   return (
-    <Link to={href}>
+    <Wrapper>
       <article className="news-card group cursor-pointer">
         <div className="aspect-[16/10] overflow-hidden">
           <img
@@ -116,6 +119,6 @@ export function NewsCard({
           </div>
         </div>
       </article>
-    </Link>
+    </Wrapper>
   );
 }
