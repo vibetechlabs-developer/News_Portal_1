@@ -12,7 +12,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state || {}) as LocationState;
-  const redirectTo = state.from?.pathname || "/admin";
+  const redirectTo = state.from?.pathname || "/";
 
   const { login, isLoading, isAuthenticated, isEditor, isSuperAdmin, isReporter } = useAuth();
   const { toast } = useToast();
@@ -91,11 +91,9 @@ const Login = () => {
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-xl border border-border bg-card/90 shadow-lg p-8 space-y-6">
           <div className="space-y-1 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Admin & Editor Login
-            </h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Login</h1>
             <p className="text-sm text-muted-foreground">
-              Sign in with your newsroom account to manage content.
+              Sign in to continue with your account.
             </p>
           </div>
 

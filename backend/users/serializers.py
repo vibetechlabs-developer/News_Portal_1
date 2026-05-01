@@ -3,6 +3,8 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from .models import UserAppProfile
+
 User = get_user_model()
 
 
@@ -111,3 +113,77 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     uidb64 = serializers.CharField(write_only=True)
     token = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=8)
+
+
+class UserAppProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserAppProfile
+        fields = (
+            "location_permission_granted",
+            "location_permission_updated_at",
+            "latitude",
+            "longitude",
+            "city",
+            "state",
+            "country",
+            "pincode",
+            "device_id",
+            "device_model",
+            "device_platform",
+            "app_version",
+            "app_build_number",
+            "marketing_opt_in",
+            "marketing_opt_in_updated_at",
+            "personalized_news_opt_in",
+            "personalized_news_opt_in_updated_at",
+            "last_seen_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "location_permission_updated_at",
+            "marketing_opt_in_updated_at",
+            "personalized_news_opt_in_updated_at",
+            "created_at",
+            "updated_at",
+        )
+
+
+class UserAppProfileAdminSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.CharField(source="user.email", read_only=True)
+    role = serializers.CharField(source="user.role", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
+    date_joined = serializers.DateTimeField(source="user.date_joined", read_only=True)
+
+    class Meta:
+        model = UserAppProfile
+        fields = (
+            "user_id",
+            "username",
+            "email",
+            "role",
+            "is_active",
+            "date_joined",
+            "location_permission_granted",
+            "location_permission_updated_at",
+            "latitude",
+            "longitude",
+            "city",
+            "state",
+            "country",
+            "pincode",
+            "device_id",
+            "device_model",
+            "device_platform",
+            "app_version",
+            "app_build_number",
+            "marketing_opt_in",
+            "marketing_opt_in_updated_at",
+            "personalized_news_opt_in",
+            "personalized_news_opt_in_updated_at",
+            "last_seen_at",
+            "created_at",
+            "updated_at",
+        )

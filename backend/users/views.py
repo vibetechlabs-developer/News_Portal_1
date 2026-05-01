@@ -12,11 +12,14 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from backend.common.permissions import IsSuperAdmin
+from .models import UserAppProfile
 from .serializers import (
     AdminUserSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
+    UserAppProfileAdminSerializer,
+    UserAppProfileSerializer,
     UserSerializer,
 )
 
@@ -133,3 +136,26 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         if self.action in ("create", "update", "partial_update"):
             return AdminUserSerializer
         return UserSerializer
+
+
+class UserAppProfileView(generics.RetrieveUpdateAPIView):
+    """
+    Mobile/web app profile endpoint for customer metadata and consented location.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserAppProfileSerializer
+
+    def get_object(self):
+        profile, _ = UserAppProfile.objects.get_or_create(user=self.request.user)
+        return profile
+
+
+class UserAppProfileAdminViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    SUPER_ADMIN-only listing of customer app profiles for dashboard reporting/export.
+    """
+
+    permission_classes = [IsSuperAdmin]
+    serializer_class = UserAppProfileAdminSerializer
+    queryset = UserAppProfile.objects.select_related("user").order_by("-updated_at")

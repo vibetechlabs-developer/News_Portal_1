@@ -171,6 +171,31 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   });
 }
 
+export interface RegisterPayload {
+  username: string;
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+}
+
+export interface RegisterResponse {
+  id: number;
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+}
+
+export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
+  return request<RegisterResponse>(apiUrl("/auth/register/"), {
+    method: "POST",
+    json: payload as unknown as Record<string, unknown>,
+  });
+}
+
 export interface AuthUser {
   id: number;
   username: string;
@@ -1396,6 +1421,35 @@ export interface AdminUser {
   date_joined?: string;
 }
 
+export interface AdminCustomerProfile {
+  user_id: number;
+  username: string;
+  email: string;
+  role: "USER" | "SUPER_ADMIN" | "EDITOR" | "REPORTER";
+  is_active: boolean;
+  date_joined?: string;
+  location_permission_granted: boolean;
+  location_permission_updated_at?: string | null;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  device_id?: string;
+  device_model?: string;
+  device_platform?: string;
+  app_version?: string;
+  app_build_number?: string;
+  marketing_opt_in: boolean;
+  marketing_opt_in_updated_at?: string | null;
+  personalized_news_opt_in: boolean;
+  personalized_news_opt_in_updated_at?: string | null;
+  last_seen_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export type AdminUserPayload = Partial<Omit<AdminUser, "id" | "last_login" | "date_joined">> & {
   username: string;
   email: string;
@@ -1412,6 +1466,17 @@ export async function listUsersAdmin(params?: { page_size?: number }): Promise<A
     { method: "GET", auth: true }
   );
   return Array.isArray(data) ? data : (data?.results ?? []);
+}
+
+export async function listCustomersAdmin(params?: { page_size?: number }): Promise<AdminCustomerProfile[]> {
+  const qs = new URLSearchParams();
+  qs.set("page_size", String(params?.page_size ?? 500));
+  const data = await request<{ results?: AdminCustomerProfile[] } | AdminCustomerProfile[]>(
+    apiUrl(`/users/customers/?${qs.toString()}`),
+    { method: "GET", auth: true }
+  );
+  const rows = Array.isArray(data) ? data : (data?.results ?? []);
+  return rows.filter((r) => r.role === "USER");
 }
 
 export async function createUserAdmin(payload: AdminUserPayload): Promise<AdminUser> {

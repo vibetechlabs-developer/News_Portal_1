@@ -68,6 +68,7 @@ import {
   approveTag,
   rejectTag,
   listUsersAdmin,
+  listCustomersAdmin,
   createUserAdmin,
   updateUserAdmin,
   deleteUserAdmin,
@@ -91,6 +92,7 @@ import {
   type CategoryPayload,
   type TagPayload,
   type AdminUser,
+  type AdminCustomerProfile,
   type AdminUserPayload,
   type GoogleAdSenseSlot,
   type Advertisement,
@@ -132,6 +134,7 @@ const AdminDashboard = () => {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [customers, setCustomers] = useState<AdminCustomerProfile[]>([]);
   const [adSlots, setAdSlots] = useState<GoogleAdSenseSlot[]>([]);
   const [ads, setAds] = useState<Advertisement[]>([]);
   const [adRequests, setAdRequests] = useState<AdvertisementRequest[]>([]);
@@ -186,9 +189,19 @@ const AdminDashboard = () => {
     if (!accessToken) return;
     try {
       const data = await listUsersAdmin({ page_size: 200 });
-      setUsers(data);
+      setUsers(data.filter((u) => u.role !== "USER"));
     } catch (e) {
       toast({ title: "Failed to load users", variant: "destructive", description: String(e) });
+    }
+  }, [accessToken, toast]);
+
+  const loadCustomers = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const data = await listCustomersAdmin({ page_size: 500 });
+      setCustomers(data);
+    } catch (e) {
+      toast({ title: "Failed to load customers", variant: "destructive", description: String(e) });
     }
   }, [accessToken, toast]);
 
@@ -545,7 +558,7 @@ const AdminDashboard = () => {
     password: "",
     first_name: "",
     last_name: "",
-    role: "USER",
+    role: "EDITOR",
     phone_number: "",
     is_active: true,
     is_staff: false,
@@ -559,7 +572,7 @@ const AdminDashboard = () => {
       password: "",
       first_name: "",
       last_name: "",
-      role: "USER",
+      role: "EDITOR",
       phone_number: "",
       is_active: true,
       is_staff: false,
@@ -1024,7 +1037,10 @@ const AdminDashboard = () => {
           className="space-y-4"
           onValueChange={(v) => {
             if (!accessToken) return;
-            if (v === "users" && isSuperAdmin) loadUsers();
+            if (v === "users" && isSuperAdmin) {
+              loadUsers();
+              loadCustomers();
+            }
             if (v === "ads") {
               loadAdSlots();
               loadAds();
@@ -1047,7 +1063,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="careers">Careers</TabsTrigger>
               <TabsTrigger value="site">Site</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="users" disabled={!isSuperAdmin}>Users</TabsTrigger>
+              <TabsTrigger value="users" disabled={!isSuperAdmin}>Users & Customers</TabsTrigger>
               <TabsTrigger value="advertise">Advertise Page</TabsTrigger>
             </TabsList>
           </div>
@@ -1232,48 +1248,116 @@ const AdminDashboard = () => {
             {!isSuperAdmin ? (
               <p className="text-sm text-muted-foreground">Only Super Admin can manage users.</p>
             ) : (
-              <Card>
-                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <CardTitle>Users</CardTitle>
-                    <CardDescription>Create editors/reporters and manage access.</CardDescription>
-                  </div>
-                  <Button onClick={openAddUser}>Add user</Button>
-                </CardHeader>
-                <CardContent>
-                  {users.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No users loaded yet.</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Username</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Active</TableHead>
-                            <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {users.map((u) => (
-                            <TableRow key={u.id}>
-                              <TableCell className="font-medium">{u.username}</TableCell>
-                              <TableCell className="text-xs">{u.email}</TableCell>
-                              <TableCell className="text-xs">{u.role}</TableCell>
-                              <TableCell className="text-xs">{u.is_active ? "Yes" : "No"}</TableCell>
-                              <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => openEditUser(u)}>Edit</Button>
-                                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setUserDeleteId(u.id)}>Delete</Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+              <>
+                <Card>
+                  <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle>Team Users</CardTitle>
+                      <CardDescription>Create editors/reporters and manage admin-side access.</CardDescription>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                    <Button onClick={openAddUser}>Add user</Button>
+                  </CardHeader>
+                  <CardContent>
+                    {users.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No team users loaded yet.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Username</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Active</TableHead>
+                              <TableHead className="w-[110px] sm:w-[140px]">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {users.map((u) => (
+                              <TableRow key={u.id}>
+                                <TableCell className="font-medium">{u.username}</TableCell>
+                                <TableCell className="text-xs">{u.email}</TableCell>
+                                <TableCell className="text-xs">{u.role}</TableCell>
+                                <TableCell className="text-xs">{u.is_active ? "Yes" : "No"}</TableCell>
+                                <TableCell className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                                  <Button variant="ghost" size="sm" onClick={() => openEditUser(u)}>Edit</Button>
+                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setUserDeleteId(u.id)}>Delete</Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Customers</CardTitle>
+                    <CardDescription>
+                      App/website customers with consent, location, and device details.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {customers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No customer profiles captured yet.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Username</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Location</TableHead>
+                              <TableHead>Location Consent</TableHead>
+                              <TableHead>Marketing</TableHead>
+                              <TableHead>Personalized</TableHead>
+                              <TableHead>Device</TableHead>
+                              <TableHead>Last Seen</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {customers.map((c) => (
+                              <TableRow key={c.user_id}>
+                                <TableCell className="font-medium">{c.username}</TableCell>
+                                <TableCell className="text-xs">{c.email}</TableCell>
+                                <TableCell className="text-xs">
+                                  {[c.city, c.state, c.country].filter(Boolean).join(", ") || "—"}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {c.location_permission_granted ? "Allowed" : "Not allowed"}
+                                  <div className="text-[11px] text-muted-foreground">
+                                    {c.location_permission_updated_at ? new Date(c.location_permission_updated_at).toLocaleString() : "—"}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {c.marketing_opt_in ? "Yes" : "No"}
+                                  <div className="text-[11px] text-muted-foreground">
+                                    {c.marketing_opt_in_updated_at ? new Date(c.marketing_opt_in_updated_at).toLocaleString() : "—"}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {c.personalized_news_opt_in ? "Yes" : "No"}
+                                  <div className="text-[11px] text-muted-foreground">
+                                    {c.personalized_news_opt_in_updated_at ? new Date(c.personalized_news_opt_in_updated_at).toLocaleString() : "—"}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {[c.device_platform, c.device_model, c.app_version].filter(Boolean).join(" / ") || "—"}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {c.last_seen_at ? new Date(c.last_seen_at).toLocaleString() : "—"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
             )}
           </TabsContent>
 
@@ -2225,7 +2309,7 @@ const AdminDashboard = () => {
                     onChange={(e) => setUserForm((f) => ({ ...f, role: e.target.value as AdminUser["role"] }))}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
-                    {(["SUPER_ADMIN", "EDITOR", "REPORTER", "USER"] as const).map((r) => (
+                    {(["SUPER_ADMIN", "EDITOR", "REPORTER"] as const).map((r) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
                   </select>

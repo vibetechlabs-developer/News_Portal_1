@@ -41,6 +41,8 @@ from users.views import (
     PasswordResetRequestView,
     RegisterView,
     ThrottledTokenObtainPairView,
+    UserAppProfileAdminViewSet,
+    UserAppProfileView,
     UserAdminViewSet,
 )
 
@@ -48,6 +50,7 @@ router = DefaultRouter()
 
 # Users / Auth
 router.register(r"users", UserAdminViewSet, basename="users")
+router.register(r"users/customers", UserAppProfileAdminViewSet, basename="users-customers")
 
 # News
 router.register(r"news/sections", SectionViewSet, basename="news-sections")
@@ -94,6 +97,7 @@ urlpatterns = [
     path("site/settings/", SiteSettingsView.as_view(), name="site-settings"),
     path("auth/register/", RegisterView.as_view(), name="auth-register"),
     path("auth/me/", MeView.as_view(), name="auth-me"),
+    path("auth/app-profile/", UserAppProfileView.as_view(), name="auth-app-profile"),
     path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token-obtain"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("auth/logout/", TokenBlacklistView.as_view(), name="token-blacklist"),
