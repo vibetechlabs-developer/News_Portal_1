@@ -8,10 +8,14 @@ from django.utils import timezone
 from django.conf import settings
 from django.utils.html import escape
 from django.utils.text import slugify
-import base64
-import mimetypes
+from io import BytesIO
 
-from backend.common.mail import send_mail_logged, send_mail_logged_with_error
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
+
+from backend.common.mail import send_mail_logged_with_error
 from .models import JobPosting, JobApplication, ApplicationReview, Notification
 from .serializers import (
     JobPostingSerializer, JobApplicationSerializer,
@@ -21,93 +25,144 @@ from .serializers import (
 from .permissions import IsAdminOrReadOnly, IsApplicationOwnerOrAdmin, IsAdminUser
 
 
-def _photo_data_uri(application: JobApplication) -> str:
+def _draw_photo(c: canvas.Canvas, application: JobApplication, x: float, y: float, w: float, h: float) -> None:
+    c.setStrokeColor(colors.grey)
+    c.rect(x, y, w, h, stroke=1, fill=0)
     if not application.photo:
-        return ""
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(x + (w / 2), y + (h / 2), "PHOTO")
+        return
     try:
-        photo_path = application.photo.path
-        with open(photo_path, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode("ascii")
-        mime = mimetypes.guess_type(photo_path)[0] or "image/jpeg"
-        return f"data:{mime};base64,{encoded}"
+        reader = ImageReader(application.photo.path)
+        c.drawImage(reader, x + 2, y + 2, w - 4, h - 4, preserveAspectRatio=True, anchor="c")
     except Exception:
-        return ""
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(x + (w / 2), y + (h / 2), "PHOTO")
 
 
-def _photo_src(application: JobApplication, request) -> str:
-    if application.photo:
-        try:
-            return request.build_absolute_uri(application.photo.url)
-        except Exception:
-            pass
-    return _photo_data_uri(application)
+def _build_nimnuk_patra_pdf(application: JobApplication, job: JobPosting) -> bytes:
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
 
+    c.setFillColor(colors.HexColor("#cf1b1b"))
+    c.rect(0, height - 70, width, 70, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 22)
+    c.drawCentredString(width / 2, height - 45, "NIMNUK PATRA")
 
-def _build_nimnuk_patra_html(application: JobApplication, job: JobPosting, request) -> str:
-    photo_uri = _photo_src(application, request)
-    photo_block = (
-        f'<img src="{photo_uri}" alt="Photo" style="width:150px;height:180px;object-fit:cover;border:1px solid #777;" />'
-        if photo_uri
-        else '<div style="width:150px;height:180px;border:1px dashed #777;display:flex;align-items:center;justify-content:center;">Photo</div>'
-    )
-    notes_html = ""
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 11)
+    c.drawRightString(width - 40, height - 95, f"Date: {timezone.now().strftime('%d-%m-%Y')}")
+    c.drawString(45, height - 130, f"To: {application.full_name}")
+
+    _draw_photo(c, application, width - 200, height - 310, 140, 170)
+
+    text = c.beginText(45, height - 170)
+    text.setFont("Helvetica", 12)
+    lines = [
+        "We are pleased to appoint you at Kanam Express.",
+        f"Position: {job.title}",
+        f"Category: {job.get_category_display()}",
+        f"Location: {job.location}",
+        f"Job Type: {job.get_job_type_display()}",
+        f"Contact: {application.phone}",
+        "",
+        "Please follow company policy, ethics and legal compliance.",
+    ]
     if application.admin_notes:
-        notes_html = (
-            "<p><strong>Special Note:</strong><br/>"
-            f"{escape(application.admin_notes).replace(chr(10), '<br/>')}</p>"
-        )
-    return f"""
-<html><body style="font-family:Arial,sans-serif;line-height:1.5;color:#111;">
-  <div style="max-width:900px;margin:0 auto;border:1px solid #ddd;padding:22px;">
-    <h2 style="text-align:center;margin:0 0 16px;color:#b30000;">NIMNUK PATRA (APPOINTMENT LETTER)</h2>
-    <p style="text-align:right;">Date: {escape(timezone.now().strftime("%d-%m-%Y"))}</p>
-    <p>Prati, <strong>{escape(application.full_name)}</strong></p>
-    <div style="margin:14px 0;">{photo_block}</div>
-    <p>
-      Aapne Kanam Express ma <strong>{escape(job.title)}</strong> pad ma nimnuk karva ma aave chhe.
-      Aapni faraj Gujarat ane rashtriya star na samachar seva ma yogdan aapvani rehse.
-    </p>
-    <ul>
-      <li>Department/Category: {escape(job.get_category_display())}</li>
-      <li>Location: {escape(job.location)}</li>
-      <li>Job Type: {escape(job.get_job_type_display())}</li>
-      <li>Contact: {escape(application.phone)}</li>
-    </ul>
-    {notes_html}
-    <p>Shubhkamna sathe, tamaro safar safal rahe evi kamna.</p>
-    <p style="margin-top:26px;">Aapno Vishvasu,<br/><strong>Kanam Express Team</strong></p>
-  </div>
-</body></html>
-""".strip()
+        lines += ["", "Special Note:", application.admin_notes]
+    for line in lines:
+        text.textLine(line)
+    c.drawText(text)
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(45, 110, "Best Regards,")
+    c.setFont("Helvetica", 12)
+    c.drawString(45, 92, "Kanam Express Team")
+    c.drawString(45, 76, "kanamexpress.com")
+
+    c.showPage()
+    c.save()
+    return buffer.getvalue()
 
 
-def _build_id_card_html(application: JobApplication, job: JobPosting, request) -> str:
-    photo_uri = _photo_src(application, request)
-    photo_block = (
-        f'<img src="{photo_uri}" alt="Photo" style="width:120px;height:145px;object-fit:cover;border:1px solid #333;" />'
-        if photo_uri
-        else '<div style="width:120px;height:145px;border:1px dashed #333;display:flex;align-items:center;justify-content:center;">Photo</div>'
-    )
+def _build_id_card_pdf(application: JobApplication, job: JobPosting) -> bytes:
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
+
+    margin = 40
+    gap = 24
+    card_w = (width - (2 * margin) - gap) / 2
+    card_h = height - (2 * margin)
+    left_x = margin
+    right_x = margin + card_w + gap
+    y = margin
+
+    # Front card
+    c.setStrokeColor(colors.HexColor("#d98c00"))
+    c.setLineWidth(2)
+    c.rect(left_x, y, card_w, card_h, stroke=1, fill=0)
+    c.setFillColor(colors.HexColor("#cf1b1b"))
+    c.rect(left_x, y + card_h - 54, card_w, 54, stroke=0, fill=1)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 18)
+    c.drawCentredString(left_x + (card_w / 2), y + card_h - 34, "KANAM EXPRESS")
+    c.setFont("Helvetica-Bold", 13)
+    c.drawCentredString(left_x + (card_w / 2), y + card_h - 50, "NEWS GUJARATI")
+
+    _draw_photo(c, application, left_x + (card_w / 2) - 60, y + 180, 120, 145)
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 15)
+    c.drawCentredString(left_x + (card_w / 2), y + 150, application.full_name[:38])
+    c.setFont("Helvetica-Bold", 12)
+    c.drawCentredString(left_x + (card_w / 2), y + 130, job.title)
+    c.setFont("Helvetica", 11)
+    c.drawCentredString(left_x + (card_w / 2), y + 112, application.phone)
+    c.setFillColor(colors.HexColor("#312f9b"))
+    c.setFont("Helvetica-Bold", 12)
     serial_no = f"KE-{timezone.now().strftime('%Y')}-{application.id:04d}"
-    return f"""
-<html><body style="font-family:Arial,sans-serif;">
-  <div style="width:360px;border:2px solid #d98c00;padding:14px;">
-    <h3 style="margin:0 0 8px;color:#b00000;">KANAM EXPRESS - STAFF ID</h3>
-    <p style="margin:4px 0 12px;font-size:12px;">www.kanamexpress.com</p>
-    <div style="display:flex;gap:12px;align-items:flex-start;">
-      {photo_block}
-      <div style="font-size:13px;line-height:1.5;">
-        <p style="margin:0;"><strong>Name:</strong> {escape(application.full_name)}</p>
-        <p style="margin:0;"><strong>Role:</strong> {escape(job.title)}</p>
-        <p style="margin:0;"><strong>Phone:</strong> {escape(application.phone)}</p>
-        <p style="margin:0;"><strong>Email:</strong> {escape(application.email)}</p>
-        <p style="margin:0;"><strong>ID No:</strong> {escape(serial_no)}</p>
-        <p style="margin:0;"><strong>Valid Upto:</strong> 31/12/{timezone.now().year + 1}</p>
-      </div>
-    </div>
-  </div>
-</body></html>
-""".strip()
+    c.drawCentredString(left_x + (card_w / 2), y + 92, f"KE Sr No. {serial_no}")
+    c.setFillColor(colors.HexColor("#e25c00"))
+    c.setFont("Helvetica-Bold", 28)
+    c.drawCentredString(left_x + (card_w / 2), y + 42, "TV PRESS")
+
+    # Back card
+    c.setStrokeColor(colors.HexColor("#d98c00"))
+    c.setLineWidth(2)
+    c.rect(right_x, y, card_w, card_h, stroke=1, fill=0)
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(right_x + 20, y + card_h - 34, "Valid Upto : LIFE TIME")
+    c.drawString(right_x + 20, y + card_h - 56, "Address")
+    c.setFont("Helvetica", 13)
+    c.drawString(right_x + 120, y + card_h - 56, "Jambusar, Dist. Bharuch")
+
+    c.setFont("Helvetica-Bold", 13)
+    c.drawString(right_x + 20, y + card_h - 95, "Rules & Regulations:")
+    rules = c.beginText(right_x + 20, y + card_h - 115)
+    rules.setFont("Helvetica", 11)
+    for line in [
+        "- Card holder must follow organization rules.",
+        "- Illegal use is card holder responsibility.",
+        "- Loss/misplacement must be reported immediately.",
+        "- Kanam Express may deactivate card at any time.",
+    ]:
+        rules.textLine(line)
+    c.drawText(rules)
+
+    c.setFont("Helvetica-Bold", 13)
+    c.drawString(right_x + 20, y + 85, "HEAD OFFICE")
+    c.setFont("Helvetica", 10)
+    c.drawString(right_x + 20, y + 70, "Gokul Lala Ni Khadki, Jawahar Bazar, Jambusar")
+    c.drawString(right_x + 20, y + 56, "Dist. Bharuch, Gujarat")
+    c.drawString(right_x + 20, y + 42, "9824749413 / 7623046498")
+    c.drawString(right_x + 20, y + 28, "kanamexpress@gmail.com")
+
+    c.showPage()
+    c.save()
+    return buffer.getvalue()
 
 
 class JobPostingViewSet(viewsets.ModelViewSet):
@@ -270,20 +325,19 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 f"kanamexpress.com"
             )
 
-            nimnuk_html = _build_nimnuk_patra_html(application, job, request)
-            id_card_html = _build_id_card_html(application, job, request)
+            nimnuk_pdf = _build_nimnuk_patra_pdf(application, job)
+            id_card_pdf = _build_id_card_pdf(application, job)
             safe_name = slugify(application.full_name) or f"candidate_{application.id}"
-            letter_filename = f"nimnuk_patra_{safe_name}.html"
-            id_filename = f"id_card_{safe_name}.html"
+            letter_filename = f"nimnuk_patra_{safe_name}.pdf"
+            id_filename = f"id_card_{safe_name}.pdf"
             email_sent, primary_error = send_mail_logged_with_error(
                 subject=subject,
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[application.email],
-                html_message=nimnuk_html,
                 binary_attachments=[
-                    (letter_filename, nimnuk_html.encode("utf-8"), "text/html; charset=utf-8"),
-                    (id_filename, id_card_html.encode("utf-8"), "text/html; charset=utf-8"),
+                    (letter_filename, nimnuk_pdf, "application/pdf"),
+                    (id_filename, id_card_pdf, "application/pdf"),
                 ],
             )
 
