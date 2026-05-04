@@ -33,8 +33,17 @@ def _photo_data_uri(application: JobApplication) -> str:
         return ""
 
 
-def _build_nimnuk_patra_html(application: JobApplication, job: JobPosting) -> str:
-    photo_uri = _photo_data_uri(application)
+def _photo_src(application: JobApplication, request) -> str:
+    if application.photo:
+        try:
+            return request.build_absolute_uri(application.photo.url)
+        except Exception:
+            pass
+    return _photo_data_uri(application)
+
+
+def _build_nimnuk_patra_html(application: JobApplication, job: JobPosting, request) -> str:
+    photo_uri = _photo_src(application, request)
     photo_block = (
         f'<img src="{photo_uri}" alt="Photo" style="width:150px;height:180px;object-fit:cover;border:1px solid #777;" />'
         if photo_uri
@@ -71,8 +80,8 @@ def _build_nimnuk_patra_html(application: JobApplication, job: JobPosting) -> st
 """.strip()
 
 
-def _build_id_card_html(application: JobApplication, job: JobPosting) -> str:
-    photo_uri = _photo_data_uri(application)
+def _build_id_card_html(application: JobApplication, job: JobPosting, request) -> str:
+    photo_uri = _photo_src(application, request)
     photo_block = (
         f'<img src="{photo_uri}" alt="Photo" style="width:120px;height:145px;object-fit:cover;border:1px solid #333;" />'
         if photo_uri
@@ -260,8 +269,8 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 f"kanamexpress.com"
             )
 
-            nimnuk_html = _build_nimnuk_patra_html(application, job)
-            id_card_html = _build_id_card_html(application, job)
+            nimnuk_html = _build_nimnuk_patra_html(application, job, request)
+            id_card_html = _build_id_card_html(application, job, request)
             safe_name = "".join(ch if ch.isalnum() else "_" for ch in application.full_name).strip("_") or "candidate"
             letter_filename = f"nimnuk_patra_{safe_name}.html"
             id_filename = f"id_card_{safe_name}.html"
