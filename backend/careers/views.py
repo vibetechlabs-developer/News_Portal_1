@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.utils import timezone
 from django.conf import settings
+from django.utils.html import escape
 
 from backend.common.mail import send_mail_logged
 from .models import JobPosting, JobApplication, ApplicationReview, Notification
@@ -15,6 +16,55 @@ from .serializers import (
     NotificationSerializer
 )
 from .permissions import IsAdminOrReadOnly, IsApplicationOwnerOrAdmin, IsAdminUser
+
+
+def _build_acceptance_letter_html(application: JobApplication, job: JobPosting, request) -> str:
+    photo_html = ""
+    if application.photo:
+        try:
+            photo_url = request.build_absolute_uri(application.photo.url)
+            photo_html = (
+                '<div style="margin:16px 0;">'
+                f'<img src="{escape(photo_url)}" alt="Applicant Photo" '
+                'style="width:140px;height:170px;object-fit:cover;border:1px solid #ddd;border-radius:4px;" />'
+                "</div>"
+            )
+        except Exception:
+            photo_html = ""
+
+    salary_html = ""
+    if job.salary_range_min and job.salary_range_max:
+        salary_html = f"<li><strong>Salary:</strong> {escape(str(job.salary_range_min))} - {escape(str(job.salary_range_max))}</li>"
+
+    notes_html = ""
+    if application.admin_notes:
+        notes_html = (
+            '<p style="margin:14px 0 0;"><strong>Note from HR:</strong><br/>'
+            f"{escape(application.admin_notes).replace(chr(10), '<br/>')}</p>"
+        )
+
+    return f"""
+<div style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;color:#111;">
+  <div style="background:#d60000;color:#fff;padding:12px 16px;border-radius:6px 6px 0 0;">
+    <h2 style="margin:0;font-size:22px;">Kanam Express - Acceptance Letter</h2>
+  </div>
+  <div style="border:1px solid #eee;border-top:0;padding:18px;border-radius:0 0 6px 6px;">
+    <p>Date: {escape(timezone.now().strftime("%d-%m-%Y"))}</p>
+    <p>Dear <strong>{escape(application.full_name)}</strong>,</p>
+    <p>Congratulations! We are pleased to appoint you for the role of <strong>{escape(job.title)}</strong>.</p>
+    {photo_html}
+    <ul style="line-height:1.7;">
+      <li><strong>Category:</strong> {escape(job.get_category_display())}</li>
+      <li><strong>Location:</strong> {escape(job.location)}</li>
+      <li><strong>Job Type:</strong> {escape(job.get_job_type_display())}</li>
+      {salary_html}
+    </ul>
+    {notes_html}
+    <p style="margin-top:18px;">Welcome to the team.</p>
+    <p style="margin-top:24px;">Regards,<br/><strong>Kanam Express HR Team</strong></p>
+  </div>
+</div>
+""".strip()
 
 
 class JobPostingViewSet(viewsets.ModelViewSet):
@@ -173,12 +223,17 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 f"Kanam Express Team\n"
                 f"kanamexpress.com"
             )
-            
+
+            html_letter = _build_acceptance_letter_html(application, job, request)
+            safe_name = "".join(ch if ch.isalnum() else "_" for ch in application.full_name).strip("_") or "candidate"
+            letter_filename = f"appointment_letter_{safe_name}.html"
             send_mail_logged(
                 subject=subject,
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[application.email],
+                html_message=html_letter,
+                binary_attachments=[(letter_filename, html_letter.encode("utf-8"), "text/html; charset=utf-8")],
             )
                 
         serializer = self.get_serializer(application)
