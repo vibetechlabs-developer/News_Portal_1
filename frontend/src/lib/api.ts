@@ -501,6 +501,7 @@ export interface VideoContentItem {
   description_gu?: string;
   status: string;
   primary_language: string;
+  is_live?: boolean;
   view_count?: number;
   likes_count?: number;
   published_at: string | null;
@@ -525,6 +526,7 @@ export interface ReelContentItem {
   description_gu?: string;
   status: string;
   primary_language: string;
+  is_live?: boolean;
   view_count?: number;
   likes_count?: number;
   published_at: string | null;
@@ -845,6 +847,9 @@ export async function updateReelContentAdmin(id: number, payload: Partial<ReelCo
   if (payload.tags != null) payload.tags.forEach((t) => fd.append("tags", String(t)));
   if (payload.primary_language != null) fd.append("primary_language", payload.primary_language);
   if (payload.status != null) fd.append("status", payload.status);
+  if (payload.is_live !== undefined) fd.append("is_live", String(payload.is_live));
+  if (payload.view_count !== undefined && payload.view_count !== "") fd.append("view_count", String(payload.view_count));
+  if (payload.likes_count !== undefined && payload.likes_count !== "") fd.append("likes_count", String(payload.likes_count));
   if (payload.youtube_url != null) fd.append("youtube_url", payload.youtube_url);
   if (payload.file) fd.append("file", payload.file);
   if (payload.thumbnail) fd.append("thumbnail", payload.thumbnail);

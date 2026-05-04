@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.core.mail import send_mail
+from backend.common.mail import send_mail_logged
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -25,12 +25,11 @@ def _send_contact_notification_email(instance: ContactMessage) -> None:
         f"Subject: {instance.subject or '-'}\n\n"
         f"Message:\n{instance.message}"
     )
-    send_mail(
+    send_mail_logged(
         subject=subject,
         message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[to_email],
-        fail_silently=True,
+        from_email=settings.DEFAULT_FROM_EMAIL,
     )
 
 

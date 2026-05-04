@@ -39,9 +39,11 @@ import {
   type EpaperEditionItem,
   getVideosAdmin,
   createVideoContentAdmin,
+  updateVideoContentAdmin,
   deleteVideoContentAdmin,
   getReelsAdmin,
   createReelContentAdmin,
+  updateReelContentAdmin,
   deleteReelContentAdmin,
   type VideoContentItem,
   type ReelContentItem,
@@ -157,9 +159,34 @@ const EditorDashboard = () => {
   const [mediaTabFile, setMediaTabFile] = useState<File | null>(null);
   const [mediaTabYoutube, setMediaTabYoutube] = useState("");
   const [mediaTabIsLive, setMediaTabIsLive] = useState(false);
+  const [mediaTabViewCount, setMediaTabViewCount] = useState<number | "">("");
+  const [mediaTabLikesCount, setMediaTabLikesCount] = useState<number | "">("");
   const [mediaTabUploading, setMediaTabUploading] = useState(false);
   const [mediaTabLoading, setMediaTabLoading] = useState(false);
   const [mediaTabItems, setMediaTabItems] = useState<Array<(VideoContentItem | ReelContentItem) & { _type: "VIDEO" | "REEL" }>>([]);
+
+  const [mediaEditOpen, setMediaEditOpen] = useState(false);
+  const [mediaEditItem, setMediaEditItem] = useState<((VideoContentItem | ReelContentItem) & { _type: "VIDEO" | "REEL" }) | null>(null);
+  const [mediaEditTitleEn, setMediaEditTitleEn] = useState("");
+  const [mediaEditSectionId, setMediaEditSectionId] = useState<number | "">("");
+  const [mediaEditStatus, setMediaEditStatus] = useState<string>("PUBLISHED");
+  const [mediaEditIsLive, setMediaEditIsLive] = useState(false);
+  const [mediaEditPrimaryLanguage, setMediaEditPrimaryLanguage] = useState<"EN" | "HI" | "GU">("GU");
+  const [mediaEditYoutube, setMediaEditYoutube] = useState("");
+  const [mediaEditYoutubeOriginal, setMediaEditYoutubeOriginal] = useState("");
+  const [mediaEditFile, setMediaEditFile] = useState<File | null>(null);
+  const [mediaEditViewCount, setMediaEditViewCount] = useState(0);
+  const [mediaEditLikesCount, setMediaEditLikesCount] = useState(0);
+  const [mediaEditSaving, setMediaEditSaving] = useState(false);
+
+  /** Quick dialog: only manual view_count + likes_count (no other fields). */
+  const [mediaManualCountsOpen, setMediaManualCountsOpen] = useState(false);
+  const [mediaManualCountsItem, setMediaManualCountsItem] = useState<
+    ((VideoContentItem | ReelContentItem) & { _type: "VIDEO" | "REEL" }) | null
+  >(null);
+  const [mediaManualCountsViews, setMediaManualCountsViews] = useState(0);
+  const [mediaManualCountsLikes, setMediaManualCountsLikes] = useState(0);
+  const [mediaManualCountsSaving, setMediaManualCountsSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -537,8 +564,8 @@ const EditorDashboard = () => {
       setEditTop(!!a.is_top);
       setEditTrending(!!a.is_trending);
       setEditEditorPick(!!(a as any).is_editor_pick);
-      setEditViewCount(a.view_count || "");
-      setEditLikesCount(a.likes_count || "");
+      setEditViewCount(typeof a.view_count === "number" ? a.view_count : "");
+      setEditLikesCount(typeof a.likes_count === "number" ? a.likes_count : "");
 
       if (a.poll) {
         setEditPollQuestion(a.poll.question);
@@ -749,6 +776,8 @@ const EditorDashboard = () => {
         status: "PUBLISHED",
         is_live: mediaTabIsLive,
         primary_language: "GU",
+        ...(mediaTabViewCount !== "" ? { view_count: mediaTabViewCount } : {}),
+        ...(mediaTabLikesCount !== "" ? { likes_count: mediaTabLikesCount } : {}),
       };
 
       if (mediaTabType === "VIDEO") await createVideoContentAdmin(payload);
@@ -759,6 +788,8 @@ const EditorDashboard = () => {
       setMediaTabFile(null);
       setMediaTabYoutube("");
       setMediaTabIsLive(false);
+      setMediaTabViewCount("");
+      setMediaTabLikesCount("");
       await loadMediaTabContent();
     } catch (err) {
       const errorMsg = err instanceof ApiError ? formatApiErrorDetails(err) : String(err);
@@ -777,6 +808,116 @@ const EditorDashboard = () => {
       await loadMediaTabContent();
     } catch (e) {
       toast({ title: "Delete failed", variant: "destructive", description: String(e) });
+    }
+  };
+
+  const openMediaEditDialog = (item: (VideoContentItem | ReelContentItem) & { _type: "VIDEO" | "REEL" }) => {
+    setMediaEditItem(item);
+    setMediaEditTitleEn(item.title_en);
+    setMediaEditSectionId(item.section);
+    setMediaEditStatus(item.status || "PUBLISHED");
+    setMediaEditIsLive(!!item.is_live);
+    const lang = item.primary_language;
+    setMediaEditPrimaryLanguage(lang === "EN" || lang === "HI" || lang === "GU" ? lang : "GU");
+    const y = (item.youtube_url ?? "").trim();
+    setMediaEditYoutube(item.youtube_url ?? "");
+    setMediaEditYoutubeOriginal(y);
+    setMediaEditFile(null);
+    setMediaEditViewCount(typeof item.view_count === "number" ? item.view_count : 0);
+    setMediaEditLikesCount(typeof item.likes_count === "number" ? item.likes_count : 0);
+    setMediaEditOpen(true);
+  };
+
+  const resetMediaEditForm = () => {
+    setMediaEditItem(null);
+    setMediaEditTitleEn("");
+    setMediaEditSectionId("");
+    setMediaEditYoutube("");
+    setMediaEditYoutubeOriginal("");
+    setMediaEditFile(null);
+  };
+
+  const saveMediaEdit = async () => {
+    if (!mediaEditItem) return;
+    const title = mediaEditTitleEn.trim();
+    if (!title) {
+      toast({ title: "Title required", variant: "destructive" });
+      return;
+    }
+    if (mediaEditSectionId === "") {
+      toast({ title: "Section required", variant: "destructive" });
+      return;
+    }
+    const patch: Parameters<typeof updateVideoContentAdmin>[1] = {
+      title_en: title,
+      section: Number(mediaEditSectionId),
+      status: mediaEditStatus,
+      primary_language: mediaEditPrimaryLanguage,
+      is_live: mediaEditIsLive,
+      view_count: Math.max(0, Number(mediaEditViewCount) || 0),
+      likes_count: Math.max(0, Number(mediaEditLikesCount) || 0),
+    };
+    const ytNow = mediaEditYoutube.trim();
+    if (ytNow !== mediaEditYoutubeOriginal) {
+      patch.youtube_url = ytNow;
+    }
+    if (mediaEditFile) {
+      patch.file = mediaEditFile;
+    }
+    setMediaEditSaving(true);
+    try {
+      if (mediaEditItem._type === "VIDEO") {
+        await updateVideoContentAdmin(mediaEditItem.id, patch);
+      } else {
+        await updateReelContentAdmin(mediaEditItem.id, patch);
+      }
+      toast({ title: "Saved" });
+      setMediaEditOpen(false);
+      resetMediaEditForm();
+      await loadMediaTabContent();
+    } catch (err) {
+      const errorMsg = err instanceof ApiError ? formatApiErrorDetails(err) : String(err);
+      toast({ title: "Update failed", description: errorMsg, variant: "destructive" });
+    } finally {
+      setMediaEditSaving(false);
+    }
+  };
+
+  const resetMediaManualCounts = () => {
+    setMediaManualCountsItem(null);
+    setMediaManualCountsViews(0);
+    setMediaManualCountsLikes(0);
+  };
+
+  const openMediaManualCountsDialog = (item: (VideoContentItem | ReelContentItem) & { _type: "VIDEO" | "REEL" }) => {
+    setMediaManualCountsItem(item);
+    setMediaManualCountsViews(typeof item.view_count === "number" ? item.view_count : 0);
+    setMediaManualCountsLikes(typeof item.likes_count === "number" ? item.likes_count : 0);
+    setMediaManualCountsOpen(true);
+  };
+
+  const saveMediaManualCounts = async () => {
+    if (!mediaManualCountsItem) return;
+    const patch = {
+      view_count: Math.max(0, Number(mediaManualCountsViews) || 0),
+      likes_count: Math.max(0, Number(mediaManualCountsLikes) || 0),
+    };
+    setMediaManualCountsSaving(true);
+    try {
+      if (mediaManualCountsItem._type === "VIDEO") {
+        await updateVideoContentAdmin(mediaManualCountsItem.id, patch);
+      } else {
+        await updateReelContentAdmin(mediaManualCountsItem.id, patch);
+      }
+      toast({ title: "Manual views & likes saved" });
+      setMediaManualCountsOpen(false);
+      resetMediaManualCounts();
+      await loadMediaTabContent();
+    } catch (err) {
+      const errorMsg = err instanceof ApiError ? formatApiErrorDetails(err) : String(err);
+      toast({ title: "Could not save counts", description: errorMsg, variant: "destructive" });
+    } finally {
+      setMediaManualCountsSaving(false);
     }
   };
 
@@ -1063,7 +1204,7 @@ const EditorDashboard = () => {
 
                 <div className="grid grid-cols-2 gap-4 text-xs mt-4">
                   <div className="space-y-2">
-                    <Label>View Count</Label>
+                    <Label>Manual views (optional)</Label>
                     <Input
                       type="number"
                       min="0"
@@ -1073,7 +1214,7 @@ const EditorDashboard = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Likes Count</Label>
+                    <Label>Manual likes (optional)</Label>
                     <Input
                       type="number"
                       min="0"
@@ -1418,6 +1559,31 @@ const EditorDashboard = () => {
                   <Switch id="media-tab-is-live" checked={mediaTabIsLive} onCheckedChange={setMediaTabIsLive} />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4 text-xs mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="media-tab-view-count">Manual view count (optional)</Label>
+                    <Input
+                      id="media-tab-view-count"
+                      type="number"
+                      min={0}
+                      placeholder="Starts at 0"
+                      value={mediaTabViewCount}
+                      onChange={(e) => setMediaTabViewCount(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="media-tab-likes-count">Manual likes count (optional)</Label>
+                    <Input
+                      id="media-tab-likes-count"
+                      type="number"
+                      min={0}
+                      placeholder="Starts at 0"
+                      value={mediaTabLikesCount}
+                      onChange={(e) => setMediaTabLikesCount(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                </div>
+
                 <Button type="submit" disabled={mediaTabUploading || loadingSections} className="w-full mt-4">
                   {mediaTabUploading ? "Uploading..." : `Upload ${mediaTabType === "VIDEO" ? "Video" : "Reel"}`}
                 </Button>
@@ -1426,6 +1592,11 @@ const EditorDashboard = () => {
               <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-base">Recently uploaded</CardTitle>
+                  <p className="text-xs text-muted-foreground font-normal pt-1">
+                    <strong>Manual views & likes</strong> sets displayed counts only.
+                    {" "}
+                    <strong>Edit</strong> changes title, section, status, link, file, live, language, and counts together.
+                  </p>
                 </CardHeader>
                 <CardContent>
                   {mediaTabLoading ? (
@@ -1439,11 +1610,21 @@ const EditorDashboard = () => {
                           <div>
                             <p className="font-medium line-clamp-2">{item.title_en}</p>
                             <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                              {item._type} • Status: {item.status}{(item as any).is_live ? " • 🔴 LIVE" : ""}
+                              {item._type} • Status: {item.status}{item.is_live ? " • LIVE" : ""}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              Views: {item.view_count ?? 0} · Likes: {item.likes_count ?? 0}
                             </p>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openMediaManualCountsDialog(item)}>
+                              Manual views & likes
+                            </Button>
+                            <Button type="button" variant="secondary" size="sm" className="h-7 text-xs px-2" onClick={() => openMediaEditDialog(item)}>
+                              Edit
+                            </Button>
                             <button
+                              type="button"
                               onClick={() => removeMediaTabContent(item.id, item._type)}
                               className="text-[11px] font-medium text-destructive hover:underline"
                             >
@@ -1641,10 +1822,10 @@ const EditorDashboard = () => {
                   </div>
 
                   
-                  {/* View / Likes count */}
+                  {/* Manual views / likes (shown on site; optional leave blank to keep unchanged on save) */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>View Count</Label>
+                      <Label>Manual views</Label>
                       <Input
                         type="number"
                         min="0"
@@ -1654,30 +1835,7 @@ const EditorDashboard = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Likes Count</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="Optional"
-                        value={editLikesCount}
-                        onChange={(e) => setEditLikesCount(e.target.value ? Number(e.target.value) : "")}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-xs mt-4">
-                    <div className="space-y-2">
-                      <Label>View Count</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="Optional"
-                        value={editViewCount}
-                        onChange={(e) => setEditViewCount(e.target.value ? Number(e.target.value) : "")}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Likes Count</Label>
+                      <Label>Manual likes</Label>
                       <Input
                         type="number"
                         min="0"
@@ -1767,6 +1925,202 @@ const EditorDashboard = () => {
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Close</Button>
               <Button type="button" onClick={saveEdit} disabled={editSaving}>
                 {editSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={mediaEditOpen}
+          onOpenChange={(open) => {
+            setMediaEditOpen(open);
+            if (!open) resetMediaEditForm();
+          }}
+        >
+          <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle>Edit {mediaEditItem?._type === "REEL" ? "reel" : "video"}</DialogTitle>
+            </DialogHeader>
+            {mediaEditItem && (
+              <div className="space-y-4 py-1 overflow-y-auto min-h-0 pr-1 text-sm">
+                <p className="text-xs text-muted-foreground font-mono">
+                  {mediaEditItem._type} · ID {mediaEditItem.id}
+                  {mediaEditItem.slug ? ` · /${mediaEditItem.slug}` : ""}
+                </p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="media-edit-title">Title</Label>
+                  <Input id="media-edit-title" value={mediaEditTitleEn} onChange={(e) => setMediaEditTitleEn(e.target.value)} placeholder="Title" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="media-edit-section">Section</Label>
+                  <select
+                    id="media-edit-section"
+                    value={mediaEditSectionId}
+                    onChange={(e) => setMediaEditSectionId(e.target.value ? Number(e.target.value) : "")}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    disabled={loadingSections}
+                  >
+                    <option value="">Select section…</option>
+                    {sectionOptions.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name_en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="media-edit-status">Status</Label>
+                    <select
+                      id="media-edit-status"
+                      value={mediaEditStatus}
+                      onChange={(e) => setMediaEditStatus(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="DRAFT">Draft</option>
+                      <option value="PUBLISHED">Published</option>
+                      <option value="ARCHIVED">Archived</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="media-edit-lang">Language</Label>
+                    <select
+                      id="media-edit-lang"
+                      value={mediaEditPrimaryLanguage}
+                      onChange={(e) => setMediaEditPrimaryLanguage(e.target.value as "EN" | "HI" | "GU")}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="GU">Gujarati</option>
+                      <option value="HI">Hindi</option>
+                      <option value="EN">English</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+                  <Label htmlFor="media-edit-live" className="text-sm font-normal">
+                    Live broadcast
+                  </Label>
+                  <Switch id="media-edit-live" checked={mediaEditIsLive} onCheckedChange={setMediaEditIsLive} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="media-edit-youtube">YouTube URL</Label>
+                  <Input
+                    id="media-edit-youtube"
+                    value={mediaEditYoutube}
+                    onChange={(e) => setMediaEditYoutube(e.target.value)}
+                    placeholder="https://www.youtube.com/…"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    If this item only uses YouTube (no uploaded file), keep a valid URL or upload a file below. Changing the URL updates the link; clearing it removes the link only if a file is still present.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="media-edit-file">Replace video file (optional)</Label>
+                  <Input
+                    id="media-edit-file"
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => setMediaEditFile(e.target.files?.[0] ?? null)}
+                  />
+                  {mediaEditFile && (
+                    <p className="text-[11px] text-muted-foreground">Selected: {mediaEditFile.name}</p>
+                  )}
+                </div>
+
+                <div className="rounded-md border border-border/80 bg-muted/30 px-3 py-2 space-y-3">
+                  <p className="text-xs font-medium text-foreground">Manual counts (shown on the site)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="media-edit-views">Views</Label>
+                      <Input
+                        id="media-edit-views"
+                        type="number"
+                        min={0}
+                        value={mediaEditViewCount}
+                        onChange={(e) => setMediaEditViewCount(Math.max(0, Number(e.target.value) || 0))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="media-edit-likes">Likes</Label>
+                      <Input
+                        id="media-edit-likes"
+                        type="number"
+                        min={0}
+                        value={mediaEditLikesCount}
+                        onChange={(e) => setMediaEditLikesCount(Math.max(0, Number(e.target.value) || 0))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter className="pt-2 border-t border-border shrink-0">
+              <Button type="button" variant="outline" onClick={() => { setMediaEditOpen(false); resetMediaEditForm(); }}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={saveMediaEdit} disabled={mediaEditSaving || !mediaEditItem}>
+                {mediaEditSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={mediaManualCountsOpen}
+          onOpenChange={(open) => {
+            setMediaManualCountsOpen(open);
+            if (!open) resetMediaManualCounts();
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manual views & likes</DialogTitle>
+            </DialogHeader>
+            {mediaManualCountsItem && (
+              <div className="space-y-4 py-2">
+                <p className="text-sm line-clamp-2">{mediaManualCountsItem.title_en}</p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  {mediaManualCountsItem._type} · ID {mediaManualCountsItem.id}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Set the numbers shown for views and likes on the website. Real views/likes from visitors can still change these later unless you edit again.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="media-manual-views">Views</Label>
+                    <Input
+                      id="media-manual-views"
+                      type="number"
+                      min={0}
+                      value={mediaManualCountsViews}
+                      onChange={(e) => setMediaManualCountsViews(Math.max(0, Number(e.target.value) || 0))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="media-manual-likes">Likes</Label>
+                    <Input
+                      id="media-manual-likes"
+                      type="number"
+                      min={0}
+                      value={mediaManualCountsLikes}
+                      onChange={(e) => setMediaManualCountsLikes(Math.max(0, Number(e.target.value) || 0))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setMediaManualCountsOpen(false); resetMediaManualCounts(); }}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={saveMediaManualCounts} disabled={mediaManualCountsSaving || !mediaManualCountsItem}>
+                {mediaManualCountsSaving ? "Saving…" : "Save views & likes"}
               </Button>
             </DialogFooter>
           </DialogContent>

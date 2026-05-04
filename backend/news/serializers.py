@@ -122,7 +122,8 @@ class VideoContentSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = VideoContent
 		fields = "__all__"
-		read_only_fields = ("id", "view_count", "likes_count", "created_at", "updated_at")
+		# view_count / likes_count are writable for editor/admin create & update (manual seeding like articles)
+		read_only_fields = ("id", "created_at", "updated_at")
 
 
 class ReelContentSerializer(serializers.ModelSerializer):
@@ -134,7 +135,7 @@ class ReelContentSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = ReelContent
 		fields = "__all__"
-		read_only_fields = ("id", "view_count", "likes_count", "created_at", "updated_at")
+		read_only_fields = ("id", "created_at", "updated_at")
 
 
 class EpaperEditionSerializer(serializers.ModelSerializer):

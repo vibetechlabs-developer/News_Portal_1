@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
+from backend.common.mail import send_mail_logged
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import generics, status, viewsets
@@ -76,12 +76,11 @@ class PasswordResetRequestView(generics.GenericAPIView):
                 f"{settings.FRONTEND_RESET_PASSWORD_URL.rstrip('/')}"
                 f"?uid={uidb64}&token={token}"
             )
-            send_mail(
+            send_mail_logged(
                 subject="Password reset - News Portal",
                 message=f"Use this link to reset your password: {reset_url}\n\nIf you did not request this, ignore this email.",
-                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
-                fail_silently=True,
+                from_email=settings.DEFAULT_FROM_EMAIL,
             )
         return Response(
             {"detail": "If an account exists with this email, you will receive a reset link."},

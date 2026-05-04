@@ -5,7 +5,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.conf import settings
+
+from backend.common.mail import send_mail_logged
 from .models import JobPosting, JobApplication, ApplicationReview, Notification
 from .serializers import (
     JobPostingSerializer, JobApplicationSerializer,
@@ -172,16 +174,12 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 f"kanamexpress.com"
             )
             
-            try:
-                send_mail(
-                    subject=subject,
-                    message=body,
-                    from_email="kanamexpress@gmail.com",
-                    recipient_list=[application.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Error sending acceptance email: {e}")
+            send_mail_logged(
+                subject=subject,
+                message=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[application.email],
+            )
                 
         serializer = self.get_serializer(application)
         return Response(serializer.data)
