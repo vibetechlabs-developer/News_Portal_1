@@ -7,6 +7,8 @@ from django.db.models import Q
 from django.utils import timezone
 from django.conf import settings
 from django.utils.html import escape
+import base64
+import mimetypes
 
 from backend.common.mail import send_mail_logged
 from .models import JobPosting, JobApplication, ApplicationReview, Notification
@@ -18,52 +20,83 @@ from .serializers import (
 from .permissions import IsAdminOrReadOnly, IsApplicationOwnerOrAdmin, IsAdminUser
 
 
-def _build_acceptance_letter_html(application: JobApplication, job: JobPosting, request) -> str:
-    photo_html = ""
-    if application.photo:
-        try:
-            photo_url = request.build_absolute_uri(application.photo.url)
-            photo_html = (
-                '<div style="margin:16px 0;">'
-                f'<img src="{escape(photo_url)}" alt="Applicant Photo" '
-                'style="width:140px;height:170px;object-fit:cover;border:1px solid #ddd;border-radius:4px;" />'
-                "</div>"
-            )
-        except Exception:
-            photo_html = ""
+def _photo_data_uri(application: JobApplication) -> str:
+    if not application.photo:
+        return ""
+    try:
+        photo_path = application.photo.path
+        with open(photo_path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("ascii")
+        mime = mimetypes.guess_type(photo_path)[0] or "image/jpeg"
+        return f"data:{mime};base64,{encoded}"
+    except Exception:
+        return ""
 
-    salary_html = ""
-    if job.salary_range_min and job.salary_range_max:
-        salary_html = f"<li><strong>Salary:</strong> {escape(str(job.salary_range_min))} - {escape(str(job.salary_range_max))}</li>"
 
+def _build_nimnuk_patra_html(application: JobApplication, job: JobPosting) -> str:
+    photo_uri = _photo_data_uri(application)
+    photo_block = (
+        f'<img src="{photo_uri}" alt="Photo" style="width:150px;height:180px;object-fit:cover;border:1px solid #777;" />'
+        if photo_uri
+        else '<div style="width:150px;height:180px;border:1px dashed #777;display:flex;align-items:center;justify-content:center;">Photo</div>'
+    )
     notes_html = ""
     if application.admin_notes:
         notes_html = (
-            '<p style="margin:14px 0 0;"><strong>Note from HR:</strong><br/>'
+            "<p><strong>Special Note:</strong><br/>"
             f"{escape(application.admin_notes).replace(chr(10), '<br/>')}</p>"
         )
-
     return f"""
-<div style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;color:#111;">
-  <div style="background:#d60000;color:#fff;padding:12px 16px;border-radius:6px 6px 0 0;">
-    <h2 style="margin:0;font-size:22px;">Kanam Express - Acceptance Letter</h2>
-  </div>
-  <div style="border:1px solid #eee;border-top:0;padding:18px;border-radius:0 0 6px 6px;">
-    <p>Date: {escape(timezone.now().strftime("%d-%m-%Y"))}</p>
-    <p>Dear <strong>{escape(application.full_name)}</strong>,</p>
-    <p>Congratulations! We are pleased to appoint you for the role of <strong>{escape(job.title)}</strong>.</p>
-    {photo_html}
-    <ul style="line-height:1.7;">
-      <li><strong>Category:</strong> {escape(job.get_category_display())}</li>
-      <li><strong>Location:</strong> {escape(job.location)}</li>
-      <li><strong>Job Type:</strong> {escape(job.get_job_type_display())}</li>
-      {salary_html}
+<html><body style="font-family:Arial,sans-serif;line-height:1.5;color:#111;">
+  <div style="max-width:900px;margin:0 auto;border:1px solid #ddd;padding:22px;">
+    <h2 style="text-align:center;margin:0 0 16px;color:#b30000;">NIMNUK PATRA (APPOINTMENT LETTER)</h2>
+    <p style="text-align:right;">Date: {escape(timezone.now().strftime("%d-%m-%Y"))}</p>
+    <p>Prati, <strong>{escape(application.full_name)}</strong></p>
+    <div style="margin:14px 0;">{photo_block}</div>
+    <p>
+      Aapne Kanam Express ma <strong>{escape(job.title)}</strong> pad ma nimnuk karva ma aave chhe.
+      Aapni faraj Gujarat ane rashtriya star na samachar seva ma yogdan aapvani rehse.
+    </p>
+    <ul>
+      <li>Department/Category: {escape(job.get_category_display())}</li>
+      <li>Location: {escape(job.location)}</li>
+      <li>Job Type: {escape(job.get_job_type_display())}</li>
+      <li>Contact: {escape(application.phone)}</li>
     </ul>
     {notes_html}
-    <p style="margin-top:18px;">Welcome to the team.</p>
-    <p style="margin-top:24px;">Regards,<br/><strong>Kanam Express HR Team</strong></p>
+    <p>Shubhkamna sathe, tamaro safar safal rahe evi kamna.</p>
+    <p style="margin-top:26px;">Aapno Vishvasu,<br/><strong>Kanam Express Team</strong></p>
   </div>
-</div>
+</body></html>
+""".strip()
+
+
+def _build_id_card_html(application: JobApplication, job: JobPosting) -> str:
+    photo_uri = _photo_data_uri(application)
+    photo_block = (
+        f'<img src="{photo_uri}" alt="Photo" style="width:120px;height:145px;object-fit:cover;border:1px solid #333;" />'
+        if photo_uri
+        else '<div style="width:120px;height:145px;border:1px dashed #333;display:flex;align-items:center;justify-content:center;">Photo</div>'
+    )
+    serial_no = f"KE-{timezone.now().strftime('%Y')}-{application.id:04d}"
+    return f"""
+<html><body style="font-family:Arial,sans-serif;">
+  <div style="width:360px;border:2px solid #d98c00;padding:14px;">
+    <h3 style="margin:0 0 8px;color:#b00000;">KANAM EXPRESS - STAFF ID</h3>
+    <p style="margin:4px 0 12px;font-size:12px;">www.kanamexpress.com</p>
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      {photo_block}
+      <div style="font-size:13px;line-height:1.5;">
+        <p style="margin:0;"><strong>Name:</strong> {escape(application.full_name)}</p>
+        <p style="margin:0;"><strong>Role:</strong> {escape(job.title)}</p>
+        <p style="margin:0;"><strong>Phone:</strong> {escape(application.phone)}</p>
+        <p style="margin:0;"><strong>Email:</strong> {escape(application.email)}</p>
+        <p style="margin:0;"><strong>ID No:</strong> {escape(serial_no)}</p>
+        <p style="margin:0;"><strong>Valid Upto:</strong> 31/12/{timezone.now().year + 1}</p>
+      </div>
+    </div>
+  </div>
+</body></html>
 """.strip()
 
 
@@ -199,7 +232,10 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         application.status = new_status
         application.save()
         
-        if old_status != 'ACCEPTED' and new_status == 'ACCEPTED':
+        resend_email = str(request.data.get("resend_email", "")).lower() in {"1", "true", "yes"}
+        should_send_acceptance = new_status == "ACCEPTED" and (old_status != "ACCEPTED" or resend_email)
+
+        if should_send_acceptance:
             job = application.job_posting
             subject = f"Job Application Accepted: {job.title} at Kanam Express"
             body = (
@@ -224,18 +260,31 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 f"kanamexpress.com"
             )
 
-            html_letter = _build_acceptance_letter_html(application, job, request)
+            nimnuk_html = _build_nimnuk_patra_html(application, job)
+            id_card_html = _build_id_card_html(application, job)
             safe_name = "".join(ch if ch.isalnum() else "_" for ch in application.full_name).strip("_") or "candidate"
-            letter_filename = f"appointment_letter_{safe_name}.html"
-            send_mail_logged(
+            letter_filename = f"nimnuk_patra_{safe_name}.html"
+            id_filename = f"id_card_{safe_name}.html"
+            email_sent = send_mail_logged(
                 subject=subject,
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[application.email],
-                html_message=html_letter,
-                binary_attachments=[(letter_filename, html_letter.encode("utf-8"), "text/html; charset=utf-8")],
+                html_message=nimnuk_html,
+                binary_attachments=[
+                    (letter_filename, nimnuk_html.encode("utf-8"), "text/html; charset=utf-8"),
+                    (id_filename, id_card_html.encode("utf-8"), "text/html; charset=utf-8"),
+                ],
             )
-                
+
+            if not email_sent:
+                return Response(
+                    {
+                        "error": "Status updated to ACCEPTED, but email sending failed. Check SMTP settings/logs.",
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
         serializer = self.get_serializer(application)
         return Response(serializer.data)
     
