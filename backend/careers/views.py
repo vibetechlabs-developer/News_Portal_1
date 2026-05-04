@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.conf import settings
 from django.utils.html import escape
+from django.utils.text import slugify
 import base64
 import mimetypes
 
@@ -271,7 +272,7 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
 
             nimnuk_html = _build_nimnuk_patra_html(application, job, request)
             id_card_html = _build_id_card_html(application, job, request)
-            safe_name = "".join(ch if ch.isalnum() else "_" for ch in application.full_name).strip("_") or "candidate"
+            safe_name = slugify(application.full_name) or f"candidate_{application.id}"
             letter_filename = f"nimnuk_patra_{safe_name}.html"
             id_filename = f"id_card_{safe_name}.html"
             email_sent = send_mail_logged(
@@ -287,12 +288,20 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
             )
 
             if not email_sent:
-                return Response(
-                    {
-                        "error": "Status updated to ACCEPTED, but email sending failed. Check SMTP settings/logs.",
-                    },
-                    status=status.HTTP_502_BAD_GATEWAY,
+                # Fallback: send at least a basic acceptance mail if attachment send fails.
+                fallback_sent = send_mail_logged(
+                    subject=subject,
+                    message=body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[application.email],
                 )
+                if not fallback_sent:
+                    return Response(
+                        {
+                            "error": "Status updated to ACCEPTED, but email sending failed. Check SMTP settings/logs.",
+                        },
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
 
         serializer = self.get_serializer(application)
         return Response(serializer.data)
