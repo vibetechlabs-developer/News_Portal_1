@@ -10,6 +10,7 @@ from django.utils.html import escape
 from django.utils.text import slugify
 from io import BytesIO
 import logging
+import threading
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -177,6 +178,62 @@ def _build_id_card_pdf(application: JobApplication, job: JobPosting) -> bytes:
     return buffer.getvalue()
 
 
+def _send_acceptance_email_documents(application_id: int) -> None:
+    """
+    Build PDFs and send acceptance email in background so API response is fast.
+    """
+    try:
+        application = JobApplication.objects.select_related("job_posting").get(pk=application_id)
+        job = application.job_posting
+        subject = f"Job Application Accepted: {job.title} at Kanam Express"
+        body = (
+            f"Dear {application.full_name},\n\n"
+            f"Congratulations! You have been accepted for the job role: {job.title}.\n\n"
+            f"Job Details:\n"
+            f"- Category: {job.get_category_display()}\n"
+            f"- Location: {job.location}\n"
+            f"- Job Type: {job.get_job_type_display()}\n"
+        )
+
+        if job.salary_range_min and job.salary_range_max:
+            body += f"- Salary Range: {job.salary_range_min} to {job.salary_range_max}\n"
+        if application.admin_notes:
+            body += f"\nNote from team:\n{application.admin_notes}\n"
+        body += (
+            f"\nWelcome to the team!\n\n"
+            f"Best Regards,\n"
+            f"Kanam Express Team\n"
+            f"kanamexpress.com"
+        )
+
+        nimnuk_pdf = _build_nimnuk_patra_pdf(application, job)
+        id_card_pdf = _build_id_card_pdf(application, job)
+        safe_name = slugify(application.full_name) or f"candidate_{application.id}"
+        letter_filename = f"nimnuk_patra_{safe_name}.pdf"
+        id_filename = f"id_card_{safe_name}.pdf"
+
+        email_sent, email_error = send_mail_logged_with_error(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[application.email],
+            binary_attachments=[
+                (letter_filename, nimnuk_pdf, "application/pdf"),
+                (id_filename, id_card_pdf, "application/pdf"),
+            ],
+        )
+        if not email_sent:
+            send_mail_logged_with_error(
+                subject=subject,
+                message=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[application.email],
+            )
+            logger.warning("Acceptance email attachment send failed (application_id=%s): %s", application.id, email_error)
+    except Exception:
+        logger.exception("Background acceptance email send failed for application_id=%s", application_id)
+
+
 class JobPostingViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing job postings.
@@ -314,59 +371,11 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
             should_send_acceptance = new_status == "ACCEPTED" and (old_status != "ACCEPTED" or resend_email)
 
             if should_send_acceptance:
-                try:
-                    job = application.job_posting
-                    subject = f"Job Application Accepted: {job.title} at Kanam Express"
-                    body = (
-                        f"Dear {application.full_name},\n\n"
-                        f"Congratulations! You have been accepted for the job role: {job.title}.\n\n"
-                        f"Job Details:\n"
-                        f"- Category: {job.get_category_display()}\n"
-                        f"- Location: {job.location}\n"
-                        f"- Job Type: {job.get_job_type_display()}\n"
-                    )
-
-                    if job.salary_range_min and job.salary_range_max:
-                        body += f"- Salary Range: {job.salary_range_min} to {job.salary_range_max}\n"
-
-                    if application.admin_notes:
-                        body += f"\nNote from team:\n{application.admin_notes}\n"
-
-                    body += (
-                        f"\nWelcome to the team!\n\n"
-                        f"Best Regards,\n"
-                        f"Kanam Express Team\n"
-                        f"kanamexpress.com"
-                    )
-
-                    nimnuk_pdf = _build_nimnuk_patra_pdf(application, job)
-                    id_card_pdf = _build_id_card_pdf(application, job)
-
-                    safe_name = slugify(application.full_name) or f"candidate_{application.id}"
-                    letter_filename = f"nimnuk_patra_{safe_name}.pdf"
-                    id_filename = f"id_card_{safe_name}.pdf"
-                    email_sent, email_error = send_mail_logged_with_error(
-                        subject=subject,
-                        message=body,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[application.email],
-                        binary_attachments=[
-                            (letter_filename, nimnuk_pdf, "application/pdf"),
-                            (id_filename, id_card_pdf, "application/pdf"),
-                        ],
-                    )
-                    if not email_sent:
-                        # Fallback to plain text mail (no attachment)
-                        send_mail_logged_with_error(
-                            subject=subject,
-                            message=body,
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[application.email],
-                        )
-                        logger.warning("Acceptance email attachment send failed: %s", email_error)
-                except Exception:
-                    # Never fail status update flow due to mail/document generation errors.
-                    logger.exception("Acceptance mail/PDF generation failed for application_id=%s", application.id)
+                threading.Thread(
+                    target=_send_acceptance_email_documents,
+                    args=(application.id,),
+                    daemon=True,
+                ).start()
 
             serializer = self.get_serializer(application)
             return Response(serializer.data)
