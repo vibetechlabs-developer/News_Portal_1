@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils.html import escape
 from django.utils.text import slugify
 from io import BytesIO
+import logging
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -23,6 +24,8 @@ from .serializers import (
     NotificationSerializer
 )
 from .permissions import IsAdminOrReadOnly, IsApplicationOwnerOrAdmin, IsAdminUser
+
+logger = logging.getLogger(__name__)
 
 
 def _pdf_safe_text(value: object) -> str:
@@ -302,69 +305,82 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        old_status = application.status
-        application.status = new_status
-        application.save()
-        
-        resend_email = str(request.data.get("resend_email", "")).lower() in {"1", "true", "yes"}
-        should_send_acceptance = new_status == "ACCEPTED" and (old_status != "ACCEPTED" or resend_email)
+        try:
+            old_status = application.status
+            application.status = new_status
+            application.save()
 
-        if should_send_acceptance:
-            try:
-                job = application.job_posting
-                subject = f"Job Application Accepted: {job.title} at Kanam Express"
-                body = (
-                    f"Dear {application.full_name},\n\n"
-                    f"Congratulations! You have been accepted for the job role: {job.title}.\n\n"
-                    f"Job Details:\n"
-                    f"- Category: {job.get_category_display()}\n"
-                    f"- Location: {job.location}\n"
-                    f"- Job Type: {job.get_job_type_display()}\n"
-                )
+            resend_email = str(request.data.get("resend_email", "")).lower() in {"1", "true", "yes"}
+            should_send_acceptance = new_status == "ACCEPTED" and (old_status != "ACCEPTED" or resend_email)
 
-                if job.salary_range_min and job.salary_range_max:
-                    body += f"- Salary Range: {job.salary_range_min} to {job.salary_range_max}\n"
+            if should_send_acceptance:
+                try:
+                    job = application.job_posting
+                    subject = f"Job Application Accepted: {job.title} at Kanam Express"
+                    body = (
+                        f"Dear {application.full_name},\n\n"
+                        f"Congratulations! You have been accepted for the job role: {job.title}.\n\n"
+                        f"Job Details:\n"
+                        f"- Category: {job.get_category_display()}\n"
+                        f"- Location: {job.location}\n"
+                        f"- Job Type: {job.get_job_type_display()}\n"
+                    )
 
-                if application.admin_notes:
-                    body += f"\nNote from team:\n{application.admin_notes}\n"
+                    if job.salary_range_min and job.salary_range_max:
+                        body += f"- Salary Range: {job.salary_range_min} to {job.salary_range_max}\n"
 
-                body += (
-                    f"\nWelcome to the team!\n\n"
-                    f"Best Regards,\n"
-                    f"Kanam Express Team\n"
-                    f"kanamexpress.com"
-                )
+                    if application.admin_notes:
+                        body += f"\nNote from team:\n{application.admin_notes}\n"
 
-                nimnuk_pdf = _build_nimnuk_patra_pdf(application, job)
-                id_card_pdf = _build_id_card_pdf(application, job)
+                    body += (
+                        f"\nWelcome to the team!\n\n"
+                        f"Best Regards,\n"
+                        f"Kanam Express Team\n"
+                        f"kanamexpress.com"
+                    )
 
-                safe_name = slugify(application.full_name) or f"candidate_{application.id}"
-                letter_filename = f"nimnuk_patra_{safe_name}.pdf"
-                id_filename = f"id_card_{safe_name}.pdf"
-                email_sent, _ = send_mail_logged_with_error(
-                    subject=subject,
-                    message=body,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[application.email],
-                    binary_attachments=[
-                        (letter_filename, nimnuk_pdf, "application/pdf"),
-                        (id_filename, id_card_pdf, "application/pdf"),
-                    ],
-                )
-                if not email_sent:
-                    # Fallback to plain text mail (no attachment)
-                    send_mail_logged_with_error(
+                    nimnuk_pdf = _build_nimnuk_patra_pdf(application, job)
+                    id_card_pdf = _build_id_card_pdf(application, job)
+
+                    safe_name = slugify(application.full_name) or f"candidate_{application.id}"
+                    letter_filename = f"nimnuk_patra_{safe_name}.pdf"
+                    id_filename = f"id_card_{safe_name}.pdf"
+                    email_sent, email_error = send_mail_logged_with_error(
                         subject=subject,
                         message=body,
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[application.email],
+                        binary_attachments=[
+                            (letter_filename, nimnuk_pdf, "application/pdf"),
+                            (id_filename, id_card_pdf, "application/pdf"),
+                        ],
                     )
-            except Exception:
-                # Never fail status update flow due to mail/document generation errors.
-                pass
+                    if not email_sent:
+                        # Fallback to plain text mail (no attachment)
+                        send_mail_logged_with_error(
+                            subject=subject,
+                            message=body,
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[application.email],
+                        )
+                        logger.warning("Acceptance email attachment send failed: %s", email_error)
+                except Exception:
+                    # Never fail status update flow due to mail/document generation errors.
+                    logger.exception("Acceptance mail/PDF generation failed for application_id=%s", application.id)
 
-        serializer = self.get_serializer(application)
-        return Response(serializer.data)
+            serializer = self.get_serializer(application)
+            return Response(serializer.data)
+        except Exception:
+            logger.exception("change_status failed for application_id=%s", application.id)
+            # Return safe JSON instead of letting this become nginx 500 HTML page.
+            return Response(
+                {
+                    "id": application.id,
+                    "status": application.status,
+                    "detail": "Status processed, but an internal error occurred while building response.",
+                },
+                status=status.HTTP_200_OK,
+            )
     
     @action(detail=True, methods=['get'], permission_classes=[IsApplicationOwnerOrAdmin])
     def download_resume(self, request, pk=None):
