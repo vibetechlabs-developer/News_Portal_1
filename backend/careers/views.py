@@ -25,6 +25,15 @@ from .serializers import (
 from .permissions import IsAdminOrReadOnly, IsApplicationOwnerOrAdmin, IsAdminUser
 
 
+def _pdf_safe_text(value: object) -> str:
+    """
+    ReportLab default fonts can fail on non-latin text.
+    Convert dynamic text to latin-safe representation to avoid 500/502.
+    """
+    text = "" if value is None else str(value)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
 def _draw_photo(c: canvas.Canvas, application: JobApplication, x: float, y: float, w: float, h: float) -> None:
     c.setStrokeColor(colors.grey)
     c.rect(x, y, w, h, stroke=1, fill=0)
@@ -54,7 +63,7 @@ def _build_nimnuk_patra_pdf(application: JobApplication, job: JobPosting) -> byt
     c.setFillColor(colors.black)
     c.setFont("Helvetica", 11)
     c.drawRightString(width - 40, height - 95, f"Date: {timezone.now().strftime('%d-%m-%Y')}")
-    c.drawString(45, height - 130, f"To: {application.full_name}")
+    c.drawString(45, height - 130, f"To: {_pdf_safe_text(application.full_name)}")
 
     _draw_photo(c, application, width - 200, height - 310, 140, 170)
 
@@ -62,16 +71,16 @@ def _build_nimnuk_patra_pdf(application: JobApplication, job: JobPosting) -> byt
     text.setFont("Helvetica", 12)
     lines = [
         "We are pleased to appoint you at Kanam Express.",
-        f"Position: {job.title}",
-        f"Category: {job.get_category_display()}",
-        f"Location: {job.location}",
-        f"Job Type: {job.get_job_type_display()}",
-        f"Contact: {application.phone}",
+        f"Position: {_pdf_safe_text(job.title)}",
+        f"Category: {_pdf_safe_text(job.get_category_display())}",
+        f"Location: {_pdf_safe_text(job.location)}",
+        f"Job Type: {_pdf_safe_text(job.get_job_type_display())}",
+        f"Contact: {_pdf_safe_text(application.phone)}",
         "",
         "Please follow company policy, ethics and legal compliance.",
     ]
     if application.admin_notes:
-        lines += ["", "Special Note:", application.admin_notes]
+        lines += ["", "Special Note:", _pdf_safe_text(application.admin_notes)]
     for line in lines:
         text.textLine(line)
     c.drawText(text)
@@ -115,11 +124,11 @@ def _build_id_card_pdf(application: JobApplication, job: JobPosting) -> bytes:
     _draw_photo(c, application, left_x + (card_w / 2) - 60, y + 180, 120, 145)
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 15)
-    c.drawCentredString(left_x + (card_w / 2), y + 150, application.full_name[:38])
+    c.drawCentredString(left_x + (card_w / 2), y + 150, _pdf_safe_text(application.full_name)[:38])
     c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(left_x + (card_w / 2), y + 130, job.title)
+    c.drawCentredString(left_x + (card_w / 2), y + 130, _pdf_safe_text(job.title))
     c.setFont("Helvetica", 11)
-    c.drawCentredString(left_x + (card_w / 2), y + 112, application.phone)
+    c.drawCentredString(left_x + (card_w / 2), y + 112, _pdf_safe_text(application.phone))
     c.setFillColor(colors.HexColor("#312f9b"))
     c.setFont("Helvetica-Bold", 12)
     serial_no = f"KE-{timezone.now().strftime('%Y')}-{application.id:04d}"
@@ -325,8 +334,31 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 f"kanamexpress.com"
             )
 
-            nimnuk_pdf = _build_nimnuk_patra_pdf(application, job)
-            id_card_pdf = _build_id_card_pdf(application, job)
+            try:
+                nimnuk_pdf = _build_nimnuk_patra_pdf(application, job)
+                id_card_pdf = _build_id_card_pdf(application, job)
+            except Exception as pdf_error:
+                fallback_sent, fallback_error = send_mail_logged_with_error(
+                    subject=subject,
+                    message=(
+                        f"{body}\n\n"
+                        "Note: PDF generation failed on server, so documents were not attached this time.\n"
+                        f"PDF error: {pdf_error}"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[application.email],
+                )
+                if not fallback_sent:
+                    return Response(
+                        {
+                            "error": "Status updated to ACCEPTED, but email sending failed.",
+                            "primary_error": str(pdf_error),
+                            "fallback_error": fallback_error,
+                        },
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+                serializer = self.get_serializer(application)
+                return Response(serializer.data)
             safe_name = slugify(application.full_name) or f"candidate_{application.id}"
             letter_filename = f"nimnuk_patra_{safe_name}.pdf"
             id_filename = f"id_card_{safe_name}.pdf"
