@@ -11,6 +11,7 @@ from django.utils.text import slugify
 from io import BytesIO
 import logging
 import threading
+import os
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -53,16 +54,37 @@ def _draw_photo(c: canvas.Canvas, application: JobApplication, x: float, y: floa
         c.drawCentredString(x + (w / 2), y + (h / 2), "PHOTO")
 
 
+def _template_asset_path(filename: str) -> str:
+    return os.path.join(settings.BASE_DIR, "careers", "template_assets", filename)
+
+
+def _draw_background_if_exists(
+    c: canvas.Canvas, file_path: str, x: float, y: float, w: float, h: float
+) -> bool:
+    if not os.path.exists(file_path):
+        return False
+    try:
+        c.drawImage(ImageReader(file_path), x, y, w, h, preserveAspectRatio=False, mask="auto")
+        return True
+    except Exception:
+        logger.exception("Failed to draw background template: %s", file_path)
+        return False
+
+
 def _build_nimnuk_patra_pdf(application: JobApplication, job: JobPosting) -> bytes:
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
+    template_used = _draw_background_if_exists(
+        c, _template_asset_path("nimnuk_patra_bg.png"), 0, 0, width, height
+    )
 
-    c.setFillColor(colors.HexColor("#cf1b1b"))
-    c.rect(0, height - 70, width, 70, fill=1, stroke=0)
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 22)
-    c.drawCentredString(width / 2, height - 45, "NIMNUK PATRA")
+    if not template_used:
+        c.setFillColor(colors.HexColor("#cf1b1b"))
+        c.rect(0, height - 70, width, 70, fill=1, stroke=0)
+        c.setFillColor(colors.white)
+        c.setFont("Helvetica-Bold", 22)
+        c.drawCentredString(width / 2, height - 45, "NIMNUK PATRA")
 
     c.setFillColor(colors.black)
     c.setFont("Helvetica", 11)
@@ -112,20 +134,27 @@ def _build_id_card_pdf(application: JobApplication, job: JobPosting) -> bytes:
     left_x = margin
     right_x = margin + card_w + gap
     y = margin
+    front_bg_used = _draw_background_if_exists(
+        c, _template_asset_path("id_card_front_bg.png"), left_x, y, card_w, card_h
+    )
+    back_bg_used = _draw_background_if_exists(
+        c, _template_asset_path("id_card_back_bg.png"), right_x, y, card_w, card_h
+    )
 
     # Front card
-    c.setStrokeColor(colors.HexColor("#d98c00"))
-    c.setLineWidth(2)
-    c.rect(left_x, y, card_w, card_h, stroke=1, fill=0)
-    c.setFillColor(colors.HexColor("#cf1b1b"))
-    c.rect(left_x, y + card_h - 54, card_w, 54, stroke=0, fill=1)
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 18)
-    c.drawCentredString(left_x + (card_w / 2), y + card_h - 34, "KANAM EXPRESS")
-    c.setFont("Helvetica-Bold", 13)
-    c.drawCentredString(left_x + (card_w / 2), y + card_h - 50, "NEWS GUJARATI")
+    if not front_bg_used:
+        c.setStrokeColor(colors.HexColor("#d98c00"))
+        c.setLineWidth(2)
+        c.rect(left_x, y, card_w, card_h, stroke=1, fill=0)
+        c.setFillColor(colors.HexColor("#cf1b1b"))
+        c.rect(left_x, y + card_h - 54, card_w, 54, stroke=0, fill=1)
+        c.setFillColor(colors.white)
+        c.setFont("Helvetica-Bold", 18)
+        c.drawCentredString(left_x + (card_w / 2), y + card_h - 34, "KANAM EXPRESS")
+        c.setFont("Helvetica-Bold", 13)
+        c.drawCentredString(left_x + (card_w / 2), y + card_h - 50, "NEWS GUJARATI")
 
-    _draw_photo(c, application, left_x + (card_w / 2) - 60, y + 180, 120, 145)
+    _draw_photo(c, application, left_x + (card_w / 2) - 58, y + 178, 116, 142)
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(left_x + (card_w / 2), y + 150, _pdf_safe_text(application.full_name)[:38])
@@ -142,9 +171,10 @@ def _build_id_card_pdf(application: JobApplication, job: JobPosting) -> bytes:
     c.drawCentredString(left_x + (card_w / 2), y + 42, "TV PRESS")
 
     # Back card
-    c.setStrokeColor(colors.HexColor("#d98c00"))
-    c.setLineWidth(2)
-    c.rect(right_x, y, card_w, card_h, stroke=1, fill=0)
+    if not back_bg_used:
+        c.setStrokeColor(colors.HexColor("#d98c00"))
+        c.setLineWidth(2)
+        c.rect(right_x, y, card_w, card_h, stroke=1, fill=0)
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 16)
     c.drawString(right_x + 20, y + card_h - 34, "Valid Upto : LIFE TIME")
