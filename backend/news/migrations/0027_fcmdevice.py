@@ -1,4 +1,4 @@
-# FCM native push devices (depends on PushSubscription index rename migration).
+# FCM native push devices (Android / iOS).
 
 import django.db.models.deletion
 from django.conf import settings
@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("news", "0027_pushsubscription_index_rename"),
+        ("news", "0026_pushsubscription"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
