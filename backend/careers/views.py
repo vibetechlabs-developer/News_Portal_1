@@ -11,7 +11,7 @@ from django.utils.text import slugify
 import base64
 import mimetypes
 
-from backend.common.mail import send_mail_logged
+from backend.common.mail import send_mail_logged, send_mail_logged_with_error
 from .models import JobPosting, JobApplication, ApplicationReview, Notification
 from .serializers import (
     JobPostingSerializer, JobApplicationSerializer,
@@ -275,7 +275,7 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
             safe_name = slugify(application.full_name) or f"candidate_{application.id}"
             letter_filename = f"nimnuk_patra_{safe_name}.html"
             id_filename = f"id_card_{safe_name}.html"
-            email_sent = send_mail_logged(
+            email_sent, primary_error = send_mail_logged_with_error(
                 subject=subject,
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -289,7 +289,7 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
 
             if not email_sent:
                 # Fallback: send at least a basic acceptance mail if attachment send fails.
-                fallback_sent = send_mail_logged(
+                fallback_sent, fallback_error = send_mail_logged_with_error(
                     subject=subject,
                     message=body,
                     from_email=settings.DEFAULT_FROM_EMAIL,
@@ -298,7 +298,9 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 if not fallback_sent:
                     return Response(
                         {
-                            "error": "Status updated to ACCEPTED, but email sending failed. Check SMTP settings/logs.",
+                            "error": "Status updated to ACCEPTED, but email sending failed.",
+                            "primary_error": primary_error,
+                            "fallback_error": fallback_error,
                         },
                         status=status.HTTP_502_BAD_GATEWAY,
                     )
