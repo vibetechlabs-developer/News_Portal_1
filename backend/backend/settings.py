@@ -411,3 +411,10 @@ CRICKET_MATCHES_API_URL = config("CRICKET_MATCHES_API_URL", default="")
 WEB_PUSH_PUBLIC_KEY = config("WEB_PUSH_PUBLIC_KEY", default="")
 WEB_PUSH_PRIVATE_KEY = config("WEB_PUSH_PRIVATE_KEY", default="")
 WEB_PUSH_SUBJECT = config("WEB_PUSH_SUBJECT", default="mailto:admin@newsportal.local")
+
+# Firebase Cloud Messaging (native Android / iOS apps)
+# Set either FIREBASE_CREDENTIALS_PATH (file path on server) or FIREBASE_CREDENTIALS_JSON (raw JSON string).
+FIREBASE_CREDENTIALS_PATH = config("FIREBASE_CREDENTIALS_PATH", default="")
+FIREBASE_CREDENTIALS_JSON = config("FIREBASE_CREDENTIALS_JSON", default="")
+# Used in FCM data payload as absolute article URL (adjust to your public web app host).
+FCM_DEEPLINK_BASE_URL = config("FCM_DEEPLINK_BASE_URL", default="https://www.kanamexpress.com")

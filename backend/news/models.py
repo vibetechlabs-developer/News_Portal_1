@@ -658,3 +658,38 @@ class PushSubscription(models.Model):
 
     def __str__(self) -> str:
         return f"PushSubscription({self.endpoint[:60]})"
+
+
+class FCMDevice(models.Model):
+    """
+    Stores FCM registration tokens for native Android / iOS apps.
+    """
+
+    class Platform(models.TextChoices):
+        ANDROID = "ANDROID", "Android"
+        IOS = "IOS", "iOS"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="fcm_devices",
+    )
+    fcm_token = models.TextField(unique=True)
+    platform = models.CharField(max_length=16, choices=Platform.choices)
+    device_id = models.CharField(max_length=255, null=True, blank=True)
+    device_model = models.CharField(max_length=255, blank=True, default="")
+    app_version = models.CharField(max_length=64, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["user", "device_id"]),
+            models.Index(fields=["is_active", "-updated_at"]),
+        ]
+
+    def __str__(self) -> str:
+        tail = self.fcm_token[-12:] if self.fcm_token else ""
+        return f"FCMDevice({self.platform}, …{tail})"

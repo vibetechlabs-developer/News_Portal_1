@@ -58,6 +58,7 @@ from .serializers import (
     ReelCommentSerializer,
     PollSerializer,
 )
+from .fcm_client import send_article_fcm_notifications
 
 import logging
 import requests
@@ -137,6 +138,7 @@ def _send_web_push_for_article(article):
 def _notify_new_article(article):
     _create_news_notification(article)
     _send_web_push_for_article(article)
+    send_article_fcm_notifications(article)
 
 
 def _notify_new_article_from_id(article_id: int):

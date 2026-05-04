@@ -190,3 +190,20 @@ class PollSerializer(serializers.ModelSerializer):
         fields = ("id", "question", "is_active", "options", "created_at")
         read_only_fields = ("id", "created_at")
 
+
+class FCMDeviceRegisterSerializer(serializers.Serializer):
+    """Payload for registering/updating an FCM device token (Android / iOS)."""
+
+    platform = serializers.ChoiceField(choices=["ANDROID", "IOS", "android", "ios"])
+    fcm_token = serializers.CharField(min_length=10, max_length=4096)
+    device_id = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    device_model = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    app_version = serializers.CharField(required=False, allow_blank=True, max_length=64)
+
+    def validate_platform(self, value: str) -> str:
+        return str(value).upper()
+
+
+class FCMDeviceUnregisterSerializer(serializers.Serializer):
+    fcm_token = serializers.CharField(min_length=10, max_length=4096)
+

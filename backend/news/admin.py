@@ -1,6 +1,19 @@
 from django.contrib import admin
 
-from .models import Category, Comment, District, EpaperEdition, Like, Media, NewsArticle, Section, Tag, VideoContent, ReelContent
+from .models import (
+    Category,
+    Comment,
+    District,
+    EpaperEdition,
+    FCMDevice,
+    Like,
+    Media,
+    NewsArticle,
+    Section,
+    Tag,
+    VideoContent,
+    ReelContent,
+)
 
 
 @admin.register(Section)
@@ -119,3 +132,12 @@ class EpaperEditionAdmin(admin.ModelAdmin):
     search_fields = ("title",)
     date_hierarchy = "publication_date"
     ordering = ("-publication_date",)
+
+
+@admin.register(FCMDevice)
+class FCMDeviceAdmin(admin.ModelAdmin):
+    list_display = ("user", "platform", "device_id", "is_active", "app_version", "updated_at")
+    list_filter = ("platform", "is_active")
+    search_fields = ("user__username", "user__email", "device_id", "fcm_token")
+    autocomplete_fields = ("user",)
+    ordering = ("-updated_at",)
