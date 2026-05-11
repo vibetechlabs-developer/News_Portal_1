@@ -5,7 +5,7 @@ import { VideoCard } from '@/components/news/VideoCard';
 import { TrendingSidebar } from '@/components/news/TrendingSidebar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getVideos, getMediaUrl, type VideoContentItem } from '@/lib/api';
-import { getUploadedVideoUrl, extractYouTubeVideoId } from '@/lib/videoUtils';
+import { getVideoUrl as resolveVideoUrl, extractYouTubeVideoId } from '@/lib/videoUtils';
 import { ImmersiveVideoPlayer } from '@/components/videos/ImmersiveVideoPlayer';
 
 const videoCategories = [
@@ -25,8 +25,8 @@ function formatViews(count?: number): string | undefined {
 }
 
 function getVideoUrl(video: VideoContentItem): string | null {
-  // Videos page should ONLY show uploaded video files, not YouTube URLs
-  return getUploadedVideoUrl(video.youtube_url, video.file, getMediaUrl);
+  // Show both uploaded files and YouTube links from the videos API.
+  return resolveVideoUrl(video.youtube_url, video.file, getMediaUrl);
 }
 
 const Videos = () => {

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VideoCard } from '@/components/news/VideoCard';
 import { getVideos, getMediaUrl, type VideoContentItem } from '@/lib/api';
-import { getUploadedVideoUrl, extractYouTubeVideoId } from '@/lib/videoUtils';
+import { getVideoUrl as resolveVideoUrl, extractYouTubeVideoId } from '@/lib/videoUtils';
 import { ImmersiveVideoPlayer } from '@/components/videos/ImmersiveVideoPlayer';
 
 function formatViews(count?: number): string | undefined {
@@ -15,8 +15,8 @@ function formatViews(count?: number): string | undefined {
 }
 
 function getVideoUrl(video: VideoContentItem): string | null {
-  // Videos section should ONLY show uploaded video files, not YouTube URLs
-  return getUploadedVideoUrl(video.youtube_url, video.file, getMediaUrl);
+  // Show both uploaded files and YouTube links from the videos API.
+  return resolveVideoUrl(video.youtube_url, video.file, getMediaUrl);
 }
 
 export function VideoSection() {
