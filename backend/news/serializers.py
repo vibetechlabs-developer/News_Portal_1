@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 
 from .models import (
     Section,
@@ -76,7 +77,19 @@ class LikeSerializer(serializers.ModelSerializer):
 		read_only_fields = ("id", "created_at")
 
 
+User = get_user_model()
+
+
+class PublicUserSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = User
+		fields = ("id", "username", "first_name", "last_name")
+		read_only_fields = fields
+
+
 class CommentSerializer(serializers.ModelSerializer):
+	user = PublicUserSerializer(read_only=True)
+
 	class Meta:
 		model = Comment
 		fields = "__all__"
@@ -163,6 +176,8 @@ class ReelLikeSerializer(serializers.ModelSerializer):
 
 
 class VideoCommentSerializer(serializers.ModelSerializer):
+	user = PublicUserSerializer(read_only=True)
+
 	class Meta:
 		model = VideoComment
 		fields = "__all__"
@@ -170,6 +185,8 @@ class VideoCommentSerializer(serializers.ModelSerializer):
 
 
 class ReelCommentSerializer(serializers.ModelSerializer):
+	user = PublicUserSerializer(read_only=True)
+
 	class Meta:
 		model = ReelComment
 		fields = "__all__"

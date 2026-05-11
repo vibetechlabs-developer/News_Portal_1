@@ -1066,7 +1066,13 @@ class CommentViewSet(viewsets.ModelViewSet):
         )
         if is_privileged:
             return qs
-        return qs.filter(is_approved=True, article__status=ContentStatus.PUBLISHED)
+        # Public feed: only show comments that are attributable to a real user
+        # (we require auth for new comments, but this also hides legacy guest rows).
+        return qs.filter(
+            is_approved=True,
+            user__isnull=False,
+            article__status=ContentStatus.PUBLISHED,
+        )
 
     def perform_create(self, serializer):
         serializer.save(

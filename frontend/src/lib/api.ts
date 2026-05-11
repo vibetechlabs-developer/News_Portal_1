@@ -62,6 +62,7 @@ export interface CommentItem {
   updated_at: string;
   user: number | {
     id: number;
+    username?: string;
     first_name?: string;
     last_name?: string;
   } | null;
