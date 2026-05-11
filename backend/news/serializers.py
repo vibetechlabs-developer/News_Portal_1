@@ -225,3 +225,7 @@ class FCMDeviceRegisterSerializer(serializers.Serializer):
 class FCMDeviceUnregisterSerializer(serializers.Serializer):
     fcm_token = serializers.CharField(min_length=10, max_length=4096)
 
+
+class FCMGuestDeviceUnregisterSerializer(serializers.Serializer):
+    fcm_token = serializers.CharField(min_length=10, max_length=4096)
+

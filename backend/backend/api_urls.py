@@ -33,7 +33,12 @@ from news.views import (
     PollViewSet,
     PushSubscriptionView,
 )
-from news.fcm_views import FCMDeviceRegisterView, FCMDeviceUnregisterView
+from news.fcm_views import (
+    FCMDeviceRegisterView,
+    FCMDeviceUnregisterView,
+    FCMGuestDeviceRegisterView,
+    FCMGuestDeviceUnregisterView,
+)
 from news.views_share import ArticleShareProxyView
 from reels.views import ReelViewSet, ReelCategoryViewSet, ReelTagViewSet
 from users.views import (
@@ -114,6 +119,8 @@ urlpatterns = [
     path("push/subscriptions/", PushSubscriptionView.as_view(), name="push-subscriptions"),
     path("push/fcm-devices/", FCMDeviceRegisterView.as_view(), name="fcm-devices"),
     path("push/fcm-devices/unregister/", FCMDeviceUnregisterView.as_view(), name="fcm-devices-unregister"),
+    path("push/fcm-devices/guest/", FCMGuestDeviceRegisterView.as_view(), name="fcm-devices-guest"),
+    path("push/fcm-devices/guest/unregister/", FCMGuestDeviceUnregisterView.as_view(), name="fcm-devices-guest-unregister"),
     path("market/indices/", MarketIndicesProxyView.as_view(), name="market-indices"),
     path("share/<str:slug>/", ArticleShareProxyView.as_view(), name="article-share"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),

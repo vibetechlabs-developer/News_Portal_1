@@ -674,8 +674,10 @@ class FCMDevice(models.Model):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="fcm_devices",
+        null=True,
+        blank=True,
     )
     fcm_token = models.TextField(unique=True)
     platform = models.CharField(max_length=16, choices=Platform.choices)

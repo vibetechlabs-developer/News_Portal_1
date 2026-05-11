@@ -9,7 +9,11 @@ from rest_framework.views import APIView
 
 from .fcm_client import is_fcm_configured
 from .models import FCMDevice
-from .serializers import FCMDeviceRegisterSerializer, FCMDeviceUnregisterSerializer
+from .serializers import (
+    FCMDeviceRegisterSerializer,
+    FCMDeviceUnregisterSerializer,
+    FCMGuestDeviceUnregisterSerializer,
+)
 
 
 class FCMDeviceRegisterView(APIView):
@@ -132,4 +136,119 @@ class FCMDeviceUnregisterView(APIView):
         updated = FCMDevice.objects.filter(user=request.user, fcm_token=token).update(is_active=False)
         if not updated:
             return Response({"detail": "Token not found for this user."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"ok": True}, status=status.HTTP_200_OK)
+
+
+class FCMGuestDeviceRegisterView(APIView):
+    """
+    Register/update a guest device token (no login required).
+    This allows generic notifications before authentication.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        ser = FCMDeviceRegisterSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        token = data["fcm_token"].strip()
+        platform = data["platform"]
+        device_id = (data.get("device_id") or "").strip() or None
+        device_model = (data.get("device_model") or "").strip() or ""
+        app_version = (data.get("app_version") or "").strip() or ""
+
+        with transaction.atomic():
+            row = FCMDevice.objects.select_for_update().filter(fcm_token=token).first()
+            if row:
+                # Do not clear an already linked user here; authenticated flow will own linkage.
+                row.platform = platform
+                row.device_id = device_id
+                row.device_model = device_model
+                row.app_version = app_version
+                row.is_active = True
+                row.updated_at = timezone.now()
+                row.save(
+                    update_fields=[
+                        "platform",
+                        "device_id",
+                        "device_model",
+                        "app_version",
+                        "is_active",
+                        "updated_at",
+                    ]
+                )
+            elif device_id:
+                row = (
+                    FCMDevice.objects.select_for_update()
+                    .filter(user__isnull=True, device_id=device_id)
+                    .first()
+                )
+                if row:
+                    row.fcm_token = token
+                    row.platform = platform
+                    row.device_model = device_model
+                    row.app_version = app_version
+                    row.is_active = True
+                    row.updated_at = timezone.now()
+                    row.save(
+                        update_fields=[
+                            "fcm_token",
+                            "platform",
+                            "device_model",
+                            "app_version",
+                            "is_active",
+                            "updated_at",
+                        ]
+                    )
+                else:
+                    row = FCMDevice.objects.create(
+                        user=None,
+                        fcm_token=token,
+                        platform=platform,
+                        device_id=device_id,
+                        device_model=device_model,
+                        app_version=app_version,
+                        is_active=True,
+                    )
+            else:
+                row = FCMDevice.objects.create(
+                    user=None,
+                    fcm_token=token,
+                    platform=platform,
+                    device_id=None,
+                    device_model=device_model,
+                    app_version=app_version,
+                    is_active=True,
+                )
+
+        return Response(
+            {
+                "ok": True,
+                "id": row.pk,
+                "platform": row.platform,
+                "device_id": row.device_id,
+                "guest": row.user_id is None,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class FCMGuestDeviceUnregisterView(APIView):
+    """Deactivate a guest device token (no login required)."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        return self._unregister(request)
+
+    def delete(self, request, *args, **kwargs):
+        return self._unregister(request)
+
+    def _unregister(self, request):
+        ser = FCMGuestDeviceUnregisterSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        token = ser.validated_data["fcm_token"].strip()
+        updated = FCMDevice.objects.filter(user__isnull=True, fcm_token=token).update(is_active=False)
+        if not updated:
+            return Response({"detail": "Guest token not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response({"ok": True}, status=status.HTTP_200_OK)
