@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, ChevronLeft, ChevronRight, X, Share2, Heart, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +31,10 @@ function getTitle(reel: ReelContentItem, lang: string): string {
 
 export function ImmersiveReelPlayer({ reels, initialIndex, onClose, onViewTracked }: ImmersiveReelPlayerProps) {
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const routerLocation = useLocation();
+  const authReturn = { from: { pathname: `${routerLocation.pathname}${routerLocation.search}` } };
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(true);
 
@@ -146,6 +150,10 @@ export function ImmersiveReelPlayer({ reels, initialIndex, onClose, onViewTracke
   };
 
   const handleToggleLike = async (id: number) => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: authReturn });
+      return;
+    }
 
     const isLiked = likedReels.includes(id);
     const newLikedState = !isLiked;

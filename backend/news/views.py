@@ -19,6 +19,11 @@ from rest_framework.views import APIView
 
 from backend.common.permissions import CONTENT_MANAGER_ROLES, IsEditorOrSuperAdmin, IsOwnerOrPrivileged, IsSuperAdmin
 from backend.common.request import get_client_ip
+from backend.common.view_dedupe import (
+    attach_device_cookie_if_needed,
+    resolve_view_actor,
+    try_register_unique_view,
+)
 from .models import (
     Category,
     Comment,
@@ -498,7 +503,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
         """
         Permission rules:
         - Public (AllowAny): list/retrieve + read-only convenience endpoints (breaking/top/most-read/related/track_view)
-        - Authenticated user: toggle_like
+        - Authenticated user: toggle_like (likes require sign-in)
         - Privileged (Editor/Super Admin): create/update/delete
         """
 
@@ -510,10 +515,11 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
             "most_read",
             "related",
             "track_view",
-            "toggle_like",
             "editor_picks",
         }:
             return [AllowAny()]
+        if self.action == "toggle_like":
+            return [IsAuthenticated()]
 
         return [IsEditorOrSuperAdmin()]
 
@@ -622,6 +628,12 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
         """
 
         article = self.get_object()
+        actor, session_id, is_new_session = resolve_view_actor(request)
+        dedupe_key = f"view:newsarticle:{article.pk}:{actor}"
+        if not try_register_unique_view(dedupe_key):
+            resp = Response({"ok": True, "deduped": True}, status=status.HTTP_200_OK)
+            attach_device_cookie_if_needed(resp, session_id, is_new_session)
+            return resp
 
         # Increment view_count atomically
         NewsArticle.objects.filter(pk=article.pk).update(view_count=F("view_count") + 1)
@@ -639,37 +651,21 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
             # Analytics is non-critical; do not fail the request if tracking fails
             pass
 
-        return Response({"ok": True}, status=status.HTTP_200_OK)
+        resp = Response({"ok": True}, status=status.HTTP_200_OK)
+        attach_device_cookie_if_needed(resp, session_id, is_new_session)
+        return resp
 
-    @action(detail=True, methods=["post"], permission_classes=[AllowAny])
+    @action(detail=True, methods=["post"])
     def toggle_like(self, request, slug=None):
-        """
-        Like/unlike the article for the current user or anonymous session.
-        """
+        """Like/unlike the article for the signed-in user."""
         article = self.get_object()
-        user = request.user if request.user.is_authenticated else None
-        
-        session_id = request.COOKIES.get("device_id")
-        is_new_session = False
-        if not session_id and not user:
-            import uuid
-            session_id = str(uuid.uuid4())
-            is_new_session = True
-            
+        user = request.user
         ip_address = get_client_ip(request)
-        
-        if user:
-            like = Like.objects.filter(user=user, article=article).first()
-        else:
-            like = Like.objects.filter(session_id=session_id, article=article).first()
-            
+
+        like = Like.objects.filter(user=user, article=article).first()
+
         if not like:
-            Like.objects.create(
-                user=user, 
-                article=article, 
-                session_id=session_id, 
-                ip_address=ip_address
-            )
+            Like.objects.create(user=user, article=article, session_id=None, ip_address=ip_address)
             NewsArticle.objects.filter(pk=article.pk).update(likes_count=F("likes_count") + 1)
             response_data = {"liked": True}
             status_code = status.HTTP_201_CREATED
@@ -679,10 +675,7 @@ class NewsArticleViewSet(viewsets.ModelViewSet):
             response_data = {"liked": False}
             status_code = status.HTTP_200_OK
 
-        response = Response(response_data, status=status_code)
-        if is_new_session:
-            response.set_cookie("device_id", session_id, max_age=10*365*24*60*60, samesite='Lax')
-        return response
+        return Response(response_data, status=status_code)
 
     @action(
         detail=False,
@@ -822,8 +815,14 @@ class VideoContentViewSet(viewsets.ModelViewSet):
     ordering_fields = ["published_at", "created_at", "updated_at", "view_count", "likes_count"]
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve", "like", "comment", "track_view"):
+        if self.action in ("list", "retrieve", "track_view"):
             return [AllowAny()]
+        if self.action == "like":
+            return [IsAuthenticated()]
+        if self.action == "comment":
+            if self.request.method in ("GET", "HEAD", "OPTIONS"):
+                return [AllowAny()]
+            return [IsAuthenticated()]
         return [IsEditorOrSuperAdmin()]
 
     def perform_create(self, serializer):
@@ -866,50 +865,27 @@ class VideoContentViewSet(viewsets.ModelViewSet):
             return qs
         return qs.filter(status=ContentStatus.PUBLISHED)
 
-    @action(detail=True, methods=["post", "delete"], permission_classes=[AllowAny])
+    @action(detail=True, methods=["post", "delete"])
     def like(self, request, pk=None):
         video = self.get_object()
-        user = request.user if request.user.is_authenticated else None
-        
-        session_id = request.COOKIES.get("device_id")
-        is_new_session = False
-        if not session_id and not user:
-            import uuid
-            session_id = str(uuid.uuid4())
-            is_new_session = True
-            
+        user = request.user
         ip_address = get_client_ip(request)
 
         if request.method == "POST":
-            # Like the video
-            if user:
-                like = VideoLike.objects.filter(user=user, video=video).first()
-            else:
-                like = VideoLike.objects.filter(session_id=session_id, video=video).first()
-                
+            like = VideoLike.objects.filter(user=user, video=video).first()
+
             if not like:
-                VideoLike.objects.create(user=user, video=video, session_id=session_id, ip_address=ip_address)
+                VideoLike.objects.create(user=user, video=video, session_id=None, ip_address=ip_address)
                 VideoContent.objects.filter(pk=video.pk).update(likes_count=F("likes_count") + 1)
-                response = Response({"status": "liked"}, status=status.HTTP_201_CREATED)
-            else:
-                response = Response({"status": "already liked"}, status=status.HTTP_200_OK)
-                
-            if is_new_session:
-                response.set_cookie("device_id", session_id, max_age=10*365*24*60*60, samesite='Lax')
-            return response
+                return Response({"status": "liked"}, status=status.HTTP_201_CREATED)
+            return Response({"status": "already liked"}, status=status.HTTP_200_OK)
 
-        elif request.method == "DELETE":
-            # Unlike the video
-            if user:
-                deleted, _ = VideoLike.objects.filter(user=user, video=video).delete()
-            else:
-                deleted, _ = VideoLike.objects.filter(session_id=session_id, video=video).delete()
-                
-            if deleted:
-                VideoContent.objects.filter(pk=video.pk, likes_count__gt=0).update(likes_count=F("likes_count") - 1)
-            return Response({"status": "unliked"}, status=status.HTTP_204_NO_CONTENT)
+        deleted, _ = VideoLike.objects.filter(user=user, video=video).delete()
+        if deleted:
+            VideoContent.objects.filter(pk=video.pk, likes_count__gt=0).update(likes_count=F("likes_count") - 1)
+        return Response({"status": "unliked"}, status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["get", "post"], permission_classes=[AllowAny])
+    @action(detail=True, methods=["get", "post"])
     def comment(self, request, pk=None):
         video = self.get_object()
         if request.method == "GET":
@@ -917,42 +893,34 @@ class VideoContentViewSet(viewsets.ModelViewSet):
             comments = VideoComment.objects.filter(video=video, is_approved=True)
             serializer = VideoCommentSerializer(comments, many=True)
             return Response(serializer.data)
-        elif request.method == "POST":
-            # Post a new comment
-            user = request.user if request.user.is_authenticated else None
-            session_id = request.COOKIES.get("device_id")
-            is_new_session = False
-            if not session_id and not user:
-                import uuid
-                session_id = str(uuid.uuid4())
-                is_new_session = True
-                
-            ip_address = get_client_ip(request)
-            
-            guest_name = None
-            if not user:
-                import random, hashlib
-                prefix = random.choice(["Citizen", "Local", "Reader", "Neighbor", "Observer"])
-                h = hashlib.md5(session_id.encode()).hexdigest()
-                guest_name = f"{prefix} #{h[:4].upper()}"
-
-            data = request.data.copy()
-            data["video"] = video.pk
-            serializer = VideoCommentSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save(user=user, session_id=session_id, ip_address=ip_address, guest_name=guest_name)
-                response = Response(serializer.data, status=status.HTTP_201_CREATED)
-                if is_new_session:
-                    response.set_cookie("device_id", session_id, max_age=10*365*24*60*60, samesite='Lax')
-                return response
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        ip_address = get_client_ip(request)
+        data = request.data.copy()
+        data["video"] = video.pk
+        serializer = VideoCommentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(
+                user=request.user,
+                session_id=None,
+                ip_address=ip_address,
+                guest_name=None,
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @method_decorator(csrf_exempt)
     @action(detail=True, methods=["post"], permission_classes=[AllowAny])
     def track_view(self, request, pk=None):
         video = self.get_object()
+        actor, session_id, is_new_session = resolve_view_actor(request)
+        dedupe_key = f"view:videocontent:{video.pk}:{actor}"
+        if not try_register_unique_view(dedupe_key):
+            resp = Response({"ok": True, "deduped": True}, status=status.HTTP_200_OK)
+            attach_device_cookie_if_needed(resp, session_id, is_new_session)
+            return resp
         VideoContent.objects.filter(pk=video.pk).update(view_count=F("view_count") + 1)
-        return Response({"ok": True}, status=status.HTTP_200_OK)
+        resp = Response({"ok": True}, status=status.HTTP_200_OK)
+        attach_device_cookie_if_needed(resp, session_id, is_new_session)
+        return resp
 
 
 class ReelContentViewSet(viewsets.ModelViewSet):
@@ -967,8 +935,14 @@ class ReelContentViewSet(viewsets.ModelViewSet):
     ordering_fields = ["published_at", "created_at", "updated_at", "view_count", "likes_count"]
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve", "like", "comment", "track_view"):
+        if self.action in ("list", "retrieve", "track_view"):
             return [AllowAny()]
+        if self.action == "like":
+            return [IsAuthenticated()]
+        if self.action == "comment":
+            if self.request.method in ("GET", "HEAD", "OPTIONS"):
+                return [AllowAny()]
+            return [IsAuthenticated()]
         return [IsEditorOrSuperAdmin()]
 
     def perform_create(self, serializer):
@@ -1011,50 +985,27 @@ class ReelContentViewSet(viewsets.ModelViewSet):
             return qs
         return qs.filter(status=ContentStatus.PUBLISHED)
 
-    @action(detail=True, methods=["post", "delete"], permission_classes=[AllowAny])
+    @action(detail=True, methods=["post", "delete"])
     def like(self, request, pk=None):
         reel = self.get_object()
-        user = request.user if request.user.is_authenticated else None
-        
-        session_id = request.COOKIES.get("device_id")
-        is_new_session = False
-        if not session_id and not user:
-            import uuid
-            session_id = str(uuid.uuid4())
-            is_new_session = True
-            
+        user = request.user
         ip_address = get_client_ip(request)
 
         if request.method == "POST":
-            # Like the reel
-            if user:
-                like = ReelLike.objects.filter(user=user, reel=reel).first()
-            else:
-                like = ReelLike.objects.filter(session_id=session_id, reel=reel).first()
-                
+            like = ReelLike.objects.filter(user=user, reel=reel).first()
+
             if not like:
-                ReelLike.objects.create(user=user, reel=reel, session_id=session_id, ip_address=ip_address)
+                ReelLike.objects.create(user=user, reel=reel, session_id=None, ip_address=ip_address)
                 ReelContent.objects.filter(pk=reel.pk).update(likes_count=F("likes_count") + 1)
-                response = Response({"status": "liked"}, status=status.HTTP_201_CREATED)
-            else:
-                response = Response({"status": "already liked"}, status=status.HTTP_200_OK)
-                
-            if is_new_session:
-                response.set_cookie("device_id", session_id, max_age=10*365*24*60*60, samesite='Lax')
-            return response
+                return Response({"status": "liked"}, status=status.HTTP_201_CREATED)
+            return Response({"status": "already liked"}, status=status.HTTP_200_OK)
 
-        elif request.method == "DELETE":
-            # Unlike the reel
-            if user:
-                deleted, _ = ReelLike.objects.filter(user=user, reel=reel).delete()
-            else:
-                deleted, _ = ReelLike.objects.filter(session_id=session_id, reel=reel).delete()
-                
-            if deleted:
-                ReelContent.objects.filter(pk=reel.pk, likes_count__gt=0).update(likes_count=F("likes_count") - 1)
-            return Response({"status": "unliked"}, status=status.HTTP_204_NO_CONTENT)
+        deleted, _ = ReelLike.objects.filter(user=user, reel=reel).delete()
+        if deleted:
+            ReelContent.objects.filter(pk=reel.pk, likes_count__gt=0).update(likes_count=F("likes_count") - 1)
+        return Response({"status": "unliked"}, status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["get", "post"], permission_classes=[AllowAny])
+    @action(detail=True, methods=["get", "post"])
     def comment(self, request, pk=None):
         reel = self.get_object()
         if request.method == "GET":
@@ -1062,42 +1013,34 @@ class ReelContentViewSet(viewsets.ModelViewSet):
             comments = ReelComment.objects.filter(reel=reel, is_approved=True)
             serializer = ReelCommentSerializer(comments, many=True)
             return Response(serializer.data)
-        elif request.method == "POST":
-            # Post a new comment
-            user = request.user if request.user.is_authenticated else None
-            session_id = request.COOKIES.get("device_id")
-            is_new_session = False
-            if not session_id and not user:
-                import uuid
-                session_id = str(uuid.uuid4())
-                is_new_session = True
-                
-            ip_address = get_client_ip(request)
-            
-            guest_name = None
-            if not user:
-                import random, hashlib
-                prefix = random.choice(["Citizen", "Local", "Reader", "Neighbor", "Observer"])
-                h = hashlib.md5(session_id.encode()).hexdigest()
-                guest_name = f"{prefix} #{h[:4].upper()}"
-
-            data = request.data.copy()
-            data["reel"] = reel.pk
-            serializer = ReelCommentSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save(user=user, session_id=session_id, ip_address=ip_address, guest_name=guest_name)
-                response = Response(serializer.data, status=status.HTTP_201_CREATED)
-                if is_new_session:
-                    response.set_cookie("device_id", session_id, max_age=10*365*24*60*60, samesite='Lax')
-                return response
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        ip_address = get_client_ip(request)
+        data = request.data.copy()
+        data["reel"] = reel.pk
+        serializer = ReelCommentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(
+                user=request.user,
+                session_id=None,
+                ip_address=ip_address,
+                guest_name=None,
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @method_decorator(csrf_exempt)
     @action(detail=True, methods=["post"], permission_classes=[AllowAny])
     def track_view(self, request, pk=None):
         reel = self.get_object()
+        actor, session_id, is_new_session = resolve_view_actor(request)
+        dedupe_key = f"view:reelcontent:{reel.pk}:{actor}"
+        if not try_register_unique_view(dedupe_key):
+            resp = Response({"ok": True, "deduped": True}, status=status.HTTP_200_OK)
+            attach_device_cookie_if_needed(resp, session_id, is_new_session)
+            return resp
         ReelContent.objects.filter(pk=reel.pk).update(view_count=F("view_count") + 1)
-        return Response({"ok": True}, status=status.HTTP_200_OK)
+        resp = Response({"ok": True}, status=status.HTTP_200_OK)
+        attach_device_cookie_if_needed(resp, session_id, is_new_session)
+        return resp
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -1106,8 +1049,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "updated_at"]
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve", "create"):
+        if self.action in ("list", "retrieve"):
             return [AllowAny()]
+        if self.action == "create":
+            return [IsAuthenticated()]
         return [IsOwnerOrPrivileged()]
 
     def get_queryset(self):
@@ -1123,36 +1068,13 @@ class CommentViewSet(viewsets.ModelViewSet):
             return qs
         return qs.filter(is_approved=True, article__status=ContentStatus.PUBLISHED)
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        user = request.user if request.user.is_authenticated else None
-        session_id = request.COOKIES.get("device_id")
-        is_new_session = False
-        if not session_id and not user:
-            import uuid
-            session_id = str(uuid.uuid4())
-            is_new_session = True
-
-        ip_address = get_client_ip(request)
-        
-        guest_name = None
-        if not user:
-            import random, hashlib
-            prefix = random.choice(["Citizen", "Local", "Reader", "Neighbor", "Observer"])
-            h = hashlib.md5(session_id.encode()).hexdigest()
-            guest_name = f"{prefix} #{h[:4].upper()}"
-
-        self.perform_create(serializer, user=user, session_id=session_id, ip_address=ip_address, guest_name=guest_name)
-        headers = self.get_success_headers(serializer.data)
-        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        if is_new_session:
-            response.set_cookie("device_id", session_id, max_age=10*365*24*60*60, samesite='Lax')
-        return response
-
-    def perform_create(self, serializer, **kwargs):
-        serializer.save(**kwargs)
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            ip_address=get_client_ip(self.request),
+            guest_name=None,
+            session_id=None,
+        )
 
 
 class LikeViewSet(

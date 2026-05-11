@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { X, Send, UserCircle2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,14 +22,21 @@ export function CommentModal({
     isLoading = false,
 }: CommentModalProps) {
     const { language } = useLanguage();
-    const { user } = useAuth();
+    const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+    const routerLocation = useLocation();
     const [newComment, setNewComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const returnPath = `${routerLocation.pathname}${routerLocation.search}`;
+    const authState = { from: { pathname: returnPath } };
 
     const t = {
         comments: language === 'en' ? 'Comments' : 'ટિપ્પણીઓ',
         placeholder: language === 'en' ? 'Add a comment...' : 'ટિપ્પણી ઉમેરો...',
-        loginToComment: language === 'en' ? 'Log in to comment' : 'ટિપ્પણી કરવા માટે લૉગ ઇન કરો',
+        loginToComment: language === 'en' ? 'Sign in to like or comment.' : 'લાઇક અથવા ટિપ્પણી માટે સાઇન ઇન કરો.',
+        signIn: language === 'en' ? 'Sign in' : 'સાઇન ઇન',
+        register: language === 'en' ? 'Register' : 'નોંધણી',
         noComments: language === 'en' ? 'No comments yet. Be the first!' : 'હજી સુધી કોઈ ટિપ્પણી નથી. પ્રથમ બનો!',
     };
 
@@ -105,25 +113,47 @@ export function CommentModal({
                     )}
                 </div>
 
-                {/* Comment Input */}
+                {/* Comment Input — requires account */}
                 <div className="sticky bottom-0 bg-white border-t p-4 z-10">
-                    <form onSubmit={handleSubmit} className="flex gap-2">
-                        <input
-                            type="text"
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder={t.placeholder}
-                            className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            disabled={isSubmitting}
-                        />
-                        <button
-                            type="submit"
-                            disabled={!newComment.trim() || isSubmitting}
-                            className="p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Send className="w-5 h-5 ml-1" />
-                        </button>
-                    </form>
+                    {isAuthenticated ? (
+                        <form onSubmit={handleSubmit} className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                placeholder={t.placeholder}
+                                className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                disabled={isSubmitting}
+                            />
+                            <button
+                                type="submit"
+                                disabled={!newComment.trim() || isSubmitting}
+                                className="p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Send className="w-5 h-5 ml-1" />
+                            </button>
+                        </form>
+                    ) : (
+                        <div className="space-y-3">
+                            <p className="text-sm text-gray-600 text-center">{t.loginToComment}</p>
+                            <div className="flex gap-2 justify-center">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/login', { state: authState })}
+                                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                                >
+                                    {t.signIn}
+                                </button>
+                                <Link
+                                    to="/signup"
+                                    state={authState}
+                                    className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                                >
+                                    {t.register}
+                                </Link>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </>

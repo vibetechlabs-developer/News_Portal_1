@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, MessageCircle, Share2, Send, Trash2, Eye } from "lucide-react";
@@ -56,6 +56,8 @@ export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const loginReturnState = { from: { pathname: `${location.pathname}${location.search}` } };
   const { language } = useLanguage();
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
@@ -128,6 +130,17 @@ export default function ArticleDetail() {
 
   const handleLike = async () => {
     if (!article) return;
+    if (!isAuthenticated) {
+      toast({
+        title: language === "en" ? "Sign in required" : "સાઇન ઇન જરૂરી",
+        description:
+          language === "en"
+            ? "Please sign in or register to like articles."
+            : "લાઇક કરવા સાઇન ઇન અથવા નોંધણી કરો.",
+      });
+      navigate("/login", { state: loginReturnState });
+      return;
+    }
     setLikeLoading(true);
     try {
       const result = await toggleArticleLike(slug!);
@@ -161,6 +174,17 @@ export default function ArticleDetail() {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!article || !commentText.trim()) return;
+    if (!isAuthenticated) {
+      toast({
+        title: language === "en" ? "Sign in required" : "સાઇન ઇન જરૂરી",
+        description:
+          language === "en"
+            ? "Please sign in or register to comment."
+            : "ટિપ્પણી માટે સાઇન ઇન અથવા નોંધણી કરો.",
+      });
+      navigate("/login", { state: loginReturnState });
+      return;
+    }
     setSubmittingComment(true);
     try {
       const newComment = await postComment(article.id, commentText.trim(), replyTo ?? undefined);
@@ -354,35 +378,61 @@ export default function ArticleDetail() {
                   {language === "en" ? "Comments" : "ટિપ્પણીઓ"} ({comments.length})
                 </h2>
 
-                {/* Comment form */}
-                <form onSubmit={handleSubmitComment} className="mb-8">
-                  {replyTo != null && (
-                    <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{language === "en" ? "Replying to comment" : "ટિપ્પણીનો જવાબ"} #{replyTo}</span>
-                      <button type="button" className="text-primary hover:underline" onClick={() => setReplyTo(null)}>
-                        {language === "en" ? "Cancel" : "રદ"}
+                {/* Comment form — signed-in users only */}
+                {isAuthenticated ? (
+                  <form onSubmit={handleSubmitComment} className="mb-8">
+                    {replyTo != null && (
+                      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{language === "en" ? "Replying to comment" : "ટિપ્પણીનો જવાબ"} #{replyTo}</span>
+                        <button type="button" className="text-primary hover:underline" onClick={() => setReplyTo(null)}>
+                          {language === "en" ? "Cancel" : "રદ"}
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <textarea
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder={language === "en" ? "Write a comment…" : "ટિપ્પણી લખો…"}
+                        rows={3}
+                        className="flex-1 resize-none rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={submittingComment || !commentText.trim()}
+                        className="self-end flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                        {language === "en" ? "Post" : "મોકલો"}
                       </button>
                     </div>
-                  )}
-                  <div className="flex gap-3">
-                    <textarea
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      placeholder={language === "en" ? "Write a comment…" : "ટિપ્પણી લખો…"}
-                      rows={3}
-                      className="flex-1 resize-none rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      required
-                    />
-                    <button
-                      type="submit"
-                      disabled={submittingComment || !commentText.trim()}
-                      className="self-end flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-                    >
-                      <Send className="w-4 h-4" />
-                      {language === "en" ? "Post" : "મોકલો"}
-                    </button>
+                  </form>
+                ) : (
+                  <div className="mb-8 rounded-xl border border-border bg-muted/30 px-4 py-5 text-center text-sm text-muted-foreground">
+                    <p className="mb-3">
+                      {language === "en"
+                        ? "Sign in or create an account to leave a comment."
+                        : "ટિપ્પણી માટે સાઇન ઇન કરો અથવા નવું એકાઉન્ટ બનાવો."}
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Link
+                        to="/login"
+                        state={loginReturnState}
+                        className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                      >
+                        {language === "en" ? "Sign in" : "સાઇન ઇન"}
+                      </Link>
+                      <Link
+                        to="/signup"
+                        state={loginReturnState}
+                        className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+                      >
+                        {language === "en" ? "Register" : "નોંધણી"}
+                      </Link>
+                    </div>
                   </div>
-                </form>
+                )}
 
                 {/* Comment list */}
                 {commentsLoading ? (
@@ -410,7 +460,13 @@ export default function ArticleDetail() {
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                               <button
-                                onClick={() => setReplyTo(comment.id)}
+                                onClick={() => {
+                                  if (!isAuthenticated) {
+                                    navigate("/login", { state: loginReturnState });
+                                    return;
+                                  }
+                                  setReplyTo(comment.id);
+                                }}
                                 className="text-xs text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors"
                               >
                                 {language === "en" ? "Reply" : "જવાબ"}

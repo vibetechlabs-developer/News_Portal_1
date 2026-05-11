@@ -3,6 +3,15 @@
 from django.db import migrations
 
 
+def _drop_is_featured_if_present(apps, schema_editor):
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        columns = connection.introspection.get_table_description(cursor, "news_newsarticle")
+    has_is_featured = any(getattr(col, "name", None) == "is_featured" for col in columns)
+    if has_is_featured:
+        schema_editor.execute('ALTER TABLE "news_newsarticle" DROP COLUMN "is_featured";')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -14,10 +23,7 @@ class Migration(migrations.Migration):
             # Some databases already removed this column in earlier manual/schema updates.
             # Keep migration idempotent to avoid ProgrammingError on missing column.
             database_operations=[
-                migrations.RunSQL(
-                    sql='ALTER TABLE "news_newsarticle" DROP COLUMN IF EXISTS "is_featured";',
-                    reverse_sql=migrations.RunSQL.noop,
-                ),
+                migrations.RunPython(_drop_is_featured_if_present, migrations.RunPython.noop),
             ],
             state_operations=[
                 migrations.RemoveField(

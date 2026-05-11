@@ -1,4 +1,14 @@
-from django.db import migrations, connection
+from django.db import migrations
+
+
+def _has_column(schema_editor, table_name, column_name):
+    connection = schema_editor.connection
+    with connection.cursor() as cursor:
+        try:
+            columns = connection.introspection.get_table_description(cursor, table_name)
+        except Exception:
+            return False
+    return any(getattr(col, "name", None) == column_name for col in columns)
 
 
 def rename_or_add_field(apps, schema_editor):
@@ -8,55 +18,30 @@ def rename_or_add_field(apps, schema_editor):
     - If is_featured doesn't exist but is_trending doesn't either, add is_trending
     - If is_trending already exists, do nothing
     """
-    with connection.cursor() as cursor:
-        # Check if is_featured column exists
-        cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='news_newsarticle' AND column_name='is_featured'
-        """)
-        has_is_featured = cursor.fetchone() is not None
-        
-        # Check if is_trending column exists
-        cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='news_newsarticle' AND column_name='is_trending'
-        """)
-        has_is_trending = cursor.fetchone() is not None
-        
-        if has_is_featured and not has_is_trending:
-            # Rename is_featured to is_trending
-            cursor.execute("""
-                ALTER TABLE news_newsarticle 
-                RENAME COLUMN is_featured TO is_trending
-            """)
-        elif not has_is_featured and not has_is_trending:
-            # Add is_trending column if neither exists
-            cursor.execute("""
-                ALTER TABLE news_newsarticle 
-                ADD COLUMN is_trending BOOLEAN DEFAULT FALSE NOT NULL
-            """)
-        # If is_trending already exists, do nothing
+    has_is_featured = _has_column(schema_editor, "news_newsarticle", "is_featured")
+    has_is_trending = _has_column(schema_editor, "news_newsarticle", "is_trending")
+
+    if has_is_featured and not has_is_trending:
+        schema_editor.execute(
+            "ALTER TABLE news_newsarticle RENAME COLUMN is_featured TO is_trending"
+        )
+    elif not has_is_featured and not has_is_trending:
+        schema_editor.execute(
+            "ALTER TABLE news_newsarticle ADD COLUMN is_trending BOOLEAN DEFAULT FALSE NOT NULL"
+        )
 
 
 def reverse_migration(apps, schema_editor):
     """
     Reverse migration: rename is_trending back to is_featured if it exists
     """
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='news_newsarticle' AND column_name='is_trending'
-        """)
-        has_is_trending = cursor.fetchone() is not None
-        
-        if has_is_trending:
-            cursor.execute("""
-                ALTER TABLE news_newsarticle 
-                RENAME COLUMN is_trending TO is_featured
-            """)
+    has_is_trending = _has_column(schema_editor, "news_newsarticle", "is_trending")
+    has_is_featured = _has_column(schema_editor, "news_newsarticle", "is_featured")
+
+    if has_is_trending and not has_is_featured:
+        schema_editor.execute(
+            "ALTER TABLE news_newsarticle RENAME COLUMN is_trending TO is_featured"
+        )
 
 
 class Migration(migrations.Migration):

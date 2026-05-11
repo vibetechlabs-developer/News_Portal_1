@@ -5,6 +5,11 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Reel, ReelCategory, ReelTag
+from backend.common.view_dedupe import (
+    attach_device_cookie_if_needed,
+    resolve_view_actor,
+    try_register_unique_view,
+)
 from .serializers import (
     ReelListSerializer,
     ReelDetailSerializer,
@@ -162,9 +167,17 @@ class ReelViewSet(viewsets.ModelViewSet):
     def increment_view(self, request, slug=None):
         """Increment view count for a reel"""
         reel = self.get_object()
+        actor, session_id, is_new_session = resolve_view_actor(request)
+        dedupe_key = f"view:reelsapp:{reel.pk}:{actor}"
+        if not try_register_unique_view(dedupe_key):
+            resp = Response({"view_count": reel.view_count, "deduped": True})
+            attach_device_cookie_if_needed(resp, session_id, is_new_session)
+            return resp
         reel.view_count += 1
         reel.save(update_fields=['view_count'])
-        return Response({'view_count': reel.view_count})
+        resp = Response({"view_count": reel.view_count})
+        attach_device_cookie_if_needed(resp, session_id, is_new_session)
+        return resp
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def like(self, request, slug=None):

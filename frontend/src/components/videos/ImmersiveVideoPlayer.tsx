@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Pause, ChevronLeft, ChevronRight, X, Share2, Heart, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,7 +48,10 @@ function getVideoUrl(video: VideoContentItem): string | null {
 
 export function ImmersiveVideoPlayer({ videos, initialIndex, onClose, onViewTracked }: ImmersiveVideoPlayerProps) {
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const routerLocation = useLocation();
+  const authReturn = { from: { pathname: `${routerLocation.pathname}${routerLocation.search}` } };
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(true);
 
@@ -187,6 +191,10 @@ export function ImmersiveVideoPlayer({ videos, initialIndex, onClose, onViewTrac
   };
 
   const handleToggleLike = async (id: number) => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: authReturn });
+      return;
+    }
 
     const isLiked = likedVideos.includes(id);
     const newLikedState = !isLiked;
