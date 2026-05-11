@@ -443,14 +443,24 @@ export default function ArticleDetail() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {topLevelComments.map((comment) => (
+                    {topLevelComments.map((comment) => {
+                      const userObj = typeof comment.user === "object" && comment.user
+                        ? (comment.user as { first_name?: string; last_name?: string; username?: string })
+                        : null;
+                      const displayName =
+                        (comment as any).guest_name ||
+                        (userObj?.first_name || userObj?.last_name
+                          ? `${userObj.first_name ?? ""} ${userObj.last_name ?? ""}`.trim()
+                          : userObj?.username) ||
+                        "Guest";
+
+                      return (
                       <div key={comment.id} className="rounded-xl border border-border bg-card p-4">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-semibold text-foreground">
-                                {(comment as any).guest_name || 
-                                  ((comment.user ? ((typeof comment.user === 'object' ? comment.user?.id : comment.user)) : "Guest"))}
+                                {displayName}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
@@ -486,13 +496,24 @@ export default function ArticleDetail() {
                         {/* Replies */}
                         {(repliesMap[comment.id] ?? []).length > 0 && (
                           <div className="mt-3 ml-4 pl-4 border-l-2 border-border space-y-3">
-                            {repliesMap[comment.id].map((reply) => (
+                            {repliesMap[comment.id].map((reply) => {
+                              const replyUserObj =
+                                typeof reply.user === "object" && reply.user
+                                  ? (reply.user as { first_name?: string; last_name?: string; username?: string })
+                                  : null;
+                              const replyDisplayName =
+                                (reply as any).guest_name ||
+                                (replyUserObj?.first_name || replyUserObj?.last_name
+                                  ? `${replyUserObj.first_name ?? ""} ${replyUserObj.last_name ?? ""}`.trim()
+                                  : replyUserObj?.username) ||
+                                "Guest";
+
+                              return (
                               <div key={reply.id} className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-0.5">
                                       <span className="text-xs font-semibold text-foreground">
-                                        {(reply as any).guest_name || 
-                                          ((reply.user ? ((typeof reply.user === 'object' ? reply.user?.id : reply.user)) : "Guest"))}
+                                        {replyDisplayName}
                                       </span>
                                     <span className="text-xs text-muted-foreground">
                                       {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
@@ -510,11 +531,13 @@ export default function ArticleDetail() {
                                   </button>
                                 )}
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>
