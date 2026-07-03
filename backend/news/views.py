@@ -171,10 +171,62 @@ def _create_video_notification(video):
         logger.exception("Failed to create notification for video %s", video.pk)
 
 
+def _send_web_push_for_video(video):
+    public_key = getattr(settings, "WEB_PUSH_PUBLIC_KEY", "")
+    private_key = getattr(settings, "WEB_PUSH_PRIVATE_KEY", "")
+    subject = getattr(settings, "WEB_PUSH_SUBJECT", "")
+    if not public_key or not private_key or not subject:
+        return
+
+    try:
+        from pywebpush import WebPushException, webpush
+    except Exception:
+        return
+
+    title = video.title_en or video.title_hi or video.title_gu or f"Video #{video.pk}"
+    payload = json.dumps(
+        {
+            "title": "Kanam Express",
+            "body": f"New Video: {title}",
+            "url": f"/videos",
+            "tag": f"kanam-video-{video.pk}",
+        }
+    )
+
+    for sub in PushSubscription.objects.filter(is_active=True).iterator():
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+                },
+                data=payload,
+                vapid_private_key=private_key,
+                vapid_claims={"sub": subject},
+                ttl=86400,
+            )
+        except WebPushException as exc:
+            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            if status_code in (404, 410):
+                sub.is_active = False
+                sub.save(update_fields=["is_active", "updated_at"])
+        except Exception:
+            pass
+
+
 def _notify_new_video(video):
     """Send all notification channels for a newly published video."""
     _create_video_notification(video)
+    _send_web_push_for_video(video)
     send_video_fcm_notifications(video)
+
+
+def _notify_new_video_from_id(video_id: int):
+    try:
+        video = VideoContent.objects.get(pk=video_id)
+    except VideoContent.DoesNotExist:
+        return
+    _notify_new_video(video)
 
 
 def _create_reel_notification(reel):
@@ -193,10 +245,62 @@ def _create_reel_notification(reel):
         logger.exception("Failed to create notification for reel %s", reel.pk)
 
 
+def _send_web_push_for_reel(reel):
+    public_key = getattr(settings, "WEB_PUSH_PUBLIC_KEY", "")
+    private_key = getattr(settings, "WEB_PUSH_PRIVATE_KEY", "")
+    subject = getattr(settings, "WEB_PUSH_SUBJECT", "")
+    if not public_key or not private_key or not subject:
+        return
+
+    try:
+        from pywebpush import WebPushException, webpush
+    except Exception:
+        return
+
+    title = reel.title_en or reel.title_hi or reel.title_gu or f"Reel #{reel.pk}"
+    payload = json.dumps(
+        {
+            "title": "Kanam Express",
+            "body": f"New Reel: {title}",
+            "url": f"/reels",
+            "tag": f"kanam-reel-{reel.pk}",
+        }
+    )
+
+    for sub in PushSubscription.objects.filter(is_active=True).iterator():
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+                },
+                data=payload,
+                vapid_private_key=private_key,
+                vapid_claims={"sub": subject},
+                ttl=86400,
+            )
+        except WebPushException as exc:
+            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            if status_code in (404, 410):
+                sub.is_active = False
+                sub.save(update_fields=["is_active", "updated_at"])
+        except Exception:
+            pass
+
+
 def _notify_new_reel(reel):
     """Send all notification channels for a newly published reel."""
     _create_reel_notification(reel)
+    _send_web_push_for_reel(reel)
     send_reel_fcm_notifications(reel)
+
+
+def _notify_new_reel_from_id(reel_id: int):
+    try:
+        reel = ReelContent.objects.get(pk=reel_id)
+    except ReelContent.DoesNotExist:
+        return
+    _notify_new_reel(reel)
 
 
 def _is_content_manager(user):
@@ -883,13 +987,15 @@ class VideoContentViewSet(viewsets.ModelViewSet):
         if getattr(video, "status", None) == ContentStatus.PUBLISHED:
             try:
                 from django.db import transaction
-                transaction.on_commit(lambda: _notify_new_video(video))
+                transaction.on_commit(lambda v_id=video.pk: _notify_new_video_from_id(v_id))
             except Exception:
                 logger.exception("Failed to schedule video notification for %s", video.pk)
 
     def perform_update(self, serializer):
         data = serializer.validated_data
         instance = serializer.instance
+        was_published = instance.status == ContentStatus.PUBLISHED
+        
         # Check what will be saved: use new value if provided, otherwise keep existing
         new_file = data.get("file") if "file" in data else (instance.file if instance else None)
         new_url = data.get("youtube_url") if "youtube_url" in data else (instance.youtube_url if instance else None)
@@ -901,9 +1007,16 @@ class VideoContentViewSet(viewsets.ModelViewSet):
         slug = data.get("slug") or (instance and instance.slug)
         if slug and instance:
             slug = _unique_slug(VideoContent, slug[:320], exclude_pk=instance.pk)
-            serializer.save(slug=slug)
+            video = serializer.save(slug=slug)
         else:
-            serializer.save()
+            video = serializer.save()
+            
+        if not was_published and getattr(video, "status", None) == ContentStatus.PUBLISHED:
+            try:
+                from django.db import transaction
+                transaction.on_commit(lambda v_id=video.pk: _notify_new_video_from_id(v_id))
+            except Exception:
+                logger.exception("Failed to schedule video notification for %s", video.pk)
 
     def get_queryset(self):
         qs = (
@@ -1010,13 +1123,15 @@ class ReelContentViewSet(viewsets.ModelViewSet):
         if getattr(reel, "status", None) == ContentStatus.PUBLISHED:
             try:
                 from django.db import transaction
-                transaction.on_commit(lambda: _notify_new_reel(reel))
+                transaction.on_commit(lambda r_id=reel.pk: _notify_new_reel_from_id(r_id))
             except Exception:
                 logger.exception("Failed to schedule reel notification for %s", reel.pk)
 
     def perform_update(self, serializer):
         data = serializer.validated_data
         instance = serializer.instance
+        was_published = instance.status == ContentStatus.PUBLISHED
+        
         # Check what will be saved: use new value if provided, otherwise keep existing
         new_file = data.get("file") if "file" in data else (instance.file if instance else None)
         new_url = data.get("youtube_url") if "youtube_url" in data else (instance.youtube_url if instance else None)
@@ -1028,9 +1143,16 @@ class ReelContentViewSet(viewsets.ModelViewSet):
         slug = data.get("slug") or (instance and instance.slug)
         if slug and instance:
             slug = _unique_slug(ReelContent, slug[:320], exclude_pk=instance.pk)
-            serializer.save(slug=slug)
+            reel = serializer.save(slug=slug)
         else:
-            serializer.save()
+            reel = serializer.save()
+
+        if not was_published and getattr(reel, "status", None) == ContentStatus.PUBLISHED:
+            try:
+                from django.db import transaction
+                transaction.on_commit(lambda r_id=reel.pk: _notify_new_reel_from_id(r_id))
+            except Exception:
+                logger.exception("Failed to schedule reel notification for %s", reel.pk)
 
     def get_queryset(self):
         qs = (
