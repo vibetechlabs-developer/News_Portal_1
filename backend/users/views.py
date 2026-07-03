@@ -69,28 +69,33 @@ class PasswordResetRequestView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         user = User.objects.filter(email__iexact=email).first()
-        if user:
-            token = default_token_generator.make_token(user)
-            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_url = (
-                f"{settings.FRONTEND_RESET_PASSWORD_URL.rstrip('/')}"
-                f"?uid={uidb64}&token={token}"
+        if not user:
+            return Response(
+                {"detail": "Account not found with this email address. Please sign up or check your spelling."},
+                status=status.HTTP_404_NOT_FOUND,
             )
-            from django.template.loader import render_to_string
-            
-            html_message = render_to_string("users/email/password_reset.html", {
-                "reset_url": reset_url,
-            })
-            
-            send_mail_logged(
-                subject="Reset Your Password - Kanam Express",
-                message=f"Use this link to reset your password: {reset_url}\n\nIf you did not request this, ignore this email.",
-                recipient_list=[email],
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                html_message=html_message,
-            )
+
+        token = default_token_generator.make_token(user)
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_url = (
+            f"{settings.FRONTEND_RESET_PASSWORD_URL.rstrip('/')}"
+            f"?uid={uidb64}&token={token}"
+        )
+        from django.template.loader import render_to_string
+        
+        html_message = render_to_string("users/email/password_reset.html", {
+            "reset_url": reset_url,
+        })
+        
+        send_mail_logged(
+            subject="Reset Your Password - Kanam Express",
+            message=f"Use this link to reset your password: {reset_url}\n\nIf you did not request this, ignore this email.",
+            recipient_list=[email],
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            html_message=html_message,
+        )
         return Response(
-            {"detail": "If an account exists with this email, you will receive a reset link."},
+            {"detail": "A password reset link has been sent to your email address."},
             status=status.HTTP_200_OK,
         )
 
