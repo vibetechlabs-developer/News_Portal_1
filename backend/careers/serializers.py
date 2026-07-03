@@ -66,6 +66,7 @@ class JobApplicationSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "full_name",
+            "father_name",
             "years_of_experience",
             "cover_letter",
             "skills",
@@ -85,8 +86,10 @@ class JobApplicationSerializer(serializers.ModelSerializer):
             "applied_at",
             "updated_at",
             "admin_notes",
+            "joining_date",
+            "employee_press_id",
         ]
-        read_only_fields = ["id", "applied_at", "updated_at"]
+        read_only_fields = ["id", "applied_at", "updated_at", "employee_press_id"]
 
     def get_resume_url(self, obj):
         if obj.resume:
@@ -188,6 +191,7 @@ class JobApplicationDetailSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "full_name",
+            "father_name",
             "years_of_experience",
             "cover_letter",
             "skills",
@@ -202,9 +206,11 @@ class JobApplicationDetailSerializer(serializers.ModelSerializer):
             "applied_at",
             "updated_at",
             "admin_notes",
+            "joining_date",
+            "employee_press_id",
             "review",
         ]
-        read_only_fields = ["id", "applied_at", "updated_at"]
+        read_only_fields = ["id", "applied_at", "updated_at", "employee_press_id"]
 
 
 class NotificationSerializer(serializers.ModelSerializer):

@@ -129,13 +129,59 @@ const AdminComponent = () => {
     }
   };
 
+  // Acceptance modal state
+  const [pendingAcceptance, setPendingAcceptance] = useState<{ id: number; name: string } | null>(null);
+  const [acceptanceData, setAcceptanceData] = useState({
+    father_name: '',
+    joining_date: '',
+    admin_notes: '',
+  });
+
   const handleChangeApplicationStatus = async (appId: number, newStatus: string) => {
+    if (newStatus === 'ACCEPTED') {
+      const app = applications.find(a => a.id === appId);
+      setPendingAcceptance({
+        id: appId,
+        name: app ? app.full_name : 'Candidate'
+      });
+      setAcceptanceData({
+        father_name: app && app.father_name ? app.father_name : '',
+        joining_date: app && app.joining_date ? app.joining_date : '',
+        admin_notes: app && app.admin_notes ? app.admin_notes : '',
+      });
+      return;
+    }
+
     try {
+      setLoading(true);
       await careersAPI.changeApplicationStatus(appId, newStatus);
       setSuccess(language === 'en' ? 'Status updated successfully' : 'સ્થિતિ સફળતાપૂર્વક અપડેટ કરી');
       fetchApplications();
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmAcceptance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingAcceptance) return;
+    try {
+      setLoading(true);
+      setError(null);
+      await careersAPI.changeApplicationStatus(pendingAcceptance.id, 'ACCEPTED', {
+        joining_date: acceptanceData.joining_date || undefined,
+        father_name: acceptanceData.father_name || undefined,
+        admin_notes: acceptanceData.admin_notes || undefined,
+      });
+      setSuccess(language === 'en' ? 'Candidate approved and email sent successfully!' : 'ઉમેદવાર મંજૂર કરવામાં આવ્યો અને ઇમેઇલ સફળતાપૂર્વક મોકલવામાં આવ્યો!');
+      setPendingAcceptance(null);
+      fetchApplications();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -535,6 +581,86 @@ const AdminComponent = () => {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Acceptance Details Modal */}
+      {pendingAcceptance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold text-foreground">
+                {language === 'en' ? 'Approve & Appoint Candidate' : 'ઉમેદવારની નિમણૂક અને મંજૂરી'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {language === 'en' 
+                  ? `Provide joining details for ${pendingAcceptance.name}. This will generate their Gujarati Nimnuk Patra and Press ID Card automatically.`
+                  : `${pendingAcceptance.name} માટે નિમણૂકની વિગતો પ્રદાન કરો. આ તેમનું નિમણૂક પત્ર અને પ્રેસ આઈડી કાર્ડ બનાવશે.`
+                }
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmAcceptance} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {language === 'en' ? "Father's Name" : "પિતાનું નામ"}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={language === 'en' ? "e.g. Raval Jagdishbhai" : "દા.ત. રાવલ જગદીશભાઈ"}
+                  value={acceptanceData.father_name}
+                  onChange={(e) => setAcceptanceData(prev => ({ ...prev, father_name: e.target.value }))}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {language === 'en' ? 'Joining Date' : 'નિમણૂક તારીખ'}
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={acceptanceData.joining_date}
+                  onChange={(e) => setAcceptanceData(prev => ({ ...prev, joining_date: e.target.value }))}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {language === 'en' ? 'Admin Notes / Message (Optional)' : 'એડમિન નોટ્સ / સંદેશ (વૈકલ્પિક)'}
+                </label>
+                <textarea
+                  placeholder={language === 'en' ? "Any note to include in the offer email..." : "ઇમેઇલમાં ઉમેરવા માટે કોઈ ખાસ નોંધ..."}
+                  value={acceptanceData.admin_notes}
+                  onChange={(e) => setAcceptanceData(prev => ({ ...prev, admin_notes: e.target.value }))}
+                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingAcceptance(null)}
+                  className="px-4 py-2 text-sm font-medium border border-border hover:bg-muted rounded-md transition-colors"
+                >
+                  {language === 'en' ? 'Cancel' : 'રદ કરો'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors disabled:opacity-60"
+                >
+                  {loading 
+                    ? (language === 'en' ? 'Appointing...' : 'નિમણૂક થઈ રહી છે...') 
+                    : (language === 'en' ? 'Approve & Send Email' : 'મંજૂર કરો & ઇમેઇલ મોકલો')
+                  }
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

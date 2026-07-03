@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Congratulations – Kanam Express</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: #f4f4f7; font-family: 'Inter', Arial, sans-serif; color: #333; }
+    .wrapper { max-width: 640px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+
+    /* Header */
+    .header { background: linear-gradient(135deg, #c0161c 0%, #8b0000 100%); padding: 36px 40px; text-align: center; }
+    .header-logo-text { font-size: 28px; font-weight: 800; color: #FFD700; letter-spacing: 2px; text-transform: uppercase; }
+    .header-logo-sub { font-size: 13px; color: rgba(255,255,255,0.80); letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
+    .header-tagline { font-size: 11px; color: rgba(255,255,255,0.60); margin-top: 6px; font-style: italic; }
+
+    /* Banner */
+    .banner { background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%); padding: 18px 40px; text-align: center; }
+    .banner h1 { font-size: 22px; color: #7a0000; font-weight: 700; letter-spacing: 0.5px; }
+
+    /* Body */
+    .body { padding: 36px 40px; }
+    .greeting { font-size: 17px; color: #1a1a2e; font-weight: 600; margin-bottom: 16px; }
+    .intro-text { font-size: 15px; color: #444; line-height: 1.7; margin-bottom: 28px; }
+    .intro-text strong { color: #c0161c; }
+
+    /* Offer Details Table */
+    .offer-card { border-radius: 10px; overflow: hidden; border: 1px solid #e8e8ee; margin-bottom: 28px; }
+    .offer-card-header { background: #c0161c; color: white; font-weight: 700; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; padding: 10px 18px; }
+    .offer-table { width: 100%; border-collapse: collapse; }
+    .offer-table tr:nth-child(even) { background: #fafafa; }
+    .offer-table td { padding: 11px 18px; font-size: 14px; border-bottom: 1px solid #f0f0f5; }
+    .offer-table td:first-child { color: #888; font-weight: 500; width: 42%; white-space: nowrap; }
+    .offer-table td:last-child { color: #1a1a2e; font-weight: 600; }
+    .offer-table tr:last-child td { border-bottom: none; }
+
+    /* Attachment callout */
+    .attachment-box { background: #fff8e1; border-left: 4px solid #FFD700; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; display: flex; align-items: flex-start; gap: 12px; }
+    .attachment-icon { font-size: 22px; margin-top: 2px; }
+    .attachment-text { font-size: 14px; color: #555; line-height: 1.6; }
+    .attachment-text strong { color: #7a4f00; display: block; margin-bottom: 4px; font-size: 15px; }
+
+    /* Body text */
+    .body-para { font-size: 14px; color: #555; line-height: 1.75; margin-bottom: 20px; }
+    .body-para a { color: #c0161c; text-decoration: none; font-weight: 500; }
+
+    /* Signature */
+    .signature { margin-top: 32px; border-top: 2px solid #f0f0f5; padding-top: 24px; }
+    .sig-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .sig-title { font-size: 13px; color: #888; margin-top: 2px; }
+    .sig-company { font-size: 14px; color: #c0161c; font-weight: 600; margin-top: 6px; }
+
+    /* Footer */
+    .footer { background: #1a1a2e; padding: 24px 40px; text-align: center; }
+    .footer p { color: rgba(255,255,255,0.55); font-size: 12px; line-height: 1.8; }
+    .footer a { color: #FFD700; text-decoration: none; }
+    .footer .divider { border-top: 1px solid rgba(255,255,255,0.1); margin: 14px 0; }
+    .footer .social { margin-bottom: 10px; }
+    .footer .social a { color: rgba(255,255,255,0.7); font-size: 13px; margin: 0 8px; text-decoration: none; }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .wrapper { margin: 0; border-radius: 0; }
+      .header, .banner, .body, .footer { padding-left: 20px; padding-right: 20px; }
+      .offer-table td:first-child { width: 38%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo-text">&#x0A95;&#x0ABE;&#x0AA8;&#x0AAE; Express</div>
+      <div class="header-logo-sub">Kanam Express News</div>
+      <div class="header-tagline">ગુજરાતી 24×7 Live News Channel &amp; Weekly Newspaper</div>
+    </div>
+
+    <!-- Banner -->
+    <div class="banner">
+      <h1>🎉 Congratulations! You're Selected!</h1>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+      <p class="greeting">Dear {{ full_name }},</p>
+
+      <p class="intro-text">
+        We are delighted to inform you that after careful review of your application, 
+        <strong>Kanam Express</strong> is pleased to offer you the position of 
+        <strong>{{ job_title }}</strong>. Welcome to our family!
+      </p>
+
+      <!-- Offer Details -->
+      <div class="offer-card">
+        <div class="offer-card-header">📋 Appointment Details</div>
+        <table class="offer-table">
+          <tr>
+            <td>Position</td>
+            <td>{{ job_title }}</td>
+          </tr>
+          <tr>
+            <td>Department</td>
+            <td>{{ department }}</td>
+          </tr>
+          <tr>
+            <td>Job Type</td>
+            <td>{{ job_type }}</td>
+          </tr>
+          <tr>
+            <td>Location</td>
+            <td>{{ location }}</td>
+          </tr>
+          {% if salary %}
+          <tr>
+            <td>Salary</td>
+            <td>{{ salary }}</td>
+          </tr>
+          {% endif %}
+          {% if joining_date %}
+          <tr>
+            <td>Joining Date</td>
+            <td>{{ joining_date }}</td>
+          </tr>
+          {% endif %}
+          {% if press_id %}
+          <tr>
+            <td>Press / Employee ID</td>
+            <td><strong style="color:#c0161c;">{{ press_id }}</strong></td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+
+      <!-- Documents callout -->
+      <div class="attachment-box">
+        <div class="attachment-icon">📎</div>
+        <div class="attachment-text">
+          <strong>Documents Attached</strong>
+          Please find the following documents attached to this email:
+          <br>• <strong>Nimnuk Patra</strong> (Appointment Letter)
+          <br>• <strong>Press ID Card</strong> (Official Identity Card)
+        </div>
+      </div>
+
+      <p class="body-para">
+        We are proud to have you as part of the Kanam Express team. Please report to the office 
+        on your joining date with the original documents. Your commitment to truthful and impactful journalism 
+        will be a great asset to our organization.
+      </p>
+
+      <p class="body-para">
+        For any queries, feel free to reach us at 
+        <a href="mailto:kanamexpress@gmail.com">kanamexpress@gmail.com</a> or 
+        call <strong>9824749413 / 7623046498</strong>.
+      </p>
+
+      {% if admin_notes %}
+      <p class="body-para" style="background:#fff0f0; padding: 12px 16px; border-radius: 6px; border-left: 3px solid #c0161c;">
+        <strong>Note from the team:</strong><br>{{ admin_notes }}
+      </p>
+      {% endif %}
+
+      <!-- Signature -->
+      <div class="signature">
+        <p style="font-size:14px; color:#888; margin-bottom:12px;">With warm regards,</p>
+        <div class="sig-name">જપનકુમાર અજયભાઈ શાહ</div>
+        <div class="sig-title">Japankumar Ajaybhai Shah</div>
+        <div class="sig-company">તંત્રીશ્રી, કાનમ એક્સપ્રેસ</div>
+        <p style="font-size:13px; color:#aaa; margin-top:10px;">Editor-in-Chief, Kanam Express</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="social">
+        <a href="https://kanamexpress.com">🌐 kanamexpress.com</a>
+        <a href="mailto:kanamexpress@gmail.com">✉ kanamexpress@gmail.com</a>
+      </div>
+      <div class="divider"></div>
+      <p>
+        <strong style="color:rgba(255,255,255,0.75);">HEAD OFFICE</strong><br>
+        Gokul Lala Ni Khadki, Jawahar Bazar, Jambusar,<br>
+        Dist. Bharuch, Gujarat – 392 150<br>
+        📞 9824749413 / 7623046498
+      </p>
+      <div class="divider"></div>
+      <p>© {% now "Y" %} Kanam Express. All rights reserved.<br>
+        This is an official communication. Please do not reply to this email directly.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

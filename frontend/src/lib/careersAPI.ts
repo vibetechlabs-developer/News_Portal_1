@@ -103,8 +103,8 @@ export const careersAPI = {
   updateApplication: (id: number, data: any) => axios.patch(`/careers/applications/${id}/`, data),
   deleteApplication: (id: number) => axios.delete(`/careers/applications/${id}/`),
   getAllApplications: (params?: any) => axios.get('/careers/applications/all_applications/', { params }),
-  changeApplicationStatus: (id: number, status: string) =>
-    axios.post(`/careers/applications/${id}/change_status/`, { status }),
+  changeApplicationStatus: (id: number, status: string, extraData?: { joining_date?: string; father_name?: string; admin_notes?: string }) =>
+    axios.post(`/careers/applications/${id}/change_status/`, { status, ...extraData }),
   downloadResume: (id: number) => axios.get(`/careers/applications/${id}/download_resume/`),
 
   // Reviews

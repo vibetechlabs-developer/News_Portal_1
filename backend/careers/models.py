@@ -173,6 +173,20 @@ class JobApplication(models.Model):
     # Admin notes
     admin_notes = models.TextField(blank=True, null=True)
 
+    # Approval / document generation fields
+    father_name = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="Candidate's father name (for Nimnuk Patra)"
+    )
+    joining_date = models.DateField(
+        null=True, blank=True,
+        help_text="Joining date set by admin at approval time"
+    )
+    employee_press_id = models.CharField(
+        max_length=30, blank=True, null=True, unique=True,
+        help_text="Auto-generated unique Press ID (e.g. KE-2025-0048)"
+    )
+
     class Meta:
         ordering = ["-applied_at"]
         # Note: unique_together removed to allow multiple public applications per job
@@ -180,6 +194,7 @@ class JobApplication(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.job_posting.title}"
+
 
 
 class ApplicationReview(models.Model):
