@@ -155,155 +155,100 @@ def _generate_press_id(application_id: int) -> str:
 def _build_nimnuk_patra_pdf(application: JobApplication, job: JobPosting) -> bytes:
     """
     Generate a professional Gujarati Nimnuk Patra (appointment letter) PDF.
-    Layout mirrors the reference: header stripe, red title banner, candidate info
-    top-left, photo top-right, Gujarati body paragraph, signature block.
+    Uses the official nimnuk_patra_template.png and overlays candidate details.
     """
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     W, H = A4
 
-    # ── Background template (optional) ──────────────────────────────────────
-    template_used = _draw_background_if_exists(
-        c, _template_asset_path("nimnuk_patra_bg.png"), 0, 0, W, H
-    )
+    bg_path = _template_asset_path("nimnuk_patra_template.png")
+    c.drawImage(bg_path, 0, 0, W, H)
 
+    # Coordinate mapping from grid size (1024 x 911) to A4 (W x H)
+    def gxt(x):
+        return x * (W / 1024)
+    def gyt(y):
+        return H - (y * (H / 911))
+
+    c.setFillColor(colors.white)
+    # 1. Cover Ref No (x = 140 to 350, y = 15 to 45)
+    c.rect(gxt(140), gyt(45), gxt(350-140), gyt(15)-gyt(45), fill=1, stroke=0)
+    # 2. Cover Date (x = 770 to 950, y = 15 to 45)
+    c.rect(gxt(770), gyt(45), gxt(950-770), gyt(15)-gyt(45), fill=1, stroke=0)
+    # 3. Cover Recipient Details (x = 90 to 410, y = 220 to 350)
+    c.rect(gxt(90), gyt(350), gxt(410-90), gyt(220)-gyt(350), fill=1, stroke=0)
+    # 4. Cover Photo (x = 416 to 598, y = 238 to 486)
+    c.rect(gxt(416), gyt(486), gxt(598-416), gyt(238)-gyt(486), fill=1, stroke=0)
+    # 5. Cover designation phrase "સુરત બ્યુરો ચીફ" (x = 700 to 900, y = 548 to 578)
+    c.rect(gxt(700), gyt(578), gxt(900-700), gyt(548)-gyt(578), fill=1, stroke=0)
+    # 6. Cover signature text (x = 650 to 900, y = 840 to 905)
+    c.rect(gxt(650), gyt(905), gxt(900-650), gyt(840)-gyt(905), fill=1, stroke=0)
+
+    # Draw dynamic values
+    c.setFillColor(colors.black)
+
+    # Ref No
+    press_id = application.employee_press_id or _generate_press_id(application.id)
+    c.setFont(_FONT_LATIN_BOLD, 11)
+    c.drawString(gxt(140), gyt(34), press_id)
+
+    # Date
+    today_str = timezone.now().strftime("%d-%m-%Y")
+    c.drawString(gxt(770), gyt(34), today_str)
+
+    # Recipient Info (Gujarati)
     guj = _guj_font(bold=False)
     guj_bold = _guj_font(bold=True)
 
-    if not template_used:
-        # Light watermark stripe at bottom
-        c.saveState()
-        c.setFillColor(colors.HexColor("#f8f8f8"))
-        c.rect(0, 0, W, H, fill=1, stroke=0)
-        # Top header bar (very thin red line at top)
-        c.setFillColor(colors.HexColor("#c0161c"))
-        c.rect(0, H - 6, W, 6, fill=1, stroke=0)
-        # Gold bottom line
-        c.setFillColor(colors.HexColor("#D4AF37"))
-        c.rect(0, 0, W, 4, fill=1, stroke=0)
-        c.restoreState()
-
-    # ── Ref No / Date row ───────────────────────────────────────────────────
-    today_str = timezone.now().strftime("%d-%m-%Y")
-    press_id = application.employee_press_id or _generate_press_id(application.id)
-    c.setFillColor(colors.black)
-    c.setFont(_FONT_LATIN, 10)
-    c.drawString(45, H - 35, f"Ref. No: {press_id}")
-    c.drawRightString(W - 45, H - 35, f"DATE: {today_str}")
-
-    # ── Red title banner ─────────────────────────────────────────────────────
-    banner_y = H - 100
-    banner_h = 38
-    banner_w = 220
-    banner_x = (W - banner_w) / 2
-    c.setFillColor(colors.HexColor("#c0161c"))
-    c.roundRect(banner_x, banner_y, banner_w, banner_h, 6, fill=1, stroke=0)
-    c.setFillColor(colors.white)
-    c.setFont(guj_bold, 22)
-    c.drawCentredString(W / 2, banner_y + 10, "\u0AA8\u0ABF\u0AAE\u0AA3\u0AC2\u0A82\u0A95 \u0AAA\u0AA4\u0ACD\u0AB0")
-
-    # ── Candidate info (left) ────────────────────────────────────────────────
-    info_top = H - 150
-    c.setFillColor(colors.black)
-    c.setFont(guj, 13)
-    c.drawString(45, info_top,       "\u0AAA\u0ACD\u0AB0\u0AA4\u0ABF\u0AB6\u0ACD\u0AB0\u0AC0,")
     c.setFont(guj_bold, 13)
-    c.drawString(45, info_top - 20,  _pdf_safe_text(application.full_name))
+    c.drawString(gxt(95), gyt(222), "પ્રતિશ્રી,")
+    c.drawString(gxt(95), gyt(248), _pdf_safe_text(application.full_name))
+
     c.setFont(guj, 12)
-    # Address lines (use latin fallback for safety)
-    addr_lines = []
-    if getattr(application, "father_name", None):
-        c.setFont(guj, 12)
-        c.drawString(45, info_top - 40, _pdf_safe_text(application.father_name))
-        offset = 60
+    father = getattr(application, "father_name", None)
+    if father:
+        c.drawString(gxt(95), gyt(272), _pdf_safe_text(father))
+        c.drawString(gxt(95), gyt(296), _pdf_safe_text(job.location))
     else:
-        offset = 40
-    c.setFont(_FONT_LATIN, 11)
-    c.drawString(45, info_top - offset - 2, _latin_safe(job.location) + ".")
+        c.drawString(gxt(95), gyt(272), _pdf_safe_text(job.location))
 
-    # ── Photo (right) ────────────────────────────────────────────────────────
-    photo_w, photo_h = 130, 155
-    photo_x = W - 45 - photo_w
-    photo_y = H - 150 - photo_h + 20
-    _draw_photo(c, application, photo_x, photo_y, photo_w, photo_h,
-                border_color=colors.HexColor("#555555"))
+    # Dynamic Candidate Photo
+    photo_x = gxt(416)
+    photo_y = gyt(486)
+    photo_w = gxt(598-416)
+    photo_h = gyt(238)-gyt(486)
 
-    # Stamp circle overlay on photo (decorative)
-    c.saveState()
-    c.setStrokeColor(colors.HexColor("#1a3c7a"))
-    c.setFillColor(colors.transparent)
-    c.setLineWidth(1.2)
-    stamp_cx = photo_x + photo_w - 28
-    stamp_cy = photo_y + 30
-    c.circle(stamp_cx, stamp_cy, 22, stroke=1, fill=0)
-    c.setFont(_FONT_LATIN, 5)
-    c.setFillColor(colors.HexColor("#1a3c7a"))
-    c.drawCentredString(stamp_cx, stamp_cy + 5, "KANAM EXPRESS")
-    c.drawCentredString(stamp_cx, stamp_cy - 2, "EDITOR")
-    c.restoreState()
+    photo_drawn = False
+    if application.photo:
+        try:
+            reader = ImageReader(application.photo.path)
+            c.drawImage(reader, photo_x + 2, photo_y + 2, photo_w - 4, photo_h - 4, preserveAspectRatio=True, anchor="c")
+            photo_drawn = True
+        except Exception:
+            logger.exception("Failed to draw applicant photo in Nimnuk Patra")
 
-    # ── Divider line ─────────────────────────────────────────────────────────
-    divider_y = H - 330
-    c.setStrokeColor(colors.HexColor("#dddddd"))
-    c.setLineWidth(0.5)
-    c.line(45, divider_y, W - 45, divider_y)
+    if not photo_drawn:
+        c.setStrokeColor(colors.grey)
+        c.setLineWidth(1)
+        c.rect(photo_x, photo_y, photo_w, photo_h, stroke=1, fill=0)
+        c.setFont(_FONT_LATIN, 9)
+        c.setFillColor(colors.grey)
+        c.drawCentredString(photo_x + photo_w/2, photo_y + photo_h/2, "PHOTO")
 
-    # ── Body paragraph (Gujarati) ─────────────────────────────────────────────
-    body_top = divider_y - 22
-    c.setFont(guj, 13)
+    # Draw stamp overlay on top of photo
+    stamp_path = _template_asset_path("id_card_stamp.png")
+    c.drawImage(stamp_path, gxt(512), gyt(500), gxt(100), gyt(400)-gyt(500), mask="auto")
+
+    # Designation in body text
     c.setFillColor(colors.black)
+    c.setFont(guj_bold, 13)
+    c.drawString(gxt(700), gyt(570), _pdf_safe_text(job.title))
 
-    # Build dynamic Gujarati paragraph
-    # We use the position from job.title (latin) embedded inside Gujarati sentence
-    position_gu = _pdf_safe_text(job.title)
-    city_gu = _latin_safe(job.location)
-
-    para_lines = [
-        "\u0AB8\u0AB5\u0ABF\u0AA8\u0AAF \u0AB8\u0AB9 \u0A9C\u0AA3\u0ABE\u0AB5\u0AB5\u0ABE\u0AA8\u0AC1\u0A82 \u0A95\u0AC7 \u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AAE\u0ABE\u0A82 \u0A85\u0A97\u0ACD\u0AB0\u0AC7\u0AB8\u0AB0 \u0A9A\u0ABE\u0AB2\u0AA4\u0AC0 \u0AA8\u0ACD\u0AAF\u0AC2\u0A9D \u0A9A\u0AC7\u0AA8\u0AB2",
-        "'\u0A95\u0ABE\u0AA8\u0AAE \u0A8F\u0A95\u0ACD\u0AB8\u0AAA\u0ACD\u0AB0\u0AC7\u0AB8' \u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AC0 24X7 \u0A95\u0AB2\u0ABE\u0A95 Live \u0A85\u0AA8\u0AC7 \u0A95\u0ABE\u0AA8\u0AAE \u0A8F\u0A95\u0ACD\u0AB8\u0AAA\u0ACD\u0AB0\u0AC7\u0AB8",
-        "\u0AB8\u0ABE\u0AAA\u0ACD\u0AA4\u0ABE\u0AB9\u0ABF\u0A95 \u0A85\u0A96\u0AAC\u0ABE\u0AB0\u0AAE\u0ABE\u0A82 \u0A86\u0AAA\u0AB6\u0ACD\u0AB0\u0AC0\u0AA8\u0AC7",
-        f"{position_gu} \u0AA4\u0AB0\u0AC0\u0A95\u0AC7 \u0AA8\u0ABF\u0AAE\u0AA3\u0AC2\u0A82\u0A95 \u0A95\u0AB0\u0AA4\u0ABE\u0A82 \u0A85\u0AAE\u0AC7 \u0A97\u0ACE\u0AB0\u0AB5 \u0A85\u0AA8\u0AC1\u0AAD\u0AB5\u0AC0\u0A8F \u0A9B\u0AC0\u0A8F.",
-        "\u0A86\u0AAA\u0AA3\u0AC0 \u0AB8\u0ABE\u0AAE\u0ABE\u0A9C\u0ABF\u0A95 \u0A85\u0AA8\u0AC7 \u0AB0\u0ABE\u0A9C\u0ACD\u0AAF \u0AA4\u0AC7\u0AAE\u0A9C \u0AA6\u0AC7\u0AB6\u0AA8\u0AC0 \u0AB8\u0AC7\u0AB5\u0ABE",
-        "\u0A95\u0AB0\u0AB5\u0ABE\u0AA8\u0AC0 \u0AB2\u0ABE\u0A97\u0AA3\u0AC0 \u0A85\u0AA8\u0AC7 \u0A85\u0AA8\u0AC1\u0AAD\u0AB5\u0AA8\u0ABE \u0A86\u0AA7\u0ABE\u0AB0\u0AC7 \u0A85\u0AAE\u0ABE\u0AB0\u0ABE \u0AAE\u0AC0\u0AA1\u0ABF\u0AAF\u0ABE",
-        "\u0AB9\u0ABE\u0E53\u0AB8\u0AAE\u0ABE\u0A82 \u0A95\u0AB0\u0AB5\u0ABE\u0AAE\u0ABE\u0A82 \u0A86\u0AB5\u0AC7\u0AB2 \u0AA8\u0ABF\u0AAE\u0AA3\u0AC2\u0A82\u0A95\u0AA8\u0ABE",
-        "\u0AA8\u0AC0\u0AA4\u0ABF-\u0AA8\u0ABF\u0AAF\u0AAE\u0BCB, \u0AB6\u0AB0\u0AA4\u0BCB\u0AA8\u0AC7 \u0A86\u0AA7\u0AC0\u0AA8 \u0AB0\u0AB9\u0AC0 \u0AA8\u0ABF\u0AB7\u0ACD\u0AA0\u0ABE\u0AAA\u0BC2\u0AB0\u0AB5\u0A95, \u0AB5\u0AAB\u0ABE\u0AA6\u0ABE\u0AB0\u0AC0\u0AA5\u0AC0 \u0A85\u0AA8\u0AC7 \u0AB8\u0AA4\u0ACD\u0AAF\u0AA8\u0AC0 \u0AB8\u0ABE\u0AA5\u0AC7 \u0AB0\u0AB9\u0AC0\u0AA8\u0AC7 \u0AAB\u0AB0\u0A9C \u0AAC\u0A9C\u0ABE\u0AB5\u0AB6\u0BCB",
-        "\u0AA4\u0AC7\u0AB5\u0AC0 \u0A86\u0AB6\u0ABE \u0AB8\u0ABE\u0AA5\u0AC7 \u0A86\u0AAA\u0AA8\u0AC7 \u0A85\u0AAD\u0ABF\u0AA8\u0A82\u0AA6\u0AA8 \u0AAA\u0ABE\u0AA0\u0AB5\u0AC1\u0A82 \u0A9B\u0AC1\u0A82.",
-    ]
-    line_h = 18
-    cy = body_top
-    for line in para_lines:
-        c.drawString(45, cy, line)
-        cy -= line_h
-
-    # ── Nakkal ravana ────────────────────────────────────────────────────────
-    cy -= 20
-    c.setFont(guj, 12)
-    c.drawString(45, cy, "\u0AA8\u0A95\u0AB2 \u0AB0\u0AB5\u0ABE\u0AA8\u0ABE :")
-
-    # ── Signature block (right-aligned) ──────────────────────────────────────
-    sig_x = W - 240
-    sig_y = cy - 10
-    c.setFont(guj, 13)
-    c.drawString(sig_x, sig_y, "\u0A86\u0AAA\u0AA8\u0BCB \u0AB5\u0ABF\u0AB6\u0ACD\u0AB5\u0ABE\u0AB8\u0AC1,")
-
-    # Signature placeholder line
-    c.setStrokeColor(colors.black)
-    c.setLineWidth(0.5)
-    c.line(sig_x, sig_y - 35, sig_x + 180, sig_y - 35)
-
-    c.setFont(guj, 12)
-    c.drawString(sig_x, sig_y - 52, "\u0A9C\u0AAA\u0AA8\u0A95\u0AC1\u0AAE\u0ABE\u0AB0 \u0A85\u0A9C\u0AAF\u0AAD\u0ABE\u0A88 \u0AB6\u0ABE\u0AB9")
+    # Signatory details
+    c.setFont(guj_bold, 12)
+    c.drawString(gxt(665), gyt(860), "જપનકુમાર અજયભાઈ શાહ")
     c.setFont(guj, 11)
-    c.drawString(sig_x, sig_y - 70, "\u0AA4\u0A82\u0AA4\u0ACD\u0AB0\u0AC0\u0AB6\u0ACD\u0AB0\u0AC0, \u0A95\u0ABE\u0AA8\u0AAE \u0A8F\u0A95\u0ACD\u0AB8\u0AAA\u0ACD\u0AB0\u0AC7\u0AB8")
-
-    # ── Bottom decorative triangle ───────────────────────────────────────────
-    c.setFillColor(colors.HexColor("#c0161c"))
-    p = c.beginPath()
-    p.moveTo(0, 0)
-    p.lineTo(0, 40)
-    p.lineTo(40, 0)
-    p.close()
-    c.drawPath(p, fill=1, stroke=0)
+    c.drawString(gxt(665), gyt(882), "તંત્રીશ્રી, કાનમ એક્સપ્રેસ")
 
     c.showPage()
     c.save()
@@ -317,242 +262,102 @@ def _build_nimnuk_patra_pdf(application: JobApplication, job: JobPosting) -> byt
 def _build_id_card_pdf(application: JobApplication, job: JobPosting) -> bytes:
     """
     Generate a landscape A4 PDF containing the Press ID Card front (left)
-    and back (right), closely matching the Kanam Express reference design.
+    and back (right), matching the official templates exactly.
     """
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(A4))
     W, H = landscape(A4)
 
-    GOLD = colors.HexColor("#D4AF37")
-    RED  = colors.HexColor("#c0161c")
-    DARK = colors.HexColor("#1a1a2e")
-    ORANGE = colors.HexColor("#E05C00")
-    BLUE   = colors.HexColor("#1a3c8b")
-    LIGHT_GOLD = colors.HexColor("#FFF3CD")
+    card_h = 460
+    card_w = 328.9
+    y_pdf = (H - card_h) / 2
 
-    margin = 28
-    gap    = 16
-    card_w = (W - 2 * margin - gap) / 2
-    card_h = H - 2 * margin
-    lx = margin               # front card left-x
-    rx = margin + card_w + gap  # back card left-x
-    cy = margin               # bottom y of cards
+    x_front = 72.0
+    x_back = x_front + card_w + 40
 
-    # ── Try template backgrounds first ──────────────────────────────────────
-    front_bg = _draw_background_if_exists(c, _template_asset_path("id_card_front_bg.png"), lx, cy, card_w, card_h)
-    back_bg  = _draw_background_if_exists(c, _template_asset_path("id_card_back_bg.png"),  rx, cy, card_w, card_h)
+    front_bg = _template_asset_path("id_card_front.png")
+    c.drawImage(front_bg, x_front, y_pdf, card_w, card_h)
 
-    guj      = _guj_font(bold=False)
-    guj_bold = _guj_font(bold=True)
+    back_bg = _template_asset_path("id_card_back.png")
+    c.drawImage(back_bg, x_back, y_pdf, card_w, card_h)
 
+    # Coordinate mapping from grid size (512 x 716) to cards on A4
+    def f_xt(x):
+        return x_front + (x * (card_w / 512))
+    def f_yt(y):
+        return y_pdf + card_h - (y * (card_h / 716))
+
+    def b_xt(x):
+        return x_back + (x * (card_w / 512))
+    def b_yt(y):
+        return y_pdf + card_h - (y * (card_h / 716))
+
+    # ════════════════════════════════════════════════════════════════════════
+    # FRONT CARD OVERLAYS
+    # ════════════════════════════════════════════════════════════════════════
+    c.setFillColor(colors.white)
+    # 1. Cover bottom details (x = 30 to 482, y = 570 to 670)
+    c.rect(f_xt(30), f_yt(670), f_xt(482-30) - x_front, f_yt(570)-f_yt(670), fill=1, stroke=0)
+    # 2. Cover photo placeholder (x = 156 to 312, y = 360 to 558)
+    c.rect(f_xt(156), f_yt(558), f_xt(312-156) - x_front, f_yt(360)-f_yt(558), fill=1, stroke=0)
+
+    # Name
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 12)
+    name_str = _latin_safe(application.full_name).upper()
+    if len(name_str) > 28:
+        name_str = name_str[:27] + "."
+    c.drawCentredString(f_xt(256), f_yt(602), name_str)
+
+    # Designation
+    c.setFont("Helvetica-Bold", 9)
+    c.drawCentredString(f_xt(256), f_yt(624), _latin_safe(job.title).upper())
+
+    # Phone
+    c.setFont("Helvetica", 9)
+    c.drawCentredString(f_xt(256), f_yt(646), f"M. {_latin_safe(application.phone)}")
+
+    # Press Serial No
     press_id = application.employee_press_id or _generate_press_id(application.id)
+    c.setFont("Helvetica-Bold", 9.5)
+    c.setFillColor(colors.HexColor("#1a3c8b"))
+    c.drawCentredString(f_xt(256), f_yt(668), f"KE Sr No. {press_id}")
 
-    # Compute validity (end of current year or joining_date + 1 year)
+    # Candidate Photo
+    px = f_xt(156)
+    py = f_yt(558)
+    pw = f_xt(312) - px
+    ph = f_yt(360) - py
+
+    photo_drawn = False
+    if application.photo:
+        try:
+            reader = ImageReader(application.photo.path)
+            c.drawImage(reader, px + 2, py + 2, pw - 4, ph - 4, preserveAspectRatio=True, anchor="c")
+            photo_drawn = True
+        except Exception:
+            logger.exception("Failed to draw applicant photo in ID Card")
+
+    if not photo_drawn:
+        c.setStrokeColor(colors.grey)
+        c.setLineWidth(1)
+        c.rect(px, py, pw, ph, stroke=1, fill=0)
+        c.setFont("Helvetica", 7)
+        c.setFillColor(colors.grey)
+        c.drawCentredString(px + pw/2, py + ph/2, "PHOTO")
+
+    # ════════════════════════════════════════════════════════════════════════
+    # BACK CARD OVERLAYS
+    # ════════════════════════════════════════════════════════════════════════
+    c.setFillColor(colors.white)
+    # Cover values to the right of labels (x = 195 to 500, y = 90 to 270)
+    c.rect(b_xt(195), b_yt(270), b_xt(500-195) - x_back, b_yt(90)-b_yt(270), fill=1, stroke=0)
+
+    # Compute validity
     if application.joining_date:
         validity = application.joining_date.replace(year=application.joining_date.year + 1).strftime("%d/%m/%Y")
     else:
         validity = f"31/12/{timezone.now().year + 1}"
-
-    # ════════════════════════════════════════════════════════════════════════
-    # FRONT CARD
-    # ════════════════════════════════════════════════════════════════════════
-    if not front_bg:
-        # Card border & background
-        c.setFillColor(colors.white)
-        c.setStrokeColor(GOLD)
-        c.setLineWidth(2.5)
-        c.roundRect(lx, cy, card_w, card_h, 8, fill=1, stroke=1)
-
-        # ── Gold corner accent triangles ──────────────────────────────────
-        # Top-left
-        c.setFillColor(GOLD)
-        p = c.beginPath(); p.moveTo(lx, cy+card_h); p.lineTo(lx+50, cy+card_h); p.lineTo(lx, cy+card_h-50); p.close()
-        c.drawPath(p, fill=1, stroke=0)
-        # Top-right
-        p = c.beginPath(); p.moveTo(lx+card_w, cy+card_h); p.lineTo(lx+card_w-50, cy+card_h); p.lineTo(lx+card_w, cy+card_h-50); p.close()
-        c.drawPath(p, fill=1, stroke=0)
-        # Bottom-right
-        p = c.beginPath(); p.moveTo(lx+card_w, cy); p.lineTo(lx+card_w-50, cy); p.lineTo(lx+card_w, cy+50); p.close()
-        c.drawPath(p, fill=1, stroke=0)
-        # Bottom-left
-        p = c.beginPath(); p.moveTo(lx, cy); p.lineTo(lx+50, cy); p.lineTo(lx, cy+50); p.close()
-        c.drawPath(p, fill=1, stroke=0)
-
-        # ── Red header band ────────────────────────────────────────────────
-        header_h = 60
-        header_y = cy + card_h - header_h
-        c.setFillColor(RED)
-        c.roundRect(lx + 2, header_y, card_w - 4, header_h, 6, fill=1, stroke=0)
-        # Repair rounded bottom of header (make it flat at bottom)
-        c.rect(lx + 2, header_y, card_w - 4, 8, fill=1, stroke=0)
-
-        # Company name in header
-        c.setFillColor(GOLD)
-        c.setFont(_FONT_LATIN_BOLD, 17)
-        c.drawCentredString(lx + card_w/2, header_y + 38, "KANAM EXPRESS")
-        c.setFillColor(colors.white)
-        c.setFont(guj_bold, 13)
-        c.drawCentredString(lx + card_w/2, header_y + 18, "NEWS \u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AC0")
-
-        # Gold sub-banner
-        c.setFillColor(GOLD)
-        c.rect(lx + 2, header_y - 20, card_w - 4, 18, fill=1, stroke=0)
-        c.setFillColor(DARK)
-        c.setFont(guj, 10)
-        c.drawCentredString(lx + card_w/2, header_y - 14, "\u0AA8\u0ABF\u0AA1\u0AB0 \u0A85\u0AA8\u0AC7 \u0AA8\u0ABF\u0AB7\u0ACD\u0AAA\u0A95\u0ACD\u0AB7")
-
-        # Website
-        c.setFillColor(DARK)
-        c.setFont(_FONT_LATIN, 9)
-        c.drawCentredString(lx + card_w/2, header_y - 36, "www.kanamexpress.com")
-
-    # ── Applicant Photo ──────────────────────────────────────────────────────
-    if not front_bg:
-        photo_w, photo_h = 100, 120
-        photo_x = lx + (card_w - photo_w) / 2
-        photo_y = cy + card_h - 60 - 20 - 20 - photo_h - 20  # below sub-banner
-        _draw_photo(c, application, photo_x, photo_y, photo_w, photo_h,
-                    border_color=colors.HexColor("#aaaaaa"))
-
-        # Stamp circle on photo
-        c.saveState()
-        c.setStrokeColor(BLUE)
-        c.setFillColor(colors.transparent)
-        c.setLineWidth(1)
-        scx = photo_x + photo_w - 22
-        scy = photo_y + 24
-        c.circle(scx, scy, 19, stroke=1, fill=0)
-        c.setFont(_FONT_LATIN, 5)
-        c.setFillColor(BLUE)
-        c.drawCentredString(scx, scy + 5, "KANAM EXPRESS")
-        c.drawCentredString(scx, scy - 2, "EDITOR")
-        c.restoreState()
-
-        # ── Name, Designation, Phone, ID ────────────────────────────────────
-        name_y = photo_y - 22
-        c.setFillColor(DARK)
-        c.setFont(_FONT_LATIN_BOLD, 13)
-        name_str = _latin_safe(application.full_name).upper()
-        # Truncate if too long
-        if len(name_str) > 28:
-            name_str = name_str[:27] + "."
-        c.drawCentredString(lx + card_w/2, name_y, name_str)
-
-        c.setFont(_FONT_LATIN_BOLD, 10)
-        c.setFillColor(colors.HexColor("#444444"))
-        c.drawCentredString(lx + card_w/2, name_y - 16, _latin_safe(job.title).upper())
-
-        c.setFont(_FONT_LATIN, 10)
-        c.setFillColor(DARK)
-        c.drawCentredString(lx + card_w/2, name_y - 32, f"M. {_latin_safe(application.phone)}")
-
-        c.setFont(_FONT_LATIN_BOLD, 11)
-        c.setFillColor(BLUE)
-        c.drawCentredString(lx + card_w/2, name_y - 50, f"KE Sr No. {press_id}")
-
-        # ── TV PRESS footer ──────────────────────────────────────────────────
-        c.setFont(_FONT_LATIN_BOLD, 26)
-        c.setFillColor(ORANGE)
-        c.drawCentredString(lx + card_w/2, cy + 18, "TV PRESS")
-
-    # ════════════════════════════════════════════════════════════════════════
-    # BACK CARD
-    # ════════════════════════════════════════════════════════════════════════
-    if not back_bg:
-        c.setFillColor(colors.white)
-        c.setStrokeColor(GOLD)
-        c.setLineWidth(2.5)
-        c.roundRect(rx, cy, card_w, card_h, 8, fill=1, stroke=1)
-
-        # Top-right gold accent
-        c.setFillColor(GOLD)
-        p = c.beginPath(); p.moveTo(rx+card_w, cy+card_h); p.lineTo(rx+card_w-60, cy+card_h); p.lineTo(rx+card_w, cy+card_h-60); p.close()
-        c.drawPath(p, fill=1, stroke=0)
-        # Bottom-left gold accent
-        p = c.beginPath(); p.moveTo(rx, cy); p.lineTo(rx+60, cy); p.lineTo(rx, cy+60); p.close()
-        c.drawPath(p, fill=1, stroke=0)
-
-    if not back_bg:
-        pad = 20
-        bx  = rx + pad   # content left-x
-        bw  = card_w - 2*pad
-        row_y = cy + card_h - pad - 20
-        line_h = 18
-
-        def _back_label(label, value, ypos):
-            c.setFont(_FONT_LATIN_BOLD, 10)
-            c.setFillColor(DARK)
-            c.drawString(bx, ypos, label)
-            c.setFont(_FONT_LATIN, 10)
-            c.setFillColor(colors.HexColor("#333333"))
-            c.drawString(bx + 72, ypos, value)
-
-        _back_label("Valid Up to  :", validity, row_y)
-        row_y -= line_h
-
-        if application.joining_date:
-            _back_label("Date of Birth:", "—", row_y)  # DOB not in model; placeholder
-        row_y -= line_h
-
-        # Address
-        c.setFont(_FONT_LATIN_BOLD, 10)
-        c.setFillColor(DARK)
-        c.drawString(bx, row_y, "Address      :")
-        c.setFont(_FONT_LATIN, 10)
-        c.setFillColor(colors.HexColor("#333333"))
-        c.drawString(bx + 72, row_y, _latin_safe(job.location))
-        row_y -= line_h * 1.8
-
-        # Rules & Regulations
-        c.setFont(_FONT_LATIN_BOLD, 10)
-        c.setFillColor(DARK)
-        c.drawString(bx, row_y, "Rules & Regulations :")
-        row_y -= line_h * 0.9
-
-        rules = [
-            "Kanam Express News Paper and Channel will not be",
-            "responsible for any criminal activity held by the card holder.",
-            "Anybody who uses the card illegally is responsible for the",
-            "name use. KANAM EXPRESS is not responsible for any illegal",
-            "usage and misuse of the card.",
-            "Loss, Misplacement or the card must immediately be",
-            "reported in writing to the editor of KANAM EXPRESS.",
-        ]
-        c.setFont(_FONT_LATIN, 9)
-        c.setFillColor(colors.HexColor("#333333"))
-        for i, rule in enumerate(rules):
-            prefix = "- " if i in (0, 2, 5) else "  "
-            c.drawString(bx + 4, row_y, prefix + rule)
-            row_y -= 13
-
-        # Signature area
-        row_y -= 10
-        c.setStrokeColor(colors.HexColor("#555555"))
-        c.setLineWidth(0.5)
-        sig_line_x = rx + card_w - pad - 120
-        c.line(sig_line_x, row_y, sig_line_x + 110, row_y)
-        c.setFont(_FONT_LATIN, 9)
-        c.setFillColor(colors.HexColor("#555555"))
-        c.drawCentredString(sig_line_x + 55, row_y - 12, "Authorised Sign.")
-
-        # HEAD OFFICE footer
-        footer_h = 68
-        c.setFillColor(DARK)
-        c.rect(rx + 2, cy, card_w - 4, footer_h, fill=1, stroke=0)
-        c.roundRect(rx + 2, cy, card_w - 4, footer_h, 6, fill=1, stroke=0)
-        c.rect(rx + 2, cy + footer_h - 8, card_w - 4, 10, fill=1, stroke=0)
-
-        fx = rx + pad
-        fy = cy + footer_h - 14
-        c.setFont(_FONT_LATIN_BOLD, 10)
-        c.setFillColor(GOLD)
-        c.drawString(fx, fy, "\u0026  HEAD OFFICE")
-        c.setFont(_FONT_LATIN, 8)
-        c.setFillColor(colors.white)
-        c.drawString(fx, fy - 13, "Gokul Lala Ni Khadki, Jawahar Bazar, Jambusar,")
-        c.drawString(fx, fy - 24, "Dist. Bharuch, Gujarat-392150")
-        c.drawString(fx, fy - 35, "\u260E  9824749413 / 7623046498")
-        c.drawString(fx, fy - 46, "\u2709  kanamexpress@gmail.com")
 
     c.showPage()
     c.save()
