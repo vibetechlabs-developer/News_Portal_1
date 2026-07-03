@@ -98,14 +98,31 @@ const Reels = () => {
                   className="group cursor-pointer block"
                 >
               <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-secondary">
-                <img
-                  src={
-                    thumbnailUrl ||
-                    '/logo.png'
-                  }
-                  alt=""
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                {thumbnailUrl ? (
+                  <img
+                    src={thumbnailUrl}
+                    alt={getTitle(reel, language)}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : reelUrl ? (
+                  <video
+                    src={reelUrl}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onLoadedMetadata={(e) => {
+                      const v = e.currentTarget;
+                      v.currentTime = 0.1;
+                    }}
+                  />
+                ) : (
+                  <img
+                    src="/logo.png"
+                    alt={getTitle(reel, language)}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 
                 {/* Play Button Overlay */}
