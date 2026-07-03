@@ -1915,3 +1915,24 @@ export interface PollData {
   created_at: string;
 }
 
+export async function requestPasswordReset(email: string): Promise<{ detail: string }> {
+  const url = apiUrl("/auth/password-reset/");
+  return request<{ detail: string }>(url, {
+    method: "POST",
+    auth: false,
+    json: { email },
+  });
+}
+
+export async function confirmPasswordReset(
+  uidb64: string,
+  token: string,
+  new_password: string
+): Promise<{ detail: string }> {
+  const url = apiUrl("/auth/password-reset/confirm/");
+  return request<{ detail: string }>(url, {
+    method: "POST",
+    auth: false,
+    json: { uidb64, token, new_password },
+  });
+}

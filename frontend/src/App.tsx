@@ -35,6 +35,8 @@ import NotFound from "./pages/NotFound";
 import ArticleDetail from "./pages/ArticleDetail";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import EditorDashboard from "./pages/EditorDashboard";
 import ReporterDashboard from "./pages/ReporterDashboard";
@@ -92,6 +94,8 @@ const App = () => (
               {/* Auth & dashboards */}
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/admin"
                 element={

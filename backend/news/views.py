@@ -63,7 +63,7 @@ from .serializers import (
     ReelCommentSerializer,
     PollSerializer,
 )
-from .fcm_client import send_article_fcm_notifications
+from .fcm_client import send_article_fcm_notifications, send_video_fcm_notifications, send_reel_fcm_notifications
 
 import logging
 import requests
@@ -153,6 +153,50 @@ def _notify_new_article_from_id(article_id: int):
     except NewsArticle.DoesNotExist:
         return
     _notify_new_article(article)
+
+
+def _create_video_notification(video):
+    """Create an admin dashboard notification for a newly uploaded video."""
+    try:
+        from careers.models import Notification
+        title = video.title_en or video.title_hi or video.title_gu or f"Video #{video.pk}"
+        Notification.objects.create(
+            notification_type="VIDEO_CONTENT",
+            title=f"New Video Published: {title}",
+            message=f'A new video "{title}" has been published.',
+            related_object_type="VideoContent",
+            related_object_id=video.pk,
+        )
+    except Exception:
+        logger.exception("Failed to create notification for video %s", video.pk)
+
+
+def _notify_new_video(video):
+    """Send all notification channels for a newly published video."""
+    _create_video_notification(video)
+    send_video_fcm_notifications(video)
+
+
+def _create_reel_notification(reel):
+    """Create an admin dashboard notification for a newly uploaded reel."""
+    try:
+        from careers.models import Notification
+        title = reel.title_en or reel.title_hi or reel.title_gu or f"Reel #{reel.pk}"
+        Notification.objects.create(
+            notification_type="REEL_CONTENT",
+            title=f"New Reel Published: {title}",
+            message=f'A new reel "{title}" has been published.',
+            related_object_type="ReelContent",
+            related_object_id=reel.pk,
+        )
+    except Exception:
+        logger.exception("Failed to create notification for reel %s", reel.pk)
+
+
+def _notify_new_reel(reel):
+    """Send all notification channels for a newly published reel."""
+    _create_reel_notification(reel)
+    send_reel_fcm_notifications(reel)
 
 
 def _is_content_manager(user):
@@ -834,7 +878,14 @@ class VideoContentViewSet(viewsets.ModelViewSet):
             )
         slug = data.get("slug") or slugify(data.get("title_en", "")) or "video"
         slug = _unique_slug(VideoContent, slug[:320])
-        serializer.save(slug=slug)
+        video = serializer.save(slug=slug)
+        # Send notifications when a video is published
+        if getattr(video, "status", None) == ContentStatus.PUBLISHED:
+            try:
+                from django.db import transaction
+                transaction.on_commit(lambda: _notify_new_video(video))
+            except Exception:
+                logger.exception("Failed to schedule video notification for %s", video.pk)
 
     def perform_update(self, serializer):
         data = serializer.validated_data
@@ -954,7 +1005,14 @@ class ReelContentViewSet(viewsets.ModelViewSet):
             )
         slug = data.get("slug") or slugify(data.get("title_en", "")) or "reel"
         slug = _unique_slug(ReelContent, slug[:320])
-        serializer.save(slug=slug)
+        reel = serializer.save(slug=slug)
+        # Send notifications when a reel is published
+        if getattr(reel, "status", None) == ContentStatus.PUBLISHED:
+            try:
+                from django.db import transaction
+                transaction.on_commit(lambda: _notify_new_reel(reel))
+            except Exception:
+                logger.exception("Failed to schedule reel notification for %s", reel.pk)
 
     def perform_update(self, serializer):
         data = serializer.validated_data
