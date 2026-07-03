@@ -317,8 +317,8 @@ DEFAULT_FROM_EMAIL = config(
 # Frontend URL for password reset link (user lands here with token in query)
 FRONTEND_RESET_PASSWORD_URL = config(
     "FRONTEND_RESET_PASSWORD_URL",
-    # Default to Vite dev server; override in production via env
-    default="http://localhost:8080/reset-password",
+    # Default to production domain; override in dev via .env
+    default="https://kanamexpress.com/reset-password",
 )
 
 # API documentation (drf-spectacular)

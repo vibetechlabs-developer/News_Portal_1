@@ -76,11 +76,18 @@ class PasswordResetRequestView(generics.GenericAPIView):
                 f"{settings.FRONTEND_RESET_PASSWORD_URL.rstrip('/')}"
                 f"?uid={uidb64}&token={token}"
             )
+            from django.template.loader import render_to_string
+            
+            html_message = render_to_string("users/email/password_reset.html", {
+                "reset_url": reset_url,
+            })
+            
             send_mail_logged(
-                subject="Password reset - News Portal",
+                subject="Reset Your Password - Kanam Express",
                 message=f"Use this link to reset your password: {reset_url}\n\nIf you did not request this, ignore this email.",
                 recipient_list=[email],
                 from_email=settings.DEFAULT_FROM_EMAIL,
+                html_message=html_message,
             )
         return Response(
             {"detail": "If an account exists with this email, you will receive a reset link."},
